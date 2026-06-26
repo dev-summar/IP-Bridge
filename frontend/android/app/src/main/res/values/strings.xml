@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PatentBridge</string>
+    <string name="title_activity_main">PatentBridge</string>
+    <string name="package_name">com.patentbridge.app</string>
+    <string name="custom_url_scheme">com.patentbridge.app</string>
+</resources>

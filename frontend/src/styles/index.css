@@ -1,0 +1,356 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, monospace;
+    --tracking-display: -0.03em;
+    --tracking-heading: -0.02em;
+    --tracking-body: -0.01em;
+    --tracking-label: 0.1em;
+    --tracking-caps: 0.12em;
+
+    /* Pure white cards on soft light-indigo/zinc background */
+    --background: 240 15% 98%; 
+    --foreground: 224 71.4% 4.1%; 
+    
+    --card: 0 0% 100%; 
+    --card-foreground: 224 71.4% 4.1%;
+
+    /* Vibrant Royal Indigo Primary Accent Color (similar to Stripe/Linear) */
+    --primary: 210 72% 55%; /* LVX blue #4a90e2 */
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 5% 94%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 250 89% 96%; /* Soft Indigo tint */
+    --accent-foreground: 250 89% 45%;
+
+    --border: 240 6% 90%; 
+    
+    --radius: 0.6rem;
+  }
+
+  .dark {
+    /* Vercel/Linear-style Dark Mode tokens */
+    --background: 240 10% 3.9%; /* Slate 950 / #09090b */
+    --foreground: 0 0% 98%; /* High contrast white text */
+    
+    --card: 240 10% 5.9%; /* Slightly lighter dark gray card */
+    --card-foreground: 0 0% 98%;
+
+    --primary: 250 89% 62%; /* Vibrant Royal Indigo */
+    --primary-foreground: 210 20% 98%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 12%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 250 89% 15%; /* Deep indigo highlight overlay */
+    --accent-foreground: 250 89% 85%;
+
+    --border: 240 3.7% 16%; /* Dark border lines */
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-body);
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    overflow-x: hidden;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  #root {
+    min-height: 100%;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  button, input, textarea, select {
+    font-family: inherit;
+  }
+
+  code, kbd, pre, samp {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Premium smooth transitions */
+.premium-transition {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e4e4e7;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+@layer components {
+  .type-display {
+    font-weight: 700;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.08;
+  }
+
+  .type-section-title {
+    font-size: clamp(1.875rem, 4vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: var(--tracking-display);
+    line-height: 1.12;
+  }
+
+  .type-card-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: var(--tracking-heading);
+    line-height: 1.3;
+  }
+
+  .type-body {
+    font-size: 0.9375rem;
+    font-weight: 400;
+    letter-spacing: var(--tracking-body);
+    line-height: 1.65;
+  }
+
+  .type-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  .type-caps-btn {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Premium smooth transitions */
+.gradient-text {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-glow-1 {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(124, 58, 237, 0.05) 50%, transparent 100%);
+}
+
+.hero-glow-2 {
+  background: radial-gradient(circle, rgba(219, 39, 119, 0.1) 0%, rgba(99, 102, 241, 0.03) 50%, transparent 100%);
+}
+
+.premium-card-border {
+  position: relative;
+}
+.premium-card-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.premium-card-border:hover::before {
+  opacity: 1;
+}
+
+/* LetsVenture-inspired design tokens */
+:root {
+  --lvx-navy: #0a1628;
+  --lvx-navy-light: #122240;
+  --lvx-navy-card: #152a4a;
+  --lvx-blue: #4a90e2;
+  --lvx-blue-hover: #3a7bc8;
+  --lvx-charcoal: #1a2b3c;
+  --lvx-label: #8e8ebf;
+  --lvx-orange: #f5a623;
+  --lvx-peach: #fff5eb;
+  --lvx-tile: #0f2d37;
+  --lvx-surface: #f8fafc;
+}
+
+.lvx-hero-bg {
+  background-color: var(--lvx-navy);
+}
+
+.lvx-stat-card {
+  background-color: var(--lvx-navy-card);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  position: relative;
+}
+
+.lvx-stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.06) 50%);
+}
+
+.lvx-cta-btn {
+  background-color: var(--lvx-blue);
+  color: white;
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  padding: 0.9rem 2rem;
+  border-radius: 0.2rem;
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .lvx-cta-btn {
+    width: auto;
+  }
+}
+
+.lvx-cta-btn:hover {
+  background-color: var(--lvx-blue-hover);
+  transform: translateY(-1px);
+}
+
+/* Section label fading line */
+.lvx-label-line {
+  background: linear-gradient(90deg, var(--lvx-label) 0%, rgba(142, 142, 191, 0.15) 70%, transparent 100%);
+}
+
+/* Peach ecosystem card */
+.lvx-peach-card {
+  background-color: var(--lvx-peach);
+}
+
+.dark .lvx-peach-card {
+  background-color: #1c1510;
+}
+
+/* Dark teal industry tiles */
+.lvx-tile {
+  background-color: var(--lvx-tile);
+  transition: box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lvx-tile:hover {
+  box-shadow: 0 8px 24px rgba(15, 45, 55, 0.35);
+}
+
+/* EXPLORE button */
+.lvx-explore-btn {
+  background-color: var(--lvx-blue);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  padding: 0.85rem 1.75rem;
+  border-radius: 0.2rem;
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lvx-explore-btn:hover {
+  background-color: var(--lvx-blue-hover);
+  transform: translateY(-1px);
+}
+
+/* Auth gateway cards — matches homepage stat-card navy */
+.lvx-auth-card {
+  background-color: var(--lvx-navy-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lvx-auth-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(74, 144, 226, 0.35);
+}
+
+.lvx-auth-form-card {
+  background-color: var(--lvx-navy-card);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+}
+
+.lvx-auth-form-card label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* White inputs on navy — homepage search style */
+.lvx-input-white {
+  background-color: #ffffff !important;
+  color: var(--lvx-charcoal) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.lvx-input-white::placeholder {
+  color: #94a3b8 !important;
+}
+
+.lvx-input-white:focus {
+  border-color: var(--lvx-blue) !important;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2) !important;
+}

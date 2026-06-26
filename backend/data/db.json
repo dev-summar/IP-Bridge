@@ -1,0 +1,341 @@
+{
+  "users": [
+    {
+      "_id": "amy4o0uus7wujqw1s486",
+      "name": "Rajesh Sharma (Admin)",
+      "email": "admin@patentbridge.com",
+      "passwordHash": "$2a$10$wEUlRgDKlhfXLZhprbomWec.GZAvC1kqBoqcErNlPZ4jNYxvOFozW",
+      "organization": "PatentBridge India",
+      "role": "admin",
+      "savedPatents": [],
+      "createdAt": "2026-06-08T03:59:42.345Z",
+      "updatedAt": "2026-06-08T03:59:42.345Z"
+    },
+    {
+      "_id": "q2smha5lm0mnf66fjvo25i",
+      "name": "Rajesh Sharma (Admin)",
+      "email": "admin@patentbridge.com",
+      "passwordHash": "$2a$10$nbq0s2LwcTHUOW8a3JsqYuj7hBZmvEuhn/rGq0JPUetsMawjxO4Oq",
+      "organization": "PatentBridge India",
+      "role": "admin",
+      "savedPatents": [],
+      "createdAt": "2026-06-08T03:59:42.359Z",
+      "updatedAt": "2026-06-08T03:59:42.359Z"
+    },
+    {
+      "_id": "4ygj3ts8ogndpvuwjkweor",
+      "name": "Prof. Ankur Gupta (Inventor)",
+      "email": "owner@patentbridge.com",
+      "passwordHash": "$2a$10$nbq0s2LwcTHUOW8a3JsqYuj7hBZmvEuhn/rGq0JPUetsMawjxO4Oq",
+      "organization": "MIET",
+      "role": "owner",
+      "savedPatents": [],
+      "createdAt": "2026-06-08T03:59:42.364Z",
+      "updatedAt": "2026-06-09T06:12:03.570Z"
+    },
+    {
+      "_id": "1gciz3wu9ubzxvv0vla67g",
+      "name": "Vikram Malhotra (Corporate Acquirer)",
+      "email": "buyer@patentbridge.com",
+      "passwordHash": "$2a$10$nbq0s2LwcTHUOW8a3JsqYuj7hBZmvEuhn/rGq0JPUetsMawjxO4Oq",
+      "organization": "Tata Innovation Labs",
+      "role": "buyer",
+      "savedPatents": [],
+      "createdAt": "2026-06-08T03:59:42.367Z",
+      "updatedAt": "2026-06-08T03:59:42.367Z"
+    }
+  ],
+  "patents": [
+    {
+      "_id": "1a2wjhw0b3jl39arpi9bys",
+      "patentNumber": "IN-202611064342",
+      "title": "SYSTEM AND METHOD FOR BIOMECHANICAL MONITORING AND STRUCTURAL ANALYSIS OF FOOTWEAR",
+      "abstract": "A system (100) and method (200) for biomechanical monitoring and structural analysis in footwear are disclosed. A sole (102) integrates pressure sensors (104) distributed across heel, midfoot, forefoot, and hallux regions to generate plantar force data including vertical ground reaction forces and center of pressure coordinates. An upper member (106) incorporates dorsal sensors (108), strain sensors (110), and shear force sensors (110) to capture impact, friction, ankle strain, and lateral containment data. An inertial measurement unit (112) generates motion data including acceleration, angular velocity, and orientation. A processing unit (116) receives and temporally synchronises multi-source data, correlates the data to generate volumetric biomechanical data, and evaluates biomechanical parameters. The processing unit (116) determines movement events, computes an ankle stability ratio, and identifies instability, drag, impact, or containment degradation events. A wireless communication unit (122) transmits aggregated data to a server (120) for analytical processing and feedback generation.",
+      "pdfUrl": "https://ipindiaservices.gov.in/publicsearch",
+      "ownerId": "4ygj3ts8ogndpvuwjkweor",
+      "status": "approved",
+      "createdAt": "2026-06-09T06:07:49.289Z",
+      "updatedAt": "2026-06-09T06:07:49.289Z"
+    },
+    {
+      "_id": "t8m9r4g5hanm00y9ec6zfi",
+      "patentNumber": "IN-202611042595",
+      "title": "SYSTEM AND METHOD FOR DATA SOVEREIGNTY AND FUNCTIONAL INTEGRITY ENFORCEMENT IN SMART HOME DEVICES",
+      "abstract": "A system (100) and a method (200) for enforcing data sovereignty and functional integrity within a predefined premises are disclosed. The system (100) includes a privacy gateway apparatus (102) communicatively interposed between devices (104) and an external Wide Area Network (WAN), a network segmentation module configured to isolate the devices (104) within a restricted Local Area Network (LAN) segment, and a Power Line Communication (PLC) controller (106) operatively coupled to electrical supply sockets (108). At least one processor (110), intercepts outbound network traffic, identifies user-contextual data, and selectively blocks transmission to external cloud servers (130) in accordance with a predefined privacy enforcement policy. Electrical power consumption signatures and radio frequency (RF) transmissions are monitored and correlated to detect unauthorized communication attempts. Upon detection, the PLC controller (106) discontinues electrical power supply to a corresponding device (104), thereby maintaining controlled operation and preventing unauthorized data exfiltration within the predefined premises.",
+      "pdfUrl": "https://ipindiaservices.gov.in/publicsearch",
+      "ownerId": "4ygj3ts8ogndpvuwjkweor",
+      "status": "approved",
+      "createdAt": "2026-06-09T06:08:19.192Z",
+      "updatedAt": "2026-06-09T06:08:19.192Z"
+    },
+    {
+      "_id": "9gh275xj5g6uprhymu9qei",
+      "patentNumber": "IN-202511116646",
+      "title": "INTEGRATED EDGE COMPUTING DEVICE FOR EXPLAINABLE MEDICAL IMAGING ADJUSTMENT",
+      "abstract": "The present disclosure provides an integrated edge computing device (100) for secure and explainable adjustment of medical imaging parameters. The device includes a housing (102) containing a processing unit (104) with graphics processing unit (104-2) and central processing unit (104-4), a security chip (106), encrypted storage (108), and a sensor interface (110) coordinated to receive imaging data from an imaging scanner (122). An inference circuit (112) analyzes imaging data and user information to generate parameter recommendations, while an explainability circuit (114) creates visual justifications including overlay maps (114-2A) for operator verification. A blockchain interface (116) manages secure data transactions with a distributed ledger network (120), and a communication interface (118) transmits adjustments to an operator workstation (128). Unlike conventional imaging systems operating in isolation, this approach enables secure cross-institutional data access while providing transparent recommendations and comprehensive radiation dose monitoring.",
+      "pdfUrl": "https://ipindiaservices.gov.in/publicsearch",
+      "ownerId": "4ygj3ts8ogndpvuwjkweor",
+      "status": "approved",
+      "createdAt": "2026-06-09T06:08:42.100Z",
+      "updatedAt": "2026-06-09T06:08:42.100Z"
+    },
+    {
+      "_id": "n8ztmcvxhfa03et4e23fnbr",
+      "patentNumber": "IN-202511088594",
+      "title": "HEALTH MONITORING AND EVACUATION COORDINATION SYSTEM AND METHOD THEREOF",
+      "abstract": "The present disclosure relates to a health monitoring and evacuation coordination system (102) and method (200) are disclosed for real-time monitoring of entities in high-risk environments. The system (102) includes a Body Area Network (BAN) device (104) worn by entities to collect biometric and geolocation data and generate zero-knowledge proofs (ZKPs) representing health conditions without transmitting raw biometric data. A secure peer-to-peer (P2P) mesh network (106), with unmanned aerial vehicles (UAVs) (108) and autonomous ground vehicles (110) as super nodes, maintains connectivity and relays information. A processor (112) analyzes ZKPs, determines urgency and type of response, and computes routes using multi-agent reinforcement learning (MARL) models, and assigns roles to UAVs (108) or vehicles (110) for tasks including condition confirmation, medical supply delivery, escort, or extraction. Further, an artificial intelligence (AI) module (132) logs all decisions using verifiable computation with Merkle Tree- based audit trails, provides operational recommendations, and supports human- in-the-loop approval.",
+      "pdfUrl": "https://ipindiaservices.gov.in/publicsearch",
+      "ownerId": "4ygj3ts8ogndpvuwjkweor",
+      "status": "approved",
+      "createdAt": "2026-06-09T06:09:09.560Z",
+      "updatedAt": "2026-06-09T06:13:27.198Z"
+    }
+  ],
+  "patentAnalysis": [
+    {
+      "_id": "bgohzjl0xk2qtkthk25e4",
+      "patentId": "1a2wjhw0b3jl39arpi9bys",
+      "summary": {
+        "description": "An advanced footwear system incorporating multi-region pressure, dorsal, strain, and shear force sensors alongside an inertial measurement unit to analyze gait dynamics in real-time.",
+        "problemSolved": "Traditional gait analysis requires expensive laboratory settings (treadmills, force plates, high-speed cameras) which fail to capture natural, real-world shoe wear and user movement.",
+        "keyInnovation": "Multi-source sensor temporal synchronization combined with real-time ankle stability ratio computing to predict joint sprains and identify lateral containment degradation.",
+        "commercialValue": "Empowers athletes, physical therapists, and footwear manufacturers with continuous, real-world biomechanical telemetry, reducing injury risk by 45%."
+      },
+      "industryClassification": [
+        "Robotics",
+        "Healthcare",
+        "Manufacturing"
+      ],
+      "keywords": [
+        "wearable sensors",
+        "biomechanical telemetry",
+        "gait analysis",
+        "ankle stability ratio",
+        "smart footwear"
+      ],
+      "commercialApplications": {
+        "potentialIndustries": [
+          "Athletic Footwear Companies",
+          "Sports Rehabilitation Centers",
+          "Military Gear Developers"
+        ],
+        "useCases": [
+          "Real-time injury prevention coaching for long-distance runners",
+          "Clinical recovery tracking for orthopedic surgery patients",
+          "Ergonomic validation during prototype shoe manufacturing"
+        ],
+        "adoptionOpportunities": [
+          "Licensing",
+          "Strategic Partnership",
+          "Technology Transfer"
+        ]
+      },
+      "commercialPotentialScore": 88,
+      "potentialBuyers": [
+        "Nike Inc.",
+        "Adidas AG",
+        "Under Armour",
+        "Hanger Clinic",
+        "US Department of Defense"
+      ],
+      "marketOpportunity": "This smart footwear analysis solution leverages the growing $15B market for wearable athletics and digital therapeutics. By providing lab-quality gait feedback directly inside consumer shoes, it unlocks massive licensing potential with global athletic apparel brands and clinical rehabilitation networks.",
+      "filingYear": 2026,
+      "commercialBreakdown": {
+        "technicalFeasibility": 85,
+        "marketDemand": 92,
+        "implementationSpeed": 80,
+        "licensingValue": 90,
+        "ipProtection": 93
+      },
+      "createdAt": "2026-06-09T06:08:19.159Z",
+      "updatedAt": "2026-06-09T06:08:19.159Z"
+    },
+    {
+      "_id": "dir4a5z1us5peqfcl7zp2",
+      "patentId": "t8m9r4g5hanm00y9ec6zfi",
+      "summary": {
+        "description": "A system and method that enforces data sovereignty and prevents unauthorized data exfiltration in smart home devices through network segmentation, power line communication monitoring, and real-time traffic interception.",
+        "problemSolved": "Addresses data privacy vulnerabilities in IoT ecosystems by preventing unauthorized cloud communication and device tampering, unlike legacy systems that lack granular control over device-to-cloud data flows.",
+        "commercialValue": "Reduces cybersecurity risks for enterprises and consumers, enables compliance with data sovereignty regulations, and creates value through enhanced device security and operational control.",
+        "keyInnovation": "Integration of Power Line Communication (PLC) monitoring with contextual network traffic analysis to physically disable compromised devices via power cutoff, combining physical and digital security layers."
+      },
+      "industryClassification": [
+        "Smart Home",
+        "IoT",
+        "Cybersecurity",
+        "Energy",
+        "Consumer Electronics"
+      ],
+      "keywords": [
+        "Data Sovereignty",
+        "Network Segmentation",
+        "PLC Monitoring",
+        "RF Traffic Analysis",
+        "Cybersecurity"
+      ],
+      "commercialApplications": {
+        "potentialIndustries": [
+          "Smart Home Providers",
+          "Industrial IoT",
+          "Healthcare IoT",
+          "Financial Services"
+        ],
+        "useCases": [
+          "Secure hospital IoT device communication",
+          "Prevent data exfiltration in corporate smart buildings",
+          "Compliance-driven residential energy management systems"
+        ],
+        "adoptionOpportunities": [
+          "Licensing for IoT platform integration",
+          "Strategic partnerships with cybersecurity firms",
+          "Joint research with energy providers for smart grid security"
+        ]
+      },
+      "commercialPotentialScore": 85,
+      "potentialBuyers": [
+        "IoT Device Manufacturers",
+        "Cybersecurity Solution Providers",
+        "Smart Home Platform Companies",
+        "Energy Management Firms"
+      ],
+      "marketOpportunity": "With global IoT device counts surpassing 25 billion, there's urgent demand for data sovereignty solutions. This technology addresses critical gaps in securing sensitive data in smart homes, healthcare facilities, and industrial environments, aligning with GDPR/CCPA compliance requirements and creating value for enterprises seeking to mitigate cyber risks.",
+      "filingYear": 2021,
+      "commercialBreakdown": {
+        "technicalFeasibility": 90,
+        "marketDemand": 88,
+        "implementationSpeed": 75,
+        "licensingValue": 85,
+        "ipProtection": 95
+      },
+      "createdAt": "2026-06-09T06:08:42.071Z",
+      "updatedAt": "2026-06-09T06:08:42.071Z"
+    },
+    {
+      "_id": "dxmx92utudm17d7j2fmkyv",
+      "patentId": "9gh275xj5g6uprhymu9qei",
+      "summary": {
+        "description": "An edge computing hardware device that receives medical imaging scanner outputs, analyzes them securely using a graphics processing unit, generates explainable parameter adjustments, and logs entries via blockchain.",
+        "problemSolved": "Medical imaging scanners operate in isolation and parameter adjustments are often unrecorded or lack explainability, raising safety, radiation dose, and compliance concerns.",
+        "keyInnovation": "Inference and explainability circuits that compute local overlay justification maps for operator validation, backed by a distributed ledger network for secure cross-institutional auditing.",
+        "commercialValue": "Guarantees secure, transparent, and explainable parameter adjustments, reducing unnecessary patient radiation exposure while providing a verifiable audit trail."
+      },
+      "industryClassification": [
+        "Healthcare",
+        "AI",
+        "FinTech"
+      ],
+      "keywords": [
+        "explainable AI",
+        "medical imaging",
+        "edge computing hardware",
+        "blockchain auditing",
+        "radiation monitoring"
+      ],
+      "commercialApplications": {
+        "potentialIndustries": [
+          "Radiology Equipment Manufacturers",
+          "Digital Health Platforms",
+          "Clinical Compliance Networks"
+        ],
+        "useCases": [
+          "Secure multi-hospital diagnostic parameter sharing",
+          "Real-time AI-assisted CT scan calibration with explainable overlay maps",
+          "Automated radiation dose tracking and compliance auditing"
+        ],
+        "adoptionOpportunities": [
+          "Licensing",
+          "Technology Transfer",
+          "Joint Research"
+        ]
+      },
+      "commercialPotentialScore": 94,
+      "potentialBuyers": [
+        "GE HealthCare",
+        "Siemens Healthineers",
+        "Philips Healthcare",
+        "Epic Systems",
+        "IBM Watson Health"
+      ],
+      "marketOpportunity": "This edge medical imaging controller stands at the intersection of the $40B healthcare AI and blockchain auditing markets. It provides immediate market entry barriers for hospital networks demanding explainable medical decisions and secure cross-institutional collaboration without violating patient confidentiality.",
+      "filingYear": 2025,
+      "commercialBreakdown": {
+        "technicalFeasibility": 92,
+        "marketDemand": 95,
+        "implementationSpeed": 88,
+        "licensingValue": 96,
+        "ipProtection": 98
+      },
+      "createdAt": "2026-06-09T06:09:09.550Z",
+      "updatedAt": "2026-06-09T06:09:09.550Z"
+    },
+    {
+      "_id": "14jn037b1kijgz7riogpwa",
+      "patentId": "n8ztmcvxhfa03et4e23fnbr",
+      "summary": {
+        "description": "This technology provides a health monitoring and evacuation coordination system for real-time tracking of individuals in high-risk environments, leveraging biometric data, secure peer-to-peer networks with autonomous vehicles, and AI-driven response coordination.",
+        "problemSolved": "It solves the problem of unreliable real-time health monitoring, privacy concerns with biometric data, and uncoordinated emergency response in hazardous conditions by offering robust connectivity, privacy-preserving data collection, and AI-guided autonomous evacuation and aid delivery.",
+        "commercialValue": "The commercial value lies in significantly improving personnel safety, reducing response times, ensuring data privacy through Zero-Knowledge Proofs (ZKPs), and enhancing operational efficiency and accountability in critical situations.",
+        "keyInnovation": "The key innovation is the integration of ZKPs for privacy-preserving health data, a secure mesh network utilizing UAVs and AGVs as super nodes for robust communication, Multi-Agent Reinforcement Learning (MARL) for dynamic evacuation routing, and an AI module with verifiable computation for auditable decision-making."
+      },
+      "industryClassification": [
+        "Public Safety",
+        "Defense",
+        "Robotics",
+        "Artificial Intelligence",
+        "Cybersecurity",
+        "Healthcare"
+      ],
+      "keywords": [
+        "Health Monitoring",
+        "Zero-Knowledge Proofs",
+        "UAVs",
+        "MARL",
+        "Emergency Response"
+      ],
+      "commercialApplications": {
+        "potentialIndustries": [
+          "Military & Defense",
+          "Mining",
+          "Emergency Services",
+          "Oil & Gas",
+          "Disaster Relief"
+        ],
+        "useCases": [
+          "Real-time monitoring and autonomous medical evacuation of soldiers in combat zones or training exercises.",
+          "Health tracking of miners in underground operations with automated rescue coordination during collapses or emergencies.",
+          "Deployment in disaster areas to monitor first responders' vitals and deliver supplies or provide escort/extraction using autonomous vehicles."
+        ],
+        "adoptionOpportunities": [
+          "Licensing to defense contractors and military technology providers.",
+          "Strategic partnerships with emergency response system manufacturers.",
+          "Technology transfer to industrial safety solution companies for hazardous environments."
+        ]
+      },
+      "commercialPotentialScore": 75,
+      "potentialBuyers": [
+        "Department of Defense (and other national defense ministries)",
+        "Major Mining Corporations (e.g., Rio Tinto, BHP Billiton)",
+        "Oil & Gas Supermajors (e.g., Shell, ExxonMobil)",
+        "Emergency Services Technology Providers (e.g., Motorola Solutions, General Dynamics)"
+      ],
+      "marketOpportunity": "There is a significant and growing market need for advanced safety and emergency response systems in high-risk sectors where human lives are at stake. Current solutions often lack the real-time, privacy-preserving, and autonomously coordinated capabilities offered by this patent, creating a strong demand for innovative solutions in military, industrial, and public safety applications.",
+      "filingYear": 2023,
+      "commercialBreakdown": {
+        "technicalFeasibility": 75,
+        "marketDemand": 85,
+        "implementationSpeed": 60,
+        "licensingValue": 80,
+        "ipProtection": 85
+      },
+      "createdAt": "2026-06-09T06:09:47.276Z",
+      "updatedAt": "2026-06-09T06:09:47.276Z"
+    }
+  ],
+  "interestRequests": [],
+  "meetingRequests": [],
+  "auditLogs": [],
+  "offers": [],
+  "ndaSignatures": [],
+  "accessRequests": [],
+  "transactions": []
+}
