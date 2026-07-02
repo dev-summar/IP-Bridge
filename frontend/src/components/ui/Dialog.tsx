@@ -7,11 +7,12 @@ interface DialogProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  description?: string;
   children: React.ReactNode;
   className?: string;
 }
 
-export const Dialog = ({ isOpen, onClose, title, children, className }: DialogProps) => {
+export const Dialog = ({ isOpen, onClose, title, description, children, className }: DialogProps) => {
   // Close on Escape key
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -47,23 +48,28 @@ export const Dialog = ({ isOpen, onClose, title, children, className }: DialogPr
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', duration: 0.4 }}
             className={cn(
-              "relative w-full max-w-lg bg-card rounded-2xl shadow-premium-lg border border-border overflow-hidden z-10 text-card-foreground",
+              "relative w-full max-w-lg bg-card rounded-2xl shadow-premium-lg border border-border z-10 text-card-foreground flex flex-col max-h-[min(90vh,720px)]",
               className
             )}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h3 className="text-base font-bold text-foreground">{title}</h3>
+            <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border shrink-0">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold text-foreground tracking-tight">{title}</h3>
+                {description && (
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
+                )}
+              </div>
               <button
                 onClick={onClose}
-                className="text-muted-foreground hover:text-foreground rounded-md p-1.5 hover:bg-muted premium-transition"
+                className="text-muted-foreground hover:text-foreground rounded-md p-1.5 hover:bg-muted premium-transition shrink-0"
               >
                 <X className="h-4.5 w-4.5" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-6">{children}</div>
+            <div className="overflow-y-auto flex-1 min-h-0 px-6 py-5">{children}</div>
           </motion.div>
         </div>
       )}

@@ -20,8 +20,23 @@ import {
 import { EmptyState } from '../components/ui/EmptyState';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import { formatINR } from '../constants/ip';
+import { cn } from '../utils/cn';
 
 type ManagerProps = { embedded?: boolean };
+
+const formLabelClass =
+  'normal-case text-sm font-medium text-zinc-700 dark:text-zinc-300 tracking-normal';
+
+const formFieldClass =
+  'w-full px-4 py-2.5 text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-premium-sm placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lvx-blue/20 focus:border-lvx-blue premium-transition';
+
+const parsePriceDigits = (value: string) => value.replace(/\D/g, '');
+
+const formatPriceInput = (value: string) => {
+  const digits = parsePriceDigits(value);
+  if (!digits) return '';
+  return Number(digits).toLocaleString('en-IN');
+};
 
 const cardClass = 'rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
 
@@ -645,16 +660,21 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
   }, [searchParams, setSearchParams]);
 
   const openNewDialog = () => setIsNewOpen(true);
+  const parsedAskingPrice = Number(parsePriceDigits(form.askingPrice)) || 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.isForSale && !form.isForLicense) {
+      alert('Select at least one listing option: sale or licensing.');
+      return;
+    }
     try {
       setSubmitting(true);
       await apiFetch('/api/patents', {
         method: 'POST',
         body: {
           ...form,
-          askingPrice: Number(form.askingPrice) || 0
+          askingPrice: Number(parsePriceDigits(form.askingPrice)) || 0
         }
       });
       setIsNewOpen(false);
@@ -741,77 +761,158 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
       )}
 
       {/* New Patent Register Dialog */}
-      <Dialog isOpen={isNewOpen} onClose={() => setIsNewOpen(false)} title="Register Intellectual Property">
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <Input 
-            label="Patent Number" 
-            placeholder="e.g. US-11394025-B2" 
-            required 
-            value={form.patentNumber}
-            onChange={e => setForm(prev => ({ ...prev, patentNumber: e.target.value }))}
-          />
-          <Input 
-            label="Patent Title" 
-            placeholder="Adaptive Neural Architecture for Low-Power..." 
-            required 
-            value={form.title}
-            onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-          />
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-label mb-1.5">
-              Patent Abstract
-            </label>
-            <textarea 
-              rows={4} 
-              placeholder="Paste the official filing abstract claims..."
-              required
-              value={form.abstract}
-              onChange={e => setForm(prev => ({ ...prev, abstract: e.target.value }))}
-              className="w-full px-3.5 py-2 text-sm bg-white dark:bg-zinc-900 border border-zinc-200 rounded-md shadow-premium-sm placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 premium-transition"
-            />
-          </div>
-          <Input 
-            label="Original registry link / PDF URL (Optional)" 
-            placeholder="e.g. https://patentimages.storage.googleapis.com/..." 
-            value={form.pdfUrl}
-            onChange={e => setForm(prev => ({ ...prev, pdfUrl: e.target.value }))}
-          />
-          <Input 
-            label="Asking Price (₹ INR)" 
-            type="number"
-            placeholder="e.g. 5000000" 
-            required 
-            value={form.askingPrice}
-            onChange={e => setForm(prev => ({ ...prev, askingPrice: e.target.value }))}
-          />
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-1.5 border-t border-zinc-100 dark:border-zinc-800 mt-2">
-            <label className="flex items-center gap-2 cursor-pointer font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
-              <input 
-                type="checkbox" 
-                checked={form.isForSale} 
-                onChange={e => setForm(prev => ({ ...prev, isForSale: e.target.checked }))}
-                className="rounded border-zinc-350 text-lvx-blue focus:ring-lvx-blue dark:bg-zinc-800 dark:border-zinc-700 h-4 w-4"
+      <Dialog
+        isOpen={isNewOpen}
+        onClose={() => setIsNewOpen(false)}
+        title="List intellectual property"
+        description="Submit your patent for AI analysis. An admin reviews every listing before it appears on Discover."
+        className="max-w-xl"
+      >
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          <div className="space-y-6">
+            <section className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Patent details</h4>
+                <p className="text-xs text-zinc-500 mt-0.5">Use the official registry information from your filing.</p>
+              </div>
+
+              <Input
+                label="Patent number"
+                labelClassName={formLabelClass}
+                placeholder="e.g. US-11394025-B2"
+                required
+                value={form.patentNumber}
+                onChange={(e) => setForm((prev) => ({ ...prev, patentNumber: e.target.value }))}
               />
-              <span>Available for Sale / Assignment</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
-              <input 
-                type="checkbox" 
-                checked={form.isForLicense} 
-                onChange={e => setForm(prev => ({ ...prev, isForLicense: e.target.checked }))}
-                className="rounded border-zinc-350 text-lvx-blue focus:ring-lvx-blue dark:bg-zinc-800 dark:border-zinc-700 h-4 w-4"
+
+              <Input
+                label="Patent title"
+                labelClassName={formLabelClass}
+                placeholder="Adaptive Neural Architecture for Low-Power Edge Inference"
+                required
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
               />
-              <span>Available for Royalty Licensing</span>
-            </label>
+
+              <div>
+                <label className={cn('block mb-1.5', formLabelClass)}>
+                  Patent abstract <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={5}
+                  placeholder="Paste the official abstract or key claims from your patent filing..."
+                  required
+                  value={form.abstract}
+                  onChange={(e) => setForm((prev) => ({ ...prev, abstract: e.target.value }))}
+                  className={cn(formFieldClass, 'resize-y min-h-[120px]')}
+                />
+                <p className="text-xs text-zinc-500 mt-1.5">Used by AI to generate your commercial brief.</p>
+              </div>
+            </section>
+
+            <section className="space-y-4 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Commercial terms</h4>
+                <p className="text-xs text-zinc-500 mt-0.5">How buyers can engage with this IP.</p>
+              </div>
+
+              <Input
+                label="Registry link or PDF URL"
+                labelClassName={formLabelClass}
+                placeholder="https://patentimages.storage.googleapis.com/..."
+                value={form.pdfUrl}
+                onChange={(e) => setForm((prev) => ({ ...prev, pdfUrl: e.target.value }))}
+              />
+              <p className="text-xs text-zinc-500 -mt-2">Optional — helps buyers verify the filing.</p>
+
+              <div>
+                <Input
+                  label="Asking price (INR)"
+                  labelClassName={formLabelClass}
+                  inputMode="numeric"
+                  placeholder="50,00,000"
+                  required
+                  value={form.askingPrice}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, askingPrice: formatPriceInput(e.target.value) }))
+                  }
+                />
+                {parsedAskingPrice > 0 && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1.5 font-medium">
+                    {formatINR(parsedAskingPrice)}
+                  </p>
+                )}
+              </div>
+
+              <fieldset className="space-y-2">
+                <legend className={cn(formLabelClass, 'mb-2')}>Listing options</legend>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <label
+                    className={cn(
+                      'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all',
+                      form.isForSale
+                        ? 'border-lvx-blue bg-lvx-blue/5 ring-1 ring-lvx-blue/20'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.isForSale}
+                      onChange={(e) => setForm((prev) => ({ ...prev, isForSale: e.target.checked }))}
+                      className="mt-0.5 rounded border-zinc-300 text-lvx-blue focus:ring-lvx-blue h-4 w-4"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        Sale / assignment
+                      </span>
+                      <span className="block text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                        Transfer full ownership to an acquirer.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label
+                    className={cn(
+                      'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all',
+                      form.isForLicense
+                        ? 'border-lvx-blue bg-lvx-blue/5 ring-1 ring-lvx-blue/20'
+                        : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.isForLicense}
+                      onChange={(e) => setForm((prev) => ({ ...prev, isForLicense: e.target.checked }))}
+                      className="mt-0.5 rounded border-zinc-300 text-lvx-blue focus:ring-lvx-blue h-4 w-4"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        Royalty licensing
+                      </span>
+                      <span className="block text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                        License usage while retaining ownership.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+            </section>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => setIsNewOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" isLoading={submitting} className="font-semibold text-xs px-4">
-              Submit & Run AI Analysis
-            </Button>
+          <div className="sticky bottom-0 -mx-6 -mb-5 mt-6 px-6 py-4 bg-card/95 backdrop-blur-sm border-t border-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-xs text-zinc-500 flex items-center gap-1.5 sm:max-w-[55%]">
+              <Sparkles className="h-3.5 w-3.5 text-lvx-blue shrink-0" />
+              AI generates your commercial brief after submission.
+            </p>
+            <div className="flex items-center justify-end gap-2 shrink-0">
+              <Button type="button" variant="outline" onClick={() => setIsNewOpen(false)} className="rounded-xl">
+                Cancel
+              </Button>
+              <Button type="submit" isLoading={submitting} className="rounded-xl font-semibold gap-1.5">
+                <Sparkles className="h-4 w-4" />
+                Submit for review
+              </Button>
+            </div>
           </div>
         </form>
       </Dialog>
