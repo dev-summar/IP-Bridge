@@ -31,7 +31,7 @@ Do **not** commit `.env` files. Use `.env.example` as a reference.
    - `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` — if using payments
 4. Click **Apply**. First deploy takes ~5–10 minutes.
 
-Your app will be live at `https://patentbaazar.onrender.com` (or the name you choose).
+Your app will be live at `https://ipbridge.onrender.com` (or the name you choose).
 
 ## 3. MongoDB Atlas network access
 

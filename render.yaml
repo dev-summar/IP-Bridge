@@ -2,7 +2,7 @@
 # https://render.com/docs/blueprint-spec
 services:
   - type: web
-    name: patentbaazar
+    name: ipbridge
     runtime: node
     plan: free
     buildCommand: npm install --prefix backend && npm install --prefix frontend && npm run build
