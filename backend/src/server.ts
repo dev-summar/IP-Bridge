@@ -39,11 +39,17 @@ app.use('/api', apiRouter);
 // Serve built frontend in production (single-service deploy)
 if (isProduction) {
   const frontendDist = path.join(__dirname, '../../frontend/dist');
-  app.use(express.static(frontendDist));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(frontendDist, 'index.html'));
-  });
+  const indexHtml = path.join(frontendDist, 'index.html');
+
+  const sendSpa = (_req: express.Request, res: express.Response) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.sendFile(indexHtml);
+  };
+
+  app.use(express.static(frontendDist, { index: false, maxAge: '1y' }));
+  app.get('/', sendSpa);
+  app.get(/^\/(?!api).*/, sendSpa);
 }
 
 // Initialize DB and start server
@@ -61,7 +67,7 @@ async function startServer() {
   app.listen(PORT, () => {
     console.log(`\n======================================================`);
     console.log(`🚀 PatentBridge API running at http://localhost:${PORT}`);
-    console.log(`🌐 Health check endpoint: http://localhost:${PORT}/`);
+    console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
     console.log(`======================================================\n`);
   });
 }
