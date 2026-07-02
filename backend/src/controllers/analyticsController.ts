@@ -202,13 +202,50 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         .sort((a, b) => b.score - a.score)
         .slice(0, 4);
 
+      const myOffers = offers.filter(o => o.buyerId === userId);
+      const myTransactions = transactions.filter(t => {
+        const offer = myOffers.find(o => o._id === t.offerId);
+        return !!offer;
+      });
+
+      const recentDeals = myOffers
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        .slice(0, 6)
+        .map(o => {
+          const p = patents.find(pat => pat._id === o.patentId);
+          const tx = transactions.find(t => t.offerId === o._id);
+          return {
+            id: o._id,
+            patentTitle: p ? p.title : 'IP Asset',
+            price: o.price,
+            status: o.status,
+            escrowStatus: tx?.status || null,
+            createdAt: o.createdAt,
+          };
+        });
+
+      const recentRequests = mySentLeads
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        .slice(0, 5)
+        .map(l => {
+          const p = patents.find(pat => pat._id === l.patentId);
+          return {
+            id: l._id,
+            patentTitle: p ? p.title : 'IP Asset',
+            status: l.status,
+            createdAt: l.createdAt,
+          };
+        });
+
       return res.json({
         role,
         stats: [
           { label: 'Saved Patents', value: savedCount, change: 'Monitored opportunities', type: 'saved' },
-          { label: 'Leads Submitted', value: mySentLeads.length, change: 'Active interest expressions', type: 'leads' },
-          { label: 'Meetings Requested', value: mySentMeetings.length, change: 'Negotiation schedules', type: 'meetings' },
-          { label: 'Active Deals', value: offers.filter(o => o.buyerId === userId && ['pending', 'countered'].includes(o.status)).length, change: 'Offers pending execution', type: 'deals' }
+          { label: 'Unlock Requests', value: mySentLeads.length, change: 'Interest & access submissions', type: 'leads' },
+          { label: 'Meetings', value: mySentMeetings.length, change: 'Scheduled with inventors', type: 'meetings' },
+          { label: 'Active Offers', value: myOffers.filter(o => ['pending', 'countered', 'accepted'].includes(o.status)).length, change: 'In negotiation or escrow', type: 'deals' },
+          { label: 'In Escrow', value: myTransactions.filter(t => t.status === 'escrow_funded').length, change: 'Funded transactions', type: 'escrow' },
+          { label: 'Completed', value: myTransactions.filter(t => t.status === 'completed').length, change: 'Successfully closed', type: 'completed' },
         ],
         recommendedPatents,
         activeSchedules: mySentMeetings.map(m => {
@@ -220,7 +257,9 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
             time: m.preferredTime,
             status: m.status
           };
-        })
+        }),
+        recentDeals,
+        recentRequests,
       });
     }
 

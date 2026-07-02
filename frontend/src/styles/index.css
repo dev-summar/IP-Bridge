@@ -4,8 +4,11 @@
 
 @layer base {
   :root {
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --font-mono: 'Geist Mono', ui-monospace, monospace;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --text-base: 1.0625rem;
+    --leading-body: 1.65;
+    --leading-tight: 1.2;
     --tracking-display: -0.03em;
     --tracking-heading: -0.02em;
     --tracking-body: -0.01em;
@@ -62,12 +65,17 @@
 
   html {
     font-family: var(--font-sans);
+    font-size: 112.5%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'kern' 1, 'liga' 1;
   }
 
   body {
     font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-body);
     letter-spacing: var(--tracking-body);
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
@@ -85,7 +93,12 @@
     font-family: var(--font-sans);
     font-weight: 700;
     letter-spacing: var(--tracking-heading);
+    line-height: var(--leading-tight);
   }
+
+  h1 { font-size: 2.25rem; font-weight: 800; letter-spacing: var(--tracking-display); }
+  h2 { font-size: 1.75rem; font-weight: 700; }
+  h3 { font-size: 1.375rem; font-weight: 600; }
 
   button, input, textarea, select {
     font-family: inherit;
@@ -99,6 +112,57 @@
 /* Premium smooth transitions */
 .premium-transition {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(228, 228, 231, 0.4) 0%,
+    rgba(244, 244, 245, 0.9) 50%,
+    rgba(228, 228, 231, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(39, 39, 42, 0.5) 0%,
+    rgba(63, 63, 70, 0.8) 50%,
+    rgba(39, 39, 42, 0.5) 100%
+  );
+  background-size: 200% 100%;
+}
+
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-shimmer,
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce {
+    animation: none !important;
+  }
+
+  .premium-transition {
+    transition: none !important;
+  }
 }
 
 /* Scrollbar Styling */
@@ -125,35 +189,41 @@
   }
 
   .type-section-title {
-    font-size: clamp(1.875rem, 4vw, 2.75rem);
-    font-weight: 700;
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 800;
     letter-spacing: var(--tracking-display);
-    line-height: 1.12;
+    line-height: 1.1;
   }
 
   .type-card-title {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: var(--tracking-heading);
-    line-height: 1.3;
+    line-height: 1.35;
   }
 
   .type-body {
-    font-size: 0.9375rem;
+    font-size: 1.0625rem;
     font-weight: 400;
     letter-spacing: var(--tracking-body);
-    line-height: 1.65;
+    line-height: 1.7;
+  }
+
+  .type-body-sm {
+    font-size: 0.9375rem;
+    font-weight: 400;
+    line-height: 1.6;
   }
 
   .type-label {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
   }
 
   .type-caps-btn {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     letter-spacing: var(--tracking-caps);
     text-transform: uppercase;

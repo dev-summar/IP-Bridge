@@ -9,7 +9,7 @@ export const Badge = ({ className, variant = 'neutral', ...props }: BadgeProps) 
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-sans font-semibold tracking-body",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-sans font-semibold tracking-body",
         {
           "bg-zinc-100 text-zinc-800 border border-transparent": variant === 'neutral',
           "bg-emerald-50 text-emerald-800 border border-emerald-200/50": variant === 'success',

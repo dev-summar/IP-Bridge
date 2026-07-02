@@ -22,6 +22,19 @@ export function getMarketReadiness(score: number) {
   };
 }
 
+/** Plain-language commercial potential for list views (avoids raw "Score 87"). */
+export function getCommercialPotentialLabel(score: number): string {
+  if (score >= 85) return 'High licensing potential';
+  if (score >= 70) return 'Good licensing potential';
+  if (score >= 55) return 'Emerging potential';
+  return 'Early-stage potential';
+}
+
+/** Tooltip text pairing score number with meaning. */
+export function getCommercialPotentialDescription(score: number): string {
+  return `AI commercial score ${score}/100 — ${getCommercialPotentialLabel(score).toLowerCase()}`;
+}
+
 export function getCommercialBreakdown(analysis: any) {
   if (analysis?.commercialBreakdown) {
     return analysis.commercialBreakdown;

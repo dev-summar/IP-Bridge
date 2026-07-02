@@ -14,7 +14,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          "inline-flex items-center justify-center font-sans font-semibold rounded-md premium-transition focus:outline-none focus:ring-2 focus:ring-lvx-blue focus:ring-offset-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100",
+          "inline-flex items-center justify-center font-sans font-semibold rounded-md premium-transition focus:outline-none focus:ring-2 focus:ring-lvx-blue focus:ring-offset-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 disabled:hover:scale-100",
           {
             // Variants
             "bg-lvx-blue text-white hover:bg-lvx-blue-hover border border-transparent shadow-premium-sm": variant === 'primary',
@@ -24,9 +24,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             "bg-red-600 text-white hover:bg-red-700 border border-transparent": variant === 'danger',
             
             // Sizes
-            "px-3 py-1.5 text-xs": size === 'sm',
-            "px-4 py-2 text-sm": size === 'md',
-            "px-6 py-2.5 text-sm font-semibold": size === 'lg',
+            "px-3.5 py-2 text-sm": size === 'sm',
+            "px-5 py-2.5 text-base": size === 'md',
+            "px-6 py-3 text-base font-semibold": size === 'lg',
           },
           className
         )}

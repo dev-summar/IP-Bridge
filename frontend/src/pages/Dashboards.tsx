@@ -17,6 +17,13 @@ import {
   ExternalLink, Sparkles, AlertCircle, RefreshCw, ChevronRight, Handshake,
   FileKey2, CreditCard, Lock
 } from 'lucide-react';
+import { EmptyState } from '../components/ui/EmptyState';
+import { CardSkeleton } from '../components/ui/Skeleton';
+import { formatINR } from '../constants/ip';
+
+type ManagerProps = { embedded?: boolean };
+
+const cardClass = 'rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
 
 // ==========================================
 // 1. Dashboard Overview Component
@@ -95,7 +102,7 @@ const getCardColors = (label: string) => {
   };
 };
 
-export const DashboardOverview = () => {
+export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
   const { user } = useAuthStore();
   const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -139,25 +146,21 @@ export const DashboardOverview = () => {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
-  if (loading) return <div className="h-96 flex items-center justify-center text-zinc-400">Loading metrics...</div>;
-  if (error) return <div className="p-4 bg-red-50 text-red-700 rounded-md">{error}</div>;
+  if (loading) return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[1,2,3,4].map((i) => <CardSkeleton key={i} />)}</div>;
+  if (error) return <div className="p-4 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 rounded-xl text-sm">{error}</div>;
 
   return (
     <div className="space-y-8">
-      {/* Welcome banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-200/60 dark:border-zinc-800 pb-5">
-        <div>
-          <h1 className="text-3xl font-bold text-lvx-charcoal dark:text-white tracking-heading">
-            Welcome back, {user?.name.split(' (')[0]}
-          </h1>
-          <p className="text-xs text-zinc-500 mt-1">
-            Platform dashboard and operations analytics.
-          </p>
+      {!embedded && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-200/60 dark:border-zinc-800 pb-5">
+          <div>
+            <h1 className="text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
+              Welcome back, {user?.name.split(' (')[0]}
+            </h1>
+            <p className="text-sm text-zinc-500 mt-1">Platform dashboard and operations analytics.</p>
+          </div>
         </div>
-        <div className="text-xs text-zinc-400 font-medium">
-          Last updated: {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </div>
-      </div>
+      )}
 
       {user?.role === 'admin' && (
         <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-2 text-left">
@@ -431,10 +434,53 @@ export const DashboardOverview = () => {
       {user?.role === 'buyer' && (
         <div className="grid lg:grid-cols-[1fr_380px] gap-6">
           <div className="space-y-6">
-            {/* IP Transaction Index Chart */}
+            {/* Recent transactions & offers */}
+            <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
+              <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between">
+                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">My Transactions & Offers</CardTitle>
+                <Link to="/dashboard/deals" className="text-xs font-bold text-lvx-blue dark:text-lvx-blue hover:underline">
+                  View all deals
+                </Link>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                {!data?.recentDeals?.length ? (
+                  <p className="text-xs text-zinc-400 text-center py-6">No offers or transactions yet. Explore IP and submit an offer to get started.</p>
+                ) : (
+                  data.recentDeals.map((deal: any) => (
+                    <Link
+                      key={deal.id}
+                      to={`/dashboard/deals/${deal.id}`}
+                      className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3 last:border-0 last:pb-0 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-900/50 -mx-2 px-2 py-1 rounded-lg transition-colors"
+                    >
+                      <div className="space-y-0.5 max-w-[70%]">
+                        <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-1">{deal.patentTitle}</h4>
+                        <p className="text-zinc-500 dark:text-zinc-400 font-medium">
+                          {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(deal.price || 0)}
+                        </p>
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                          {new Date(deal.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant={deal.status === 'accepted' ? 'success' : deal.status === 'rejected' ? 'danger' : 'warning'} className="text-[9px] font-bold capitalize">
+                          {deal.status}
+                        </Badge>
+                        {deal.escrowStatus && (
+                          <Badge variant="outline" className="text-[9px] font-bold capitalize">
+                            {deal.escrowStatus.replace(/_/g, ' ')}
+                          </Badge>
+                        )}
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            {/* IP Index Chart */}
             <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
               <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800">
-                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">PatentBridge IP Index Growth</CardTitle>
+                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">IPBridge Market Index</CardTitle>
               </CardHeader>
               <CardContent className="p-6 h-80">
                 <ResponsiveContainer width="100%" height="100%">
@@ -493,12 +539,43 @@ export const DashboardOverview = () => {
             </div>
           </div>
 
-          {/* Requested call queues */}
+          <div className="space-y-6">
+            {/* Recent unlock / access requests */}
+            <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
+              <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between">
+                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">My Requests</CardTitle>
+                <Link to="/dashboard/requests" className="text-xs font-bold text-lvx-blue dark:text-lvx-blue hover:underline">
+                  View all
+                </Link>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                {!data?.recentRequests?.length ? (
+                  <p className="text-xs text-zinc-400 text-center py-6">No requests submitted yet.</p>
+                ) : (
+                  data.recentRequests.map((req: any) => (
+                    <div key={req.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3 last:border-0 last:pb-0 text-xs">
+                      <div className="space-y-0.5 max-w-[70%]">
+                        <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-2">{req.patentTitle}</h4>
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{new Date(req.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <Badge variant={req.status === 'new' ? 'indigo' : req.status === 'contacted' ? 'success' : 'neutral'} className="text-[9px] font-bold capitalize">
+                        {req.status}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+          {/* Meeting invitations */}
           <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
-            <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800">
+            <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800 flex items-center justify-between">
               <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">Your Meeting Invitations</CardTitle>
+              <Link to="/dashboard/meetings" className="text-xs font-bold text-lvx-blue dark:text-lvx-blue hover:underline">
+                View all
+              </Link>
             </CardHeader>
-            <CardContent className="p-4 space-y-3 h-[420px] overflow-y-auto">
+            <CardContent className="p-4 space-y-3 max-h-[320px] overflow-y-auto">
               {data?.activeSchedules?.length === 0 ? (
                 <p className="text-xs text-zinc-400 text-center py-10">No meetings requested yet.</p>
               ) : (
@@ -516,6 +593,7 @@ export const DashboardOverview = () => {
               )}
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
     </div>
@@ -525,7 +603,7 @@ export const DashboardOverview = () => {
 // ==========================================
 // 2. Portfolio Manager (Owner only)
 // ==========================================
-export const PortfolioManager = () => {
+export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
   const [portfolio, setPortfolio] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isNewOpen, setIsNewOpen] = React.useState(false);
@@ -585,71 +663,69 @@ export const PortfolioManager = () => {
     }
   };
 
-  if (loading) return <div className="text-zinc-400 text-sm">Loading portfolio...</div>;
+  if (loading) return <div className="grid gap-4 sm:grid-cols-2">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Patent Portfolio</h1>
-          <p className="text-xs text-zinc-500 mt-1">Register new innovation patents or monitor verification status.</p>
+      {!embedded && (
+        <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Patent Portfolio</h1>
+            <p className="text-sm text-zinc-500 mt-1">Register new innovation patents or monitor verification status.</p>
+          </div>
+          <Button onClick={() => setIsNewOpen(true)} className="rounded-xl gap-1.5 text-xs font-semibold">
+            <Plus className="h-4 w-4" />
+            List a Patent
+          </Button>
         </div>
-        <Button onClick={() => setIsNewOpen(true)} className="text-xs font-semibold flex items-center gap-1.5 shadow-premium-sm">
-          <Plus className="h-4 w-4" />
-          List a Patent
-        </Button>
-      </div>
+      )}
+
+      {embedded && (
+        <div className="flex justify-end">
+          <Button onClick={() => setIsNewOpen(true)} size="sm" className="rounded-xl gap-1.5">
+            <Plus className="h-4 w-4" />
+            List IP
+          </Button>
+        </div>
+      )}
 
       {portfolio.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 rounded-lg p-12 text-center text-zinc-400 space-y-3">
-          <FolderKanban className="h-10 w-10 mx-auto text-zinc-300" />
-          <h3 className="font-semibold text-zinc-700 dark:text-zinc-400 text-sm">Your Portfolio is Empty</h3>
-          <p className="text-xs max-w-sm mx-auto">Click "List a Patent" to upload your first intellectual property assets.</p>
-        </div>
+        <EmptyState
+          icon={<FolderKanban className="h-10 w-10" />}
+          title="Your portfolio is empty"
+          description='List your first patent or IP asset to reach corporate acquirers and licensees.'
+          actionLabel="List IP"
+          onAction={() => setIsNewOpen(true)}
+        />
       ) : (
-        <Card className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-100 font-bold text-zinc-400 uppercase tracking-label">
-                <th className="p-4 font-semibold">Patent Details</th>
-                <th className="p-4 font-semibold">Classification</th>
-                <th className="p-4 font-semibold">Commercial Score</th>
-                <th className="p-4 font-semibold">Status</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-600">
-              {portfolio.map((p) => (
-                <tr key={p._id} className="hover:bg-zinc-50 dark:bg-zinc-900/60/50">
-                  <td className="p-4">
-                    <span className="font-bold text-zinc-950 dark:text-zinc-100 block">{p.title}</span>
-                    <span className="font-mono text-[10px] text-zinc-400 mt-0.5 block">{p.patentNumber}</span>
-                  </td>
-                  <td className="p-4">
-                    {p.analysis?.industryClassification?.map((i: string) => (
-                      <Badge key={i} variant="outline" className="text-[9px] mr-1 px-1.5">{i}</Badge>
-                    ))}
-                  </td>
-                  <td className="p-4 font-semibold text-zinc-900 dark:text-zinc-200">
-                    {p.analysis?.commercialPotentialScore || 'N/A'}
-                  </td>
-                  <td className="p-4">
-                    <Badge variant={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} className="text-[10px] uppercase font-semibold">
-                      {p.status}
-                    </Badge>
-                  </td>
-                  <td className="p-4 text-right">
-                    <Link to={`/marketplace/${p._id}`}>
-                      <Button variant="ghost" size="sm" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-200 text-xs font-semibold">
-                        View
-                      </Button>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {portfolio.map((p) => (
+            <div key={p._id} className={`${cardClass} p-5 hover:shadow-md hover:border-primary/20 transition-all`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono text-zinc-400">{p.patentNumber}</span>
+                  <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mt-1 line-clamp-2">{p.title}</h3>
+                </div>
+                <Badge variant={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} className="shrink-0 text-[10px] uppercase">
+                  {p.status}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {p.analysis?.industryClassification?.slice(0, 3).map((i: string) => (
+                  <Badge key={i} variant="outline" className="text-[10px]">{i}</Badge>
+                ))}
+              </div>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <span className="text-xs text-zinc-500">
+                  AI score: <strong className="text-zinc-800 dark:text-zinc-200">{p.analysis?.commercialPotentialScore ?? '—'}</strong>
+                </span>
+                <Link to={`/marketplace/${p._id}`}>
+                  <Button variant="ghost" size="sm" className="text-xs rounded-lg">View</Button>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* New Patent Register Dialog */}
@@ -734,7 +810,7 @@ export const PortfolioManager = () => {
 // ==========================================
 // 3. Saved Patents Bookmarks Manager (Buyer only)
 // ==========================================
-export const BookmarksManager = () => {
+export const BookmarksManager = ({ embedded }: ManagerProps = {}) => {
   const [bookmarks, setBookmarks] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -758,10 +834,12 @@ export const BookmarksManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Saved Patents</h1>
-        <p className="text-xs text-zinc-500 mt-1">Bookmark directory listings for tracking licensing feasibility.</p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Saved Patents</h1>
+          <p className="text-xs text-zinc-500 mt-1">Bookmark directory listings for tracking licensing feasibility.</p>
+        </div>
+      )}
 
       {bookmarks.length === 0 ? (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 rounded-lg p-12 text-center text-zinc-400 space-y-3">
@@ -803,7 +881,7 @@ export const BookmarksManager = () => {
 // ==========================================
 // 4. Leads Manager (Owner & Buyer)
 // ==========================================
-export const LeadsManager = () => {
+export const LeadsManager = ({ embedded }: ManagerProps = {}) => {
   const { user } = useAuthStore();
   const [leads, setLeads] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -836,30 +914,31 @@ export const LeadsManager = () => {
     }
   };
 
-  if (loading) return <div className="text-zinc-400 text-sm">Loading lead records...</div>;
+  if (loading) return <div className="grid gap-4">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Leads Inbox</h1>
-        <p className="text-xs text-zinc-500 mt-1">
-          {user?.role === 'owner' 
-            ? 'Monitor qualified commercial expressions of interest submitted by buyers.' 
-            : 'Track responses to commercial proposals you have submitted.'}
-        </p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Leads Inbox</h1>
+          <p className="text-sm text-zinc-500 mt-1">
+            {user?.role === 'owner'
+              ? 'Monitor commercial expressions of interest from buyers.'
+              : 'Track responses to proposals you have submitted.'}
+          </p>
+        </div>
+      )}
 
       {leads.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 rounded-lg p-12 text-center text-zinc-400 space-y-3">
-          <Inbox className="h-10 w-10 mx-auto text-zinc-300" />
-          <h3 className="font-semibold text-zinc-700 dark:text-zinc-400 text-sm">No Lead Proposals Available</h3>
-          <p className="text-xs max-w-sm mx-auto">No business proposal leads are registered in this dashboard.</p>
-        </div>
+        <EmptyState
+          icon={<Inbox className="h-10 w-10" />}
+          title="No requests yet"
+          description="Interest and unlock requests will appear here once submitted."
+        />
       ) : (
         <div className="space-y-4">
           {leads.map((l) => (
-            <Card key={l._id} className={l.status === 'new' && user?.role === 'owner' ? 'border-zinc-950 shadow-premium-md' : ''}>
-              <div className="p-5 space-y-4">
+            <div key={l._id} className={`${cardClass} p-5 space-y-4 ${l.status === 'new' && user?.role === 'owner' ? 'ring-1 ring-primary/20' : ''}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div>
                     <span className="text-[10px] font-mono text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded font-semibold">{l.patentNumber}</span>
@@ -917,8 +996,7 @@ export const LeadsManager = () => {
                     </Button>
                   </div>
                 )}
-              </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}
@@ -929,7 +1007,7 @@ export const LeadsManager = () => {
 // ==========================================
 // 5. Meetings Manager (Owner & Buyer)
 // ==========================================
-export const MeetingsManager = () => {
+export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
   const { user } = useAuthStore();
   const [meetings, setMeetings] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -967,10 +1045,12 @@ export const MeetingsManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Meetings Calendar</h1>
-        <p className="text-xs text-zinc-500 mt-1">Review exploratory conference schedules regarding patent commercialization.</p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Meetings Calendar</h1>
+          <p className="text-xs text-zinc-500 mt-1">Review exploratory conference schedules regarding patent commercialization.</p>
+        </div>
+      )}
 
       {meetings.length === 0 ? (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 rounded-lg p-12 text-center text-zinc-400 space-y-3">
@@ -1049,7 +1129,7 @@ export const MeetingsManager = () => {
       <Dialog
         isOpen={!!activeVideoCallId}
         onClose={() => setActiveVideoCallId(null)}
-        title="PatentBridge Secure Video Conference"
+        title="IPBridge Secure Video Conference"
       >
         <div className="space-y-4 text-xs text-left">
           <div className="bg-lvx-navy text-white p-3.5 rounded-lg flex items-center justify-between">
@@ -1085,7 +1165,7 @@ export const MeetingsManager = () => {
 // ==========================================
 // 6. Reviews Queue Manager (Admin only)
 // ==========================================
-export const ReviewsManager = () => {
+export const ReviewsManager = ({ embedded }: ManagerProps = {}) => {
   const [reviews, setReviews] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -1117,26 +1197,27 @@ export const ReviewsManager = () => {
     }
   };
 
-  if (loading) return <div className="text-zinc-400 text-sm">Loading pending reviews...</div>;
+  if (loading) return <div className="grid gap-4">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Review Verification Queue</h1>
-        <p className="text-xs text-zinc-500 mt-1">Approve or reject newly registered patent assets before market publishing.</p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Review Queue</h1>
+          <p className="text-sm text-zinc-500 mt-1">Approve or reject new listings before they go live.</p>
+        </div>
+      )}
 
       {reviews.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 rounded-lg p-12 text-center text-zinc-400 space-y-3">
-          <ShieldCheck className="h-10 w-10 mx-auto text-zinc-300" />
-          <h3 className="font-semibold text-zinc-700 dark:text-zinc-400 text-sm">Review Queue Clear</h3>
-          <p className="text-xs max-w-sm mx-auto">No patents require verification reviews at the moment.</p>
-        </div>
+        <EmptyState
+          icon={<ShieldCheck className="h-10 w-10" />}
+          title="Review queue clear"
+          description="No patents require verification at the moment."
+        />
       ) : (
         <div className="space-y-4">
           {reviews.map((r) => (
-            <Card key={r._id}>
-              <div className="p-6 space-y-4 text-xs">
+            <div key={r._id} className={`${cardClass} p-6 space-y-4 text-xs`}>
                 
                 {/* Meta details */}
                 <div className="flex items-center justify-between">
@@ -1190,8 +1271,7 @@ export const ReviewsManager = () => {
                   </Button>
                 </div>
 
-              </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}
@@ -1202,7 +1282,7 @@ export const ReviewsManager = () => {
 // ==========================================
 // 7. Users Directory Table (Admin only)
 // ==========================================
-export const UsersManager = () => {
+export const UsersManager = ({ embedded }: ManagerProps = {}) => {
   const [users, setUsers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -1221,45 +1301,35 @@ export const UsersManager = () => {
     fetchUsers();
   }, []);
 
-  if (loading) return <div className="text-zinc-400 text-sm">Loading users register...</div>;
+  if (loading) return <div className="grid gap-4 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Platform User Database</h1>
-        <p className="text-xs text-zinc-500 mt-1">Review accounts registered on the PatentBridge platform.</p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Users</h1>
+          <p className="text-sm text-zinc-500 mt-1">Registered platform accounts.</p>
+        </div>
+      )}
 
-      <Card className="overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-100 font-bold text-zinc-400 uppercase tracking-label">
-              <th className="p-4 font-semibold">Full Name</th>
-              <th className="p-4 font-semibold">Email Address</th>
-              <th className="p-4 font-semibold">Organization / Affiliation</th>
-              <th className="p-4 font-semibold">Account Role</th>
-              <th className="p-4 font-semibold">Joined Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-600">
-            {users.map((u) => (
-              <tr key={u.id} className="hover:bg-zinc-50 dark:bg-zinc-900/60/50">
-                <td className="p-4 font-bold text-zinc-950 dark:text-zinc-100">{u.name}</td>
-                <td className="p-4 font-mono">{u.email}</td>
-                <td className="p-4 font-medium">{u.organization || 'Independent'}</td>
-                <td className="p-4">
-                  <Badge variant={u.role === 'admin' ? 'success' : u.role === 'owner' ? 'indigo' : 'neutral'} className="text-[10px] font-semibold uppercase">
-                    {u.role}
-                  </Badge>
-                </td>
-                <td className="p-4 text-zinc-400 font-mono">
-                  {new Date(u.createdAt).toLocaleDateString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {users.map((u) => (
+          <div key={u.id} className={`${cardClass} p-5`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
+                {u.name.charAt(0)}
+              </div>
+              <Badge variant={u.role === 'admin' ? 'success' : u.role === 'owner' ? 'indigo' : 'neutral'} className="text-[10px] uppercase">
+                {u.role}
+              </Badge>
+            </div>
+            <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mt-3">{u.name}</h3>
+            <p className="text-xs text-zinc-500 font-mono mt-0.5 truncate">{u.email}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">{u.organization || 'Independent'}</p>
+            <p className="text-[10px] text-zinc-400 mt-3">Joined {new Date(u.createdAt).toLocaleDateString()}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -1267,7 +1337,7 @@ export const UsersManager = () => {
 // ==========================================
 // 8. System Audits Logger (Admin only)
 // ==========================================
-export const AuditsManager = () => {
+export const AuditsManager = ({ embedded }: ManagerProps = {}) => {
   const [logs, setLogs] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -1286,39 +1356,31 @@ export const AuditsManager = () => {
     fetchAudits();
   }, []);
 
-  if (loading) return <div className="text-zinc-400 text-sm">Loading security logs...</div>;
+  if (loading) return <div className="grid gap-3">{[1, 2, 3].map((i) => <CardSkeleton key={i} />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Security Auditing Activity</h1>
-        <p className="text-xs text-zinc-500 mt-1">Audit log records representing system activities and administrative validations.</p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Audit log</h1>
+          <p className="text-sm text-zinc-500 mt-1">System activities and administrative actions.</p>
+        </div>
+      )}
 
-      <Card className="overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-100 font-bold text-zinc-400 uppercase tracking-label">
-              <th className="p-4 font-semibold">Timestamp</th>
-              <th className="p-4 font-semibold">Action Identifier</th>
-              <th className="p-4 font-semibold">System Details</th>
-              <th className="p-4 font-semibold">Authorized Actor</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-600">
-            {logs.map((log) => (
-              <tr key={log.id} className="hover:bg-zinc-50 dark:bg-zinc-900/60/50">
-                <td className="p-4 text-zinc-400 font-mono">
-                  {new Date(log.createdAt).toLocaleString()}
-                </td>
-                <td className="p-4 font-mono font-bold text-zinc-800 dark:text-zinc-300">{log.action}</td>
-                <td className="p-4 font-sans text-zinc-700 dark:text-zinc-400">{log.details}</td>
-                <td className="p-4 font-medium text-zinc-800 dark:text-zinc-300">{log.userName}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      {logs.length === 0 ? (
+        <EmptyState title="No audit entries" description="Activity will appear here as users interact with the platform." />
+      ) : (
+        <div className="space-y-2">
+          {logs.map((log) => (
+            <div key={log.id} className={`${cardClass} px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-xs`}>
+              <span className="text-zinc-400 font-mono shrink-0">{new Date(log.createdAt).toLocaleString()}</span>
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200 font-mono">{log.action}</span>
+              <span className="text-zinc-600 dark:text-zinc-400 flex-1">{log.details}</span>
+              <span className="text-zinc-500 font-medium">{log.userName}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -1326,7 +1388,7 @@ export const AuditsManager = () => {
 // ==========================================
 // 9. Negotiations Manager (Owner & Buyer)
 // ==========================================
-export const NegotiationsManager = () => {
+export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
   const { user } = useAuthStore();
   const [offers, setOffers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -1415,167 +1477,83 @@ export const NegotiationsManager = () => {
     }).format(p);
   };
 
-  if (loading) return <div className="text-zinc-400 text-sm">Loading active negotiations...</div>;
+  if (loading) return <div className="grid gap-4">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Negotiations Panel</h1>
-        <p className="text-xs text-zinc-500 mt-1">
-          {user?.role === 'owner' 
-            ? 'Review and manage transaction buy-out or licensing offers sent by corporate acquirers.' 
-            : 'Track the status and counter-proposals of your submitted offers.'}
-        </p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Negotiations</h1>
+          <p className="text-sm text-zinc-500 mt-1">
+            {user?.role === 'owner'
+              ? 'Review acquisition and licensing offers from buyers.'
+              : 'Track status and counter-proposals on your offers.'}
+          </p>
+        </div>
+      )}
 
       {offers.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 rounded-lg p-12 text-center text-zinc-400 space-y-3">
-          <Handshake className="h-10 w-10 mx-auto text-zinc-300" />
-          <h3 className="font-semibold text-zinc-700 dark:text-zinc-400 text-sm">No Active Negotiations</h3>
-          <p className="text-xs max-w-sm mx-auto">No transaction proposal offers have been logged in your dashboard.</p>
-        </div>
+        <EmptyState
+          icon={<Handshake className="h-10 w-10" />}
+          title="No active negotiations"
+          description="Submit an offer on an unlocked IP asset to start negotiating."
+        />
       ) : (
-        <Card className="overflow-hidden">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-100 font-bold text-zinc-400 uppercase tracking-label">
-                <th className="p-4 font-semibold">Patent Opportunity</th>
-                <th className="p-4 font-semibold">Counter-Party</th>
-                <th className="p-4 font-semibold">Offer Price</th>
-                <th className="p-4 font-semibold">Deal Type</th>
-                <th className="p-4 font-semibold">Details & Milestones</th>
-                <th className="p-4 font-semibold">Status</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-600">
-              {offers.map((o) => {
-                const isOwner = user?.role === 'owner';
-                const isPending = o.status === 'pending';
-                const isCountered = o.status === 'countered';
-                
-                return (
-                  <tr key={o._id} className="hover:bg-zinc-50 dark:bg-zinc-900/60/50">
-                    <td className="p-4 font-bold text-zinc-950 dark:text-zinc-100">
-                      <span className="block">{o.patentTitle}</span>
-                      <span className="text-[10px] text-zinc-400 font-mono mt-0.5 block">{o.patentNumber}</span>
-                    </td>
-                    <td className="p-4 font-medium text-zinc-700 dark:text-zinc-400">
-                      {o.counterParty}
-                    </td>
-                    <td className="p-4 font-mono font-bold text-zinc-800 dark:text-zinc-300">
-                      {isCountered ? (
-                        <div className="space-y-0.5">
-                          <span className="line-through text-zinc-400 font-medium block text-[10px]">
-                            {formatPrice(o.price)}
-                          </span>
-                          <span className="text-lvx-blue font-bold">
-                            {formatPrice(o.counterPrice || 0)} (Countered)
-                          </span>
-                        </div>
-                      ) : (
-                        formatPrice(o.price)
-                      )}
-                    </td>
-                    <td className="p-4 uppercase font-bold text-[10px]">
-                      <Badge variant={o.type === 'sale' ? 'success' : 'indigo'} className="py-0.5 px-2">
-                        {o.type === 'sale' ? 'Acquisition' : 'Licensing'}
-                      </Badge>
-                    </td>
-                    <td className="p-4 max-w-xs text-zinc-500 font-sans">
-                      {o.notes && <p className="italic mb-1.5 truncate font-medium">"{o.notes}"</p>}
-                      {o.milestones && o.milestones.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="block text-[9px] font-bold text-zinc-400 uppercase">Payment Milestones</span>
-                          <ul className="list-disc pl-3 text-[10px] space-y-0.5">
-                            {o.milestones.map((m: string, i: number) => (
-                              <li key={i}>{m}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <Badge 
-                        variant={
-                          o.status === 'accepted' 
-                            ? 'success' 
-                            : o.status === 'declined' 
-                              ? 'danger' 
-                              : o.status === 'countered' 
-                                ? 'indigo' 
-                                : 'warning'
-                        } 
-                        className="text-[10px] font-semibold uppercase"
-                      >
-                        {o.status}
-                      </Badge>
-                    </td>
-                    <td className="p-4 text-right whitespace-nowrap">
-                      {processingId === o._id ? (
-                        <span className="text-[10px] text-zinc-400">Processing...</span>
-                      ) : isOwner && isPending ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(o._id, 'declined')} 
-                            className="text-xs px-2 py-0.5 border-red-200 text-red-650 hover:bg-red-50 hover:text-red-700"
-                          >
-                            Decline
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => {
-                              setSelectedOffer(o);
-                              setCounterPrice(o.price.toString());
-                              setIsCounterOpen(true);
-                            }} 
-                            className="text-xs px-2 py-0.5 border-lvx-blue/30 text-lvx-blue hover:bg-lvx-blue/10"
-                          >
-                            Counter
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(o._id, 'accepted')} 
-                            className="text-xs px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          >
-                            Accept
-                          </Button>
-                        </div>
-                      ) : !isOwner && isCountered ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(o._id, 'declined')} 
-                            className="text-xs px-2 py-0.5 border-red-200 text-red-650 hover:bg-red-50 hover:text-red-700"
-                          >
-                            Decline Counter
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(o._id, 'accepted')} 
-                            className="text-xs px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          >
-                            Accept Counter
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-zinc-450 italic font-medium">
-                          {isOwner 
-                            ? (isCountered ? 'Counter-offer sent' : `Closed (${o.status})`) 
-                            : (isPending ? 'Awaiting inventor review' : `Closed (${o.status})`)}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Card>
+        <div className="grid gap-4">
+          {offers.map((o) => {
+            const isOwner = user?.role === 'owner';
+            const isPending = o.status === 'pending';
+            const isCountered = o.status === 'countered';
+            return (
+              <div key={o._id} className={`${cardClass} p-5 space-y-4`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-mono text-zinc-400">{o.patentNumber}</span>
+                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{o.patentTitle}</h3>
+                    <p className="text-xs text-zinc-500 mt-1">{o.counterParty}</p>
+                  </div>
+                  <Badge variant={o.status === 'accepted' ? 'success' : o.status === 'declined' ? 'danger' : o.status === 'countered' ? 'indigo' : 'warning'} className="text-[10px] uppercase">
+                    {o.status}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div>
+                    <span className="text-[10px] text-zinc-400 uppercase font-semibold block">Price</span>
+                    {isCountered ? (
+                      <div>
+                        <span className="line-through text-zinc-400 text-xs">{formatPrice(o.price)}</span>
+                        <span className="block font-bold text-primary">{formatPrice(o.counterPrice || 0)}</span>
+                      </div>
+                    ) : (
+                      <span className="font-bold">{formatPrice(o.price)}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-400 uppercase font-semibold block">Type</span>
+                    <Badge variant={o.type === 'sale' ? 'success' : 'indigo'} className="mt-0.5 text-[10px]">
+                      {o.type === 'sale' ? 'Acquisition' : 'Licensing'}
+                    </Badge>
+                  </div>
+                </div>
+                {o.notes && <p className="text-xs text-zinc-500 italic">&ldquo;{o.notes}&rdquo;</p>}
+                {processingId === o._id ? (
+                  <p className="text-xs text-zinc-400">Processing...</p>
+                ) : isOwner && isPending ? (
+                  <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(o._id, 'declined')} className="text-xs rounded-lg text-red-600">Decline</Button>
+                    <Button variant="outline" size="sm" onClick={() => { setSelectedOffer(o); setCounterPrice(o.price.toString()); setIsCounterOpen(true); }} className="text-xs rounded-lg">Counter</Button>
+                    <Button size="sm" onClick={() => handleUpdateStatus(o._id, 'accepted')} className="text-xs rounded-lg bg-emerald-600">Accept</Button>
+                  </div>
+                ) : !isOwner && isCountered ? (
+                  <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(o._id, 'declined')} className="text-xs rounded-lg">Decline</Button>
+                    <Button size="sm" onClick={() => handleUpdateStatus(o._id, 'accepted')} className="text-xs rounded-lg bg-emerald-600">Accept counter</Button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Counter Offer Modal */}
@@ -1732,7 +1710,7 @@ export const NegotiationsManager = () => {
 // ==========================================
 // 10. EscrowManager Component
 // ==========================================
-export const EscrowManager = () => {
+export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
   const { user } = useAuthStore();
   const [transactions, setTransactions] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -1897,27 +1875,29 @@ export const EscrowManager = () => {
     }).format(val);
   };
 
-  if (loading) return <div className="h-96 flex items-center justify-center text-zinc-400">Loading escrow transactions...</div>;
-  if (error) return <div className="p-4 bg-red-50 text-red-700 rounded-md">{error}</div>;
+  if (loading) return <div className="grid gap-4">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>;
+  if (error) return <div className="p-4 bg-red-50 dark:bg-red-950/20 text-red-700 rounded-xl text-sm">{error}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-        <h1 className="text-2xl font-bold text-lvx-charcoal dark:text-white tracking-heading flex items-center gap-2 text-left">
-          <FileKey2 className="h-6 w-6 text-lvx-blue" />
-          Patent Escrow Vault Ledger
-        </h1>
-        <p className="text-xs text-zinc-500 mt-1 text-left">
-          Secure, milestone-based escrow payments matching industrial transactions. Legal IP assignment deed download triggers upon completion.
-        </p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight flex items-center gap-2 text-left">
+            <FileKey2 className="h-6 w-6 text-primary" />
+            Escrow vault
+          </h1>
+          <p className="text-sm text-zinc-500 mt-1 text-left">
+            Milestone-based escrow — fund, release, and complete IP transfers.
+          </p>
+        </div>
+      )}
 
       {transactions.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-12 text-center text-zinc-400 space-y-3">
-          <Lock className="h-10 w-10 mx-auto text-zinc-300 dark:text-zinc-700" />
-          <h3 className="font-semibold text-zinc-700 dark:text-zinc-400 text-sm">No Active Escrows</h3>
-          <p className="text-xs max-w-sm mx-auto">Once an offer or counter-offer is accepted, a secure escrow transaction record is automatically created here.</p>
-        </div>
+        <EmptyState
+          icon={<Lock className="h-10 w-10" />}
+          title="No active escrows"
+          description="An escrow record is created automatically when an offer is accepted."
+        />
       ) : (
         <div className="space-y-6">
           {transactions.map((tx) => {
@@ -2174,7 +2154,7 @@ export const EscrowManager = () => {
 // ==========================================
 // 11. AccessRequestsManager Component (Owner & Admin)
 // ==========================================
-export const AccessRequestsManager = () => {
+export const AccessRequestsManager = ({ embedded }: ManagerProps = {}) => {
   const { user } = useAuthStore();
   const [requests, setRequests] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -2211,104 +2191,65 @@ export const AccessRequestsManager = () => {
     }
   };
 
-  if (loading) return <div className="text-zinc-400 text-sm">Loading access requests ledger...</div>;
+  if (loading) return <div className="grid gap-4">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5 text-left">
-        <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading flex items-center gap-2">
-          <Lock className="h-6 w-6 text-lvx-blue" />
-          Access & Unlock Requests
-        </h1>
-        <p className="text-xs text-zinc-500 mt-1">
-          Review and approve requests from buyers wishing to unlock your patent details, claims, and PDF files.
-        </p>
-      </div>
+      {!embedded && (
+        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5 text-left">
+          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight flex items-center gap-2">
+            <Lock className="h-6 w-6 text-primary" />
+            Access Requests
+          </h1>
+          <p className="text-sm text-zinc-500 mt-1">Approve buyers who want to unlock full IP details.</p>
+        </div>
+      )}
 
       {requests.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-12 text-center text-zinc-400 space-y-3">
-          <Inbox className="h-10 w-10 mx-auto text-zinc-300 dark:text-zinc-700" />
-          <h3 className="font-semibold text-zinc-700 dark:text-zinc-400 text-sm">No Access Requests</h3>
-          <p className="text-xs max-w-sm mx-auto">No buyers have submitted unlock requests for your listings yet.</p>
-        </div>
+        <EmptyState
+          icon={<Inbox className="h-10 w-10" />}
+          title="No access requests"
+          description="Buyers will appear here when they complete the unlock flow."
+        />
       ) : (
-        <Card className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[720px]">
-            <thead>
-              <tr className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-150 dark:border-zinc-800 font-bold text-zinc-450 uppercase tracking-label text-[10px]">
-                <th className="p-4 font-bold">Patent Listing</th>
-                <th className="p-4 font-bold">Buyer Details</th>
-                <th className="p-4 font-bold">Request Date</th>
-                <th className="p-4 font-bold">Current Status</th>
-                <th className="p-4 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-650">
-              {requests.map((r) => {
-                const isPending = r.status === 'pending';
-                return (
-                  <tr key={r._id} className="hover:bg-zinc-50 dark:bg-zinc-900/60/50">
-                    <td className="p-4 font-bold text-zinc-950 dark:text-zinc-100">
-                      <span className="block">{r.patentTitle}</span>
-                      <span className="text-[10px] text-zinc-400 font-mono mt-0.5 block">{r.patentNumber}</span>
-                    </td>
-                    <td className="p-4">
-                      <span className="block font-bold text-zinc-800 dark:text-zinc-200">{r.buyerName}</span>
-                      <span className="text-[10px] text-zinc-400 block">{r.buyerOrganization || 'Independent'}</span>
-                      <span className="text-[10px] text-zinc-450 dark:text-zinc-550 block font-mono">{r.buyerEmail}</span>
-                    </td>
-                    <td className="p-4 font-mono font-medium text-zinc-800 dark:text-zinc-300">
-                      {new Date(r.createdAt).toLocaleDateString('en-IN')} <br />
-                      <span className="text-[10px] text-zinc-400">{new Date(r.createdAt).toLocaleTimeString('en-IN')}</span>
-                    </td>
-                    <td className="p-4">
-                      <Badge 
-                        variant={
-                          r.status === 'approved' 
-                            ? 'success' 
-                            : r.status === 'rejected' 
-                              ? 'danger' 
-                              : 'warning'
-                        } 
-                        className="text-[10px] font-semibold uppercase"
-                      >
-                        {r.status}
-                      </Badge>
-                    </td>
-                    <td className="p-4 text-right whitespace-nowrap">
-                      {processingId === r._id ? (
-                        <span className="text-[10px] text-zinc-450 font-medium">Processing...</span>
-                      ) : isPending ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(r._id, 'rejected')} 
-                            className="text-xs px-3 py-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          >
-                            Decline
-                          </Button>
-                          <Button 
-                            variant="primary"
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(r._id, 'approved')} 
-                            className="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold border-transparent"
-                          >
-                            Approve Access
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-zinc-400 italic">
-                          Closed ({r.status})
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Card>
+        <div className="grid gap-4">
+          {requests.map((r) => {
+            const isPending = r.status === 'pending';
+            return (
+              <div key={r._id} className={`${cardClass} p-5`}>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] font-mono text-zinc-400">{r.patentNumber}</span>
+                    <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mt-1">{r.patentTitle}</h3>
+                    <div className="mt-3 space-y-1 text-xs">
+                      <p className="font-medium text-zinc-800 dark:text-zinc-200">{r.buyerName}</p>
+                      <p className="text-zinc-500">{r.buyerOrganization || 'Independent'}</p>
+                      <p className="text-zinc-400 font-mono">{r.buyerEmail}</p>
+                    </div>
+                  </div>
+                  <div className="text-right space-y-2 shrink-0">
+                    <Badge variant={r.status === 'approved' ? 'success' : r.status === 'rejected' ? 'danger' : 'warning'} className="text-[10px] uppercase">
+                      {r.status}
+                    </Badge>
+                    <p className="text-[10px] text-zinc-400">{new Date(r.createdAt).toLocaleString('en-IN')}</p>
+                  </div>
+                </div>
+                {processingId === r._id ? (
+                  <p className="text-xs text-zinc-400 mt-4">Processing...</p>
+                ) : isPending ? (
+                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                    <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(r._id, 'rejected')} className="text-xs text-red-600 border-red-200 rounded-lg">
+                      Decline
+                    </Button>
+                    <Button size="sm" onClick={() => handleUpdateStatus(r._id, 'approved')} className="text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700">
+                      Approve access
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

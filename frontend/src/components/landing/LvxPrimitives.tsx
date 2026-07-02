@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import { BrandLogo } from '../BrandLogo';
 
 export const lvxEase = [0.16, 1, 0.3, 1] as const;
 
@@ -93,17 +94,8 @@ export const EcosystemCard = ({
   >
     <div className="p-8 sm:p-10 lg:p-12">
       <div className="flex flex-col justify-center max-w-md">
-        <div className="flex items-baseline gap-2 mb-6">
-          <img
-            src="/branding/monogram-light.png"
-            alt=""
-            className="h-8 w-8 object-contain shrink-0"
-            aria-hidden
-            draggable={false}
-          />
-          <span className="text-xl sm:text-2xl font-normal text-lvx-orange lowercase tracking-heading">
-            {brandAccent}
-          </span>
+        <div className="flex items-center mb-6 min-w-0">
+          <BrandLogo size="sm" linkTo={false} />
         </div>
         <h3 className="text-lg sm:text-xl font-bold text-lvx-charcoal dark:text-white tracking-heading mb-4 leading-snug">
           {title}

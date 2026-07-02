@@ -5,6 +5,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { connectDB } from './config/db';
 import { seedInitialUsers } from './controllers/authController';
 import { seedInitialPatents } from './controllers/patentController';
@@ -12,6 +13,7 @@ import apiRouter from './routes/api';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Middleware configuration
 app.use(cors({
@@ -33,6 +35,16 @@ app.get('/', (req, res) => {
 
 // Register API Routes
 app.use('/api', apiRouter);
+
+// Serve built frontend in production (single-service deploy)
+if (isProduction) {
+  const frontendDist = path.join(__dirname, '../../frontend/dist');
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
 
 // Initialize DB and start server
 async function startServer() {

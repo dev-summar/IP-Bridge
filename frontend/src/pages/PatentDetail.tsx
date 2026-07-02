@@ -1,21 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { apiFetch } from '../hooks/useApi';
 import { useAuthStore } from '../context/authStore';
 import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
 import { Dialog } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
-import { Card } from '../components/ui/Card';
 import { 
-  ArrowLeft, Calendar, Mail, FileText, Sparkles, Building, 
-  ExternalLink, Compass, ShieldAlert, CheckCircle2, ChevronRight, Handshake,
-  Lock, FolderKey, AlertCircle, RefreshCw
+  ArrowLeft, Calendar, FileText,
+  ShieldAlert, CheckCircle2, Handshake,
+  Lock, AlertCircle, RefreshCw
 } from 'lucide-react';
-import { 
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
-} from 'recharts';
 import { getCommercialScore, getMarketReadiness, getCommercialBreakdown } from '../utils/patentAnalysis';
+import { UnlockDetailsFlow } from '../components/ip/UnlockDetailsFlow';
+import { IPDetailView } from '../components/ip/IPDetailView';
+import { transition } from '../utils/motion';
 
 export const PatentDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,17 +26,18 @@ export const PatentDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Interest Dialog states
-  const [isInterestOpen, setIsInterestOpen] = useState(false);
-  const [interestForm, setInterestForm] = useState({
+  const [isUnlockOpen, setIsUnlockOpen] = useState(false);
+  const [unlockForm, setUnlockForm] = useState({
     name: '',
     organization: '',
     email: '',
     purpose: 'Licensing',
     message: ''
   });
-  const [interestLoading, setInterestLoading] = useState(false);
-  const [interestSuccess, setInterestSuccess] = useState(false);
+  const [isAskOpen, setIsAskOpen] = useState(false);
+  const [askMessage, setAskMessage] = useState('');
+  const [askLoading, setAskLoading] = useState(false);
+  const [askSuccess, setAskSuccess] = useState(false);
 
   // Meeting Dialog states
   const [isMeetingOpen, setIsMeetingOpen] = useState(false);
@@ -75,17 +75,16 @@ export const PatentDetail = () => {
   const [accessRequestLoading, setAccessRequestLoading] = useState(false);
   const [isMeetingRequiredOpen, setIsMeetingRequiredOpen] = useState(false);
 
-  // Initialize form fields with user credentials if logged in
   useEffect(() => {
     if (user) {
-      setInterestForm(prev => ({
+      setUnlockForm(prev => ({
         ...prev,
         name: user.name.split(' (')[0],
         organization: user.organization || '',
         email: user.email
       }));
     }
-  }, [user, isInterestOpen]);
+  }, [user]);
 
   // Check NDA Status
   const checkNdaStatus = useCallback(async () => {
@@ -234,30 +233,33 @@ export const PatentDetail = () => {
     }
   };
 
-  // Submit Interest Request
-  const handleInterestSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const openUnlockFlow = () => {
     if (!isAuthenticated) {
       navigate('/auth');
       return;
     }
+    setIsUnlockOpen(true);
+  };
 
+  const handleAskSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!askMessage.trim()) return;
     try {
-      setInterestLoading(true);
-      await apiFetch(`/api/patents/${id}/interest`, {
+      setAskLoading(true);
+      await apiFetch(`/api/patents/${id}/meeting`, {
         method: 'POST',
-        body: interestForm
+        body: { preferredDate: '', preferredTime: '', notes: `[Question] ${askMessage}` }
       });
-      setInterestSuccess(true);
-      fetchPatentDetails();
+      setAskSuccess(true);
       setTimeout(() => {
-        setIsInterestOpen(false);
-        setInterestSuccess(false);
-      }, 2500);
+        setIsAskOpen(false);
+        setAskSuccess(false);
+        setAskMessage('');
+      }, 2000);
     } catch (err: any) {
-      alert(err.message || 'Failed to submit interest request.');
+      alert(err.message || 'Failed to send question.');
     } finally {
-      setInterestLoading(false);
+      setAskLoading(false);
     }
   };
 
@@ -328,12 +330,14 @@ export const PatentDetail = () => {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto py-12 px-6 space-y-6 animate-pulse">
-        <div className="h-6 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
-        <div className="h-10 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded" />
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 h-96 bg-zinc-200 dark:bg-zinc-800 rounded" />
-          <div className="h-96 bg-zinc-100 dark:bg-zinc-900 rounded" />
+      <div className="max-w-3xl mx-auto py-10 px-4 sm:px-6 space-y-8 animate-pulse">
+        <div className="h-4 w-28 bg-zinc-200 dark:bg-zinc-800 rounded" />
+        <div className="h-9 w-full max-w-xl bg-zinc-200 dark:bg-zinc-800 rounded" />
+        <div className="h-4 w-2/3 bg-zinc-100 dark:bg-zinc-800/60 rounded" />
+        <div className="space-y-3 pt-4">
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800/60 rounded w-full" />
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800/60 rounded w-full" />
+          <div className="h-4 bg-zinc-100 dark:bg-zinc-800/60 rounded w-4/5" />
         </div>
       </div>
     );
@@ -345,9 +349,9 @@ export const PatentDetail = () => {
         <ShieldAlert className="h-12 w-12 text-red-500 mx-auto" />
         <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-200/60">Unable to load Patent Information</h2>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm">{error || 'The requested patent does not exist.'}</p>
-        <Link to="/marketplace">
+        <Link to="/discover">
           <Button variant="outline" className="mt-2">
-            Return to Marketplace
+            Return to Discover IP
           </Button>
         </Link>
       </div>
@@ -362,7 +366,6 @@ export const PatentDetail = () => {
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
-  const scoreLabel = readiness.label;
   const scoreClass = score >= 85 ? 'text-emerald-500 dark:text-emerald-400' : score >= 70 ? 'text-lvx-blue dark:text-lvx-blue' : 'text-zinc-400 dark:text-zinc-600';
 
   const breakdown = getCommercialBreakdown(patent.analysis);
@@ -376,631 +379,166 @@ export const PatentDetail = () => {
   ];
 
   return (
-    <div className="bg-lvx-surface dark:bg-zinc-950 min-h-[100dvh] py-6 sm:py-10 px-4 sm:px-6 lg:px-8 premium-transition safe-bottom">
-      <div className="max-w-5xl mx-auto space-y-8">
-        
-        {/* Back Link */}
+    <div className="bg-white dark:bg-zinc-950 min-h-[calc(100dvh-4rem)] py-8 sm:py-12 px-4 sm:px-6">
+      <div className="max-w-3xl mx-auto space-y-6">
         <button
-          onClick={() => navigate('/marketplace')}
-          className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-lvx-charcoal dark:text-zinc-400 dark:hover:text-zinc-200 premium-transition"
+          onClick={() => navigate('/discover')}
+          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Directory
+          <ArrowLeft className="h-4 w-4" />
+          Discover
         </button>
 
-        {/* Header Summary bar */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-6 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="space-y-3.5 max-w-3xl text-left">
-            <div className="flex flex-wrap gap-1.5">
-              {patent.analysis?.industryClassification?.map((ind: string) => (
-                <Badge key={ind} variant="outline" className="px-2.5 py-0.5 text-[10px] font-bold text-lvx-blue bg-lvx-blue/10 border-lvx-blue/20 uppercase tracking-label">
-                  {ind}
-                </Badge>
-              ))}
-            </div>
-            
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-lvx-charcoal dark:text-white tracking-heading leading-tight">
+        <motion.header
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={transition}
+          className="space-y-4"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-white leading-snug tracking-tight">
               {patent.title}
             </h1>
-            
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-              <span className="font-mono bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-600 dark:text-zinc-300 font-bold">{patent.patentNumber}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1"><Building className="h-3.5 w-3.5 text-lvx-blue" /> {patent.ownerOrganization || 'Stanford Robotics Lab'}</span>
-              <span>•</span>
-              <span>Owner: {patent.ownerName}</span>
-            </div>
-          </div>
 
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-            {patent.accessStatus === 'approved' ? (
-              (user?.role === 'buyer' || !isAuthenticated) ? (
-                <>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        navigate('/auth');
-                        return;
-                      }
-                      if (user?.role === 'buyer' && !isNdaSigned) {
-                        setPendingAction('meeting');
-                        setIsNdaOpen(true);
-                        return;
-                      }
-                      setIsMeetingOpen(true);
-                    }}
-                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-200 font-bold text-xs py-2 px-4 shadow-premium-sm rounded-lg"
-                  >
-                    <Calendar className="h-4 w-4 mr-1.5 text-lvx-blue" />
-                    Book Meeting
-                  </Button>
-                  
-                  <Button 
-                    disabled
-                    className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-450 font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 opacity-90 cursor-default"
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    Interest Expressed
-                  </Button>
-
-                  {(patent.isForSale || patent.isForLicense) && (
-                    patent.hasMeetingDone ? (
-                      <Button 
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {patent.accessStatus === 'approved' ? (
+                user?.id === patent.ownerId ? (
+                  <span className="text-sm text-emerald-600 font-medium">Your listing</span>
+                ) : user?.role === 'buyer' || !isAuthenticated ? (
+                  <>
+                    {patent.hasExpressedInterest && (
+                      <span className="text-sm text-emerald-600 inline-flex items-center gap-1">
+                        <CheckCircle2 className="h-4 w-4" /> Interest sent
+                      </span>
+                    )}
+                    {(patent.isForSale || patent.isForLicense) && patent.hasMeetingDone && (
+                      <Button
+                        size="sm"
                         onClick={() => {
-                          if (!isAuthenticated) {
-                            navigate('/auth');
-                            return;
-                          }
+                          if (!isAuthenticated) { navigate('/auth'); return; }
                           if (user?.role === 'buyer' && !isNdaSigned) {
                             setPendingAction('offer');
                             setIsNdaOpen(true);
                             return;
                           }
-                          setOfferForm(prev => ({
-                            ...prev,
-                            type: patent.isForSale ? 'sale' : 'license'
-                          }));
+                          setOfferForm(prev => ({ ...prev, type: patent.isForSale ? 'sale' : 'license' }));
                           setIsOfferOpen(true);
                         }}
-                        className="bg-lvx-blue hover:bg-lvx-blue-hover text-white border-0 font-bold text-xs py-2 px-4 shadow-premium-md rounded-lg "
+                        className="rounded-full px-4"
                       >
                         <Handshake className="h-4 w-4 mr-1.5" />
-                        Acquire / License
+                        Make offer
                       </Button>
-                    ) : (
-                      <Button 
-                        onClick={() => setIsMeetingRequiredOpen(true)}
-                        className="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-350 dark:border-zinc-700 font-bold text-xs py-2 px-4 rounded-lg flex items-center"
-                      >
-                        <Lock className="h-4 w-4 mr-1.5 text-zinc-450" />
-                        Acquire / License (Meeting Required)
-                      </Button>
-                    )
-                  )}
-                </>
-              ) : user?.id === patent.ownerId ? (
-                <Badge variant="success" className="py-1 px-3 text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/30">
-                  YOUR PORTFOLIO ITEM
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="py-1 px-3 text-xs font-semibold bg-white border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300">
-                  Logged in as {user?.role.toUpperCase()}
-                </Badge>
-              )
-            ) : (
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-705 bg-amber-50 border border-amber-200 dark:text-amber-400 dark:bg-amber-950/20 dark:border-amber-900/30 px-3 py-1.5 rounded-lg">
-                <Lock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                <span>Details Locked</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {patent.accessStatus !== 'approved' && (
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-premium-lg text-center space-y-6 max-w-2xl mx-auto my-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-lvx-blue/10 rounded-full blur-2xl"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-lvx-blue/10 rounded-full blur-2xl"></div>
-            
-            <div className="mx-auto w-16 h-16 bg-lvx-blue/10 rounded-2xl flex items-center justify-center border border-lvx-blue/20 shadow-inner">
-              <Lock className="h-7 w-7 text-lvx-blue" />
-            </div>
-            
-            <div className="space-y-2 max-w-md mx-auto">
-              <h3 className="text-xl font-bold text-lvx-charcoal dark:text-white">Detailed Patent is Locked</h3>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                {!patent.hasExpressedInterest && patent.accessStatus === 'none' ? (
-                  "Technical claims, commercial value briefs, target industries, and official registry documentation are restricted. Submit your interest below — we'll notify the inventor and request unlock in one step."
-                ) : patent.accessStatus === 'pending' ? (
-                  "Your interest and unlock request are with the inventor. Once approved, full technical details, documents, and meeting scheduling will open automatically."
-                ) : patent.hasExpressedInterest && patent.accessStatus === 'none' ? (
-                  "Interest was recorded earlier. Complete the unlock request below — new submissions do this in one step."
-                ) : patent.accessStatus === 'rejected' ? (
-                  "The inventor has declined your detailed access request at this time."
+                    )}
+                  </>
                 ) : (
-                  "Your unlock request is being processed."
-                )}
-              </p>
-            </div>
-
-            <div className="flex justify-center pt-2">
-              {!patent.hasExpressedInterest && patent.accessStatus === 'none' ? (
-                <Button
-                  onClick={() => {
-                    if (!isAuthenticated) {
-                      navigate('/auth');
-                      return;
-                    }
-                    setIsInterestOpen(true);
-                  }}
-                  className="bg-lvx-blue hover:bg-lvx-blue-hover text-white border-0 font-bold px-6 py-2.5 shadow-premium-md rounded-xl flex items-center gap-2"
-                >
-                  <Mail className="h-4 w-4" />
-                  Express Interest & Request Access
-                </Button>
+                  <span className="text-sm text-zinc-500">Logged in as {user?.role}</span>
+                )
               ) : patent.accessStatus === 'pending' ? (
-                <div className="flex flex-col items-center gap-2">
-                  <Badge variant="outline" className="px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-2 bg-lvx-blue/10 border border-lvx-blue/20 text-lvx-blue">
-                    <RefreshCw className="h-4 w-4 animate-spin text-lvx-blue" />
-                    Request Pending Inventor Approval
-                  </Badge>
-                  {patent.requestDate && (
-                    <span className="text-[10px] text-zinc-400">Submitted on {new Date(patent.requestDate).toLocaleDateString()}</span>
-                  )}
-                </div>
-              ) : patent.accessStatus === 'rejected' ? (
-                <div className="flex flex-col items-center gap-1.5">
-                  <Badge variant="outline" className="px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 bg-red-50 border border-red-200 dark:bg-red-950/20 dark:border-red-900/30 text-red-700 dark:text-red-400">
-                    <AlertCircle className="h-4 w-4" />
-                    Access Request Declined
-                  </Badge>
-                  <span className="text-[10px] text-zinc-400">The inventor has declined to share full details at this time.</span>
-                </div>
-              ) : patent.hasExpressedInterest && patent.accessStatus === 'none' ? (
-                <Button
-                  onClick={handleSendAccessRequest}
-                  isLoading={accessRequestLoading}
-                  className="bg-lvx-blue hover:bg-lvx-blue-hover text-white border-0 font-bold px-6 py-2.5 shadow-premium-md rounded-xl flex items-center gap-2"
-                >
-                  <FolderKey className="h-4 w-4" />
-                  Complete Unlock Request
+                <span className="text-sm text-zinc-500 inline-flex items-center gap-1.5">
+                  <RefreshCw className="h-4 w-4 animate-spin" /> Unlock pending
+                </span>
+              ) : (
+                <Button size="sm" onClick={openUnlockFlow} className="rounded-full px-4 gap-1.5">
+                  <Lock className="h-4 w-4" /> Unlock
                 </Button>
-              ) : null}
+              )}
             </div>
           </div>
-        )}
+        </motion.header>
 
-        {/* Content Layout Column grid */}
-        <div className={`grid md:grid-cols-3 gap-8 items-start ${patent.accessStatus !== 'approved' ? 'filter blur-md select-none pointer-events-none' : ''}`}>
-          
-          {/* Main Profile Details */}
-          <div className="md:col-span-2 space-y-6 text-left">
-            
-            {/* AI Summary Section: Wealthfront Editorial Highlight */}
-            {patent.analysis && (
-              <Card className="border border-zinc-200 dark:border-zinc-800 shadow-md overflow-hidden bg-white dark:bg-zinc-900">
-                <div className="px-6 py-4 bg-gradient-to-r from-lvx-navy to-lvx-blue dark:from-lvx-navy dark:to-zinc-950 text-white flex items-center gap-2">
-                  <Sparkles className="h-4.5 w-4.5 text-lvx-blue fill-lvx-blue/20" />
-                  <span className="text-xs font-bold uppercase tracking-label">Technology Profile Summary</span>
-                </div>
-                
-                <div className="p-6 space-y-5">
-                  <div className="grid sm:grid-cols-2 gap-6">
-                    <div className="space-y-1">
-                      <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">What it does</h4>
-                      <p className="text-zinc-800 dark:text-zinc-200 text-xs leading-relaxed font-sans font-medium">
-                        {patent.analysis.summary.description}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">Problem Solved</h4>
-                      <p className="text-zinc-800 dark:text-zinc-200 text-xs leading-relaxed font-sans font-medium">
-                        {patent.analysis.summary.problemSolved}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="h-px bg-zinc-200/60 dark:bg-zinc-800" />
-                  
-                  <div className="grid sm:grid-cols-2 gap-6">
-                    <div className="space-y-1">
-                      <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">Key Technological Claims</h4>
-                      <p className="text-zinc-800 dark:text-zinc-200 text-xs leading-relaxed font-sans font-medium">
-                        {patent.analysis.summary.keyInnovation}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">Value Proposition</h4>
-                      <p className="text-zinc-800 dark:text-zinc-200 text-xs leading-relaxed font-sans font-medium">
-                        {patent.analysis.summary.commercialValue}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Patent Legal Abstract */}
-            <Card className="border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 shadow-md">
-              <div className="p-6 space-y-3">
-                <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">
-                  Original Registry Abstract
-                </h3>
-                <p className="text-zinc-600 dark:text-zinc-300 text-xs leading-relaxed font-sans font-medium">
-                  {patent.abstract}
-                </p>
-              </div>
-            </Card>
-
-            {/* Target Commercial Applications */}
-            {patent.analysis?.commercialApplications && (
-              <Card className="border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 shadow-md">
-                <div className="p-6 space-y-6">
-                  <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">
-                    Commercial Applications & Market Use
-                  </h3>
-                  
-                  <div className="space-y-5">
-                    <div>
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-200 mb-2">Potential Target Industries</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {patent.analysis.commercialApplications.potentialIndustries.map((ind: string) => (
-                          <Badge key={ind} variant="neutral" className="px-2.5 py-0.5 text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200/50 dark:border-zinc-700">
-                            {ind}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
-
-                    <div>
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-200 mb-2">Suggested Business Use Cases</h4>
-                      <ul className="space-y-2.5">
-                        {patent.analysis.commercialApplications.useCases.map((uc: string, idx: number) => (
-                          <li key={idx} className="flex items-start gap-2.5 text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
-                            <span className="text-lvx-blue font-bold">0{idx + 1}.</span>
-                            <span className="font-sans font-medium">{uc}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
-
-                    <div>
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-200 mb-2">Licensing & Adoption Opportunities</h4>
-                      <ul className="space-y-2.5">
-                        {patent.analysis.commercialApplications.adoptionOpportunities.map((op: string, idx: number) => (
-                          <li key={idx} className="flex items-start gap-2.5 text-xs text-zinc-600 dark:text-zinc-400 leading-normal">
-                            <CheckCircle2 className="h-4.5 w-4.5 text-lvx-blue dark:text-lvx-blue shrink-0 mt-0.5" />
-                            <span className="font-sans font-medium">{op}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Market Opportunity & Target Buyers */}
-            {patent.analysis && (patent.analysis.marketOpportunity || (patent.analysis.potentialBuyers?.length > 0)) && (
-              <Card className="border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 shadow-md">
-                <div className="p-6 space-y-5">
-                  <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">
-                    AI Market Intelligence
-                  </h3>
-                  {patent.analysis.marketOpportunity && (
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-200">Market Opportunity</h4>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
-                        {patent.analysis.marketOpportunity}
-                      </p>
-                    </div>
-                  )}
-                  {patent.analysis.potentialBuyers?.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-200">Potential Acquirers & Licensees</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {patent.analysis.potentialBuyers.map((buyer: string) => (
-                          <Badge key={buyer} variant="outline" className="px-2.5 py-0.5 text-[10px] font-semibold">
-                            {buyer}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {!patent.analysis && patent.accessStatus === 'approved' && (
-              <Card className="border border-amber-200 dark:border-amber-900/30 bg-amber-50/50 dark:bg-amber-950/10 p-6 text-center">
-                <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
-                  AI analysis is not available for this patent yet. Ask the admin to run re-analysis.
-                </p>
-              </Card>
-            )}
-
-            {/* Patent PDF preview */}
-            <Card className="border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 shadow-md">
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">
-                    Original Document Preview
-                  </h3>
-                  {patent.pdfUrl && (
-                    <a
-                      href={patent.pdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-bold text-lvx-blue dark:text-lvx-blue hover:underline flex items-center gap-0.5 premium-transition"
-                    >
-                      Download Full PDF
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                </div>
-
-                <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 bg-[#F7F6FB] dark:bg-zinc-950/50 flex flex-col items-center justify-center text-center space-y-3.5">
-                  <FileText className="h-10 w-10 text-lvx-blue" />
-                  <div>
-                    <h4 className="font-bold text-xs text-zinc-800 dark:text-zinc-200">Official Filing Documentation</h4>
-                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-mono">Reference: {patent.patentNumber}</p>
-                  </div>
-                  <a
-                    href={patent.pdfUrl || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="outline" size="sm" className="text-xs font-bold bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-200 rounded-lg">
-                      View Registry PDF
-                    </Button>
-                  </a>
-                </div>
-              </div>
-            </Card>
-
-          </div>
-
-          {/* Right Sidebar statistics & score card */}
-          <aside className="space-y-6 text-left">
-                     {/* Score Ring */}
-            <Card className="text-center p-6 flex flex-col items-center shadow-premium-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-6">
-                Commercial Potential Score
-              </h3>
-
-              {/* Animated Ring SVG - Fixed scaling and center coordinates */}
-              <div className="relative h-32 w-32 flex items-center justify-center">
-                <svg className="h-full w-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle
-                    className="text-zinc-100 dark:text-zinc-800"
-                    strokeWidth={stroke}
-                    stroke="currentColor"
-                    fill="transparent"
-                    r={normalizedRadius}
-                    cx={50}
-                    cy={50}
-                  />
-                  <circle
-                    className={scoreClass}
-                    strokeWidth={stroke}
-                    strokeDasharray={circumference + ' ' + circumference}
-                    style={{ strokeDashoffset }}
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="transparent"
-                    r={normalizedRadius}
-                    cx={50}
-                    cy={50}
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold text-zinc-900 dark:text-white leading-none">{score}</span>
-                  <span className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500 mt-0.5">COMMERCIAL SCORE</span>
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-1">
-                <span className="block text-xs font-bold text-zinc-800 dark:text-zinc-200">
-                  {scoreLabel} Readiness Level
-                </span>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 px-4 leading-normal font-sans font-medium">
-                  {patent.analysis?.marketOpportunity || 'AI-assessed commercial readiness based on technical feasibility, market demand, and licensing potential.'}
-                </p>
-              </div>
-            </Card>
-
-            {/* Transaction Details Card */}
-            <Card className="p-6 space-y-4 shadow-premium-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">
-                Acquisition & Licensing
-              </h3>
-              <div className="space-y-3.5 text-xs">
-                <div>
-                  <span className="block text-zinc-400 text-[10px] uppercase font-bold tracking-label dark:text-zinc-500">Asking Valuation</span>
-                  <span className="text-xl font-bold text-lvx-charcoal dark:text-white mt-0.5 block">
-                    {patent.askingPrice ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(patent.askingPrice) : 'Contact Owner'}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-zinc-400 text-[10px] uppercase font-bold tracking-label dark:text-zinc-500 mb-1.5">Availability</span>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="flex items-center gap-1.5 font-bold">
-                      <span className={`h-2 w-2 rounded-full ${patent.isForSale ? "bg-emerald-500" : "bg-zinc-350"}`} />
-                      <span className={patent.isForSale ? "text-zinc-800 dark:text-zinc-200" : "text-zinc-400 dark:text-zinc-650"}>Available for Sale / Assignment</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 font-bold">
-                      <span className={`h-2 w-2 rounded-full ${patent.isForLicense ? "bg-emerald-500" : "bg-zinc-350"}`} />
-                      <span className={patent.isForLicense ? "text-zinc-800 dark:text-zinc-200" : "text-zinc-400 dark:text-zinc-650"}>Available for Royalty Licensing</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Commercial Potential Breakdown Radar Chart */}
-            <Card className="p-6 flex flex-col items-center shadow-premium-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-4">
-                AI Commercial Breakdown
-              </h3>
-              
-              <div className="h-56 w-full flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-                    <PolarGrid stroke="rgba(113, 113, 122, 0.15)" strokeDasharray="3 3" />
-                    <PolarAngleAxis 
-                      dataKey="subject" 
-                      tick={{ fill: '#71717a', fontSize: 9, fontWeight: 'bold' }} 
-                    />
-                    <PolarRadiusAxis 
-                      angle={30} 
-                      domain={[0, 100]} 
-                      tick={{ fill: '#a1a1aa', fontSize: 8 }}
-                      axisLine={false} 
-                    />
-                    <Radar
-                      name="Potential"
-                      dataKey="value"
-                      stroke="#4a90e2"
-                      fill="#4a90e2"
-                      fillOpacity={0.2}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-
-            {/* Technology Keywords list */}
-            {patent.analysis?.keywords && (
-              <Card className="p-6 space-y-3 shadow-premium-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">
-                  Technology Keywords
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {patent.analysis.keywords.map((kw: string) => (
-                    <Badge key={kw} variant="outline" className="px-2 py-0.5 text-[10px] font-mono text-lvx-blue bg-lvx-blue/10 border-lvx-blue/20">
-                      #{kw}
-                    </Badge>
-                  ))}
-                </div>
-              </Card>
-            )}
-
-            {/* Owner Details card */}
-            <Card className="p-6 space-y-4 shadow-premium-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <h3 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label">
-                Filing Entity
-              </h3>
-              
-              <div className="space-y-3 text-xs">
-                <div>
-                  <span className="block text-zinc-400 text-[10px] uppercase font-bold tracking-label dark:text-zinc-500">Filer</span>
-                  <span className="font-bold text-zinc-800 dark:text-zinc-200">{patent.ownerName}</span>
-                </div>
-                <div>
-                  <span className="block text-zinc-400 text-[10px] uppercase font-bold tracking-label dark:text-zinc-500">Affiliation</span>
-                  <span className="font-bold text-zinc-800 dark:text-zinc-200">{patent.ownerOrganization || 'Stanford Robotics Lab'}</span>
-                </div>
-                <div>
-                  <span className="block text-zinc-400 text-[10px] uppercase font-bold tracking-label dark:text-zinc-500">Registry status</span>
-                  <Badge variant="success" className="py-0.5 px-2.5 text-[9px] font-bold mt-1 uppercase tracking-label bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-450 rounded-full">
-                    Verified Approved
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-
-          </aside>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...transition, delay: 0.08 }}
+        >
+        <IPDetailView
+          patent={patent}
+          isUnlocked={patent.accessStatus === 'approved'}
+          score={score}
+          readiness={readiness}
+          breakdown={breakdown}
+          radarData={radarData}
+          strokeDashoffset={strokeDashoffset}
+          circumference={circumference}
+          normalizedRadius={normalizedRadius}
+          stroke={stroke}
+          scoreClass={scoreClass}
+          onUnlockClick={openUnlockFlow}
+          accessPending={patent.accessStatus === 'pending'}
+          accessRejected={patent.accessStatus === 'rejected'}
+          hasExpressedInterest={patent.hasExpressedInterest}
+          onCompleteUnlock={patent.hasExpressedInterest && patent.accessStatus === 'none' ? handleSendAccessRequest : undefined}
+          completeUnlockLoading={accessRequestLoading}
+          onBookMeeting={() => {
+            if (!isAuthenticated) { navigate('/auth'); return; }
+            if (user?.role === 'buyer' && !isNdaSigned) {
+              setPendingAction('meeting');
+              setIsNdaOpen(true);
+              return;
+            }
+            setIsMeetingOpen(true);
+          }}
+          onMakeOffer={() => {
+            if (!isAuthenticated) { navigate('/auth'); return; }
+            if (!patent.hasMeetingDone) {
+              setIsMeetingRequiredOpen(true);
+              return;
+            }
+            if (user?.role === 'buyer' && !isNdaSigned) {
+              setPendingAction('offer');
+              setIsNdaOpen(true);
+              return;
+            }
+            setOfferForm(prev => ({ ...prev, type: patent.isForSale ? 'sale' : 'license' }));
+            setIsOfferOpen(true);
+          }}
+          onAskQuestion={() => {
+            if (!isAuthenticated) { navigate('/auth'); return; }
+            setIsAskOpen(true);
+          }}
+        />
+        </motion.div>
 
       </div>
 
-      {/* ========================================== */}
-      {/* Dialog: Express Interest Form */}
-      {/* ========================================== */}
-      <Dialog
-        isOpen={isInterestOpen}
-        onClose={() => setIsInterestOpen(false)}
-        title="Express Interest & Request Access"
-      >
-        {interestSuccess ? (
-          <div className="text-center py-6 space-y-3">
-            <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
-            <h4 className="font-bold text-sm text-zinc-900 dark:text-white">Submitted Successfully</h4>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              The inventor has been notified of your interest and unlock request. You&apos;ll see full details once they approve.
-            </p>
+      <UnlockDetailsFlow
+        isOpen={isUnlockOpen}
+        onClose={() => setIsUnlockOpen(false)}
+        patentId={id!}
+        patentTitle={patent.title}
+        patentNumber={patent.patentNumber}
+        ownerName={patent.ownerName}
+        ownerOrganization={patent.ownerOrganization}
+        buyerName={user?.name?.split(' (')[0]}
+        buyerOrganization={user?.organization}
+        hasExpressedInterest={patent.hasExpressedInterest}
+        initialForm={unlockForm}
+        onSuccess={() => {
+          fetchPatentDetails();
+          checkNdaStatus();
+        }}
+      />
+
+      <Dialog isOpen={isAskOpen} onClose={() => setIsAskOpen(false)} title="Ask a Question">
+        {askSuccess ? (
+          <div className="text-center py-6">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
+            <p className="text-sm text-zinc-600">Your question was sent to the inventor.</p>
           </div>
         ) : (
-          <form onSubmit={handleInterestSubmit} className="space-y-4 text-left">
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Your Full Name"
-                required
-                value={interestForm.name}
-                onChange={e => setInterestForm(prev => ({ ...prev, name: e.target.value }))}
-                className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200/60"
-              />
-              <Input
-                label="Organization"
-                required
-                value={interestForm.organization}
-                onChange={e => setInterestForm(prev => ({ ...prev, organization: e.target.value }))}
-                className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200/60"
-              />
-            </div>
-            
-            <Input
-              label="Verified Email"
-              type="email"
+          <form onSubmit={handleAskSubmit} className="space-y-4 text-left">
+            <textarea
               required
-              value={interestForm.email}
-              onChange={e => setInterestForm(prev => ({ ...prev, email: e.target.value }))}
-              className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200/60"
+              rows={4}
+              value={askMessage}
+              onChange={(e) => setAskMessage(e.target.value)}
+              placeholder="Ask about technical claims, licensing terms, or integration..."
+              className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 resize-none"
             />
-
-            <div>
-              <label className="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
-                Primary Business Purpose
-              </label>
-              <select
-                value={interestForm.purpose}
-                onChange={e => setInterestForm(prev => ({ ...prev, purpose: e.target.value }))}
-                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-premium-sm text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-lvx-blue/20 focus:border-lvx-blue premium-transition"
-              >
-                <option value="Licensing">IP Licensing Agreement</option>
-                <option value="Acquisition">IP Acquisition / Purchase</option>
-                <option value="JV">Joint Venture Setup</option>
-                <option value="Research">Collaborative R&D</option>
-                <option value="Investment">VC / Seed Investment</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
-                Your Proposal / Message
-              </label>
-              <textarea
-                required
-                rows={4}
-                placeholder="Outline your company's alignment, targeted integration pipeline, and proposed timeline..."
-                value={interestForm.message}
-                onChange={e => setInterestForm(prev => ({ ...prev, message: e.target.value }))}
-                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-premium-sm placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lvx-blue/20 focus:border-lvx-blue premium-transition resize-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setIsInterestOpen(false)} className="text-zinc-500 hover:text-zinc-800 font-bold">
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={interestLoading} className="bg-lvx-blue hover:bg-lvx-blue-hover text-white border-0 font-bold px-5 py-2 shadow-premium-md rounded-lg ">
-                Submit Interest & Request Access
-              </Button>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsAskOpen(false)}>Cancel</Button>
+              <Button type="submit" isLoading={askLoading}>Send question</Button>
             </div>
           </form>
         )}

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { dbStore } from '../services/dbStore';
 import { IAuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
-import { createRazorpayOrder, getRazorpayKeyId, buildRazorpayReceipt } from '../services/razorpayClient';
+import { createRazorpayOrder as razorpayCreateOrder, getRazorpayKeyId, buildRazorpayReceipt } from '../services/razorpayClient';
 import { 
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, 
   AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType 
@@ -173,7 +173,7 @@ export async function createRazorpayOrder(req: Request, res: Response) {
       payment_capture: 1
     };
 
-    const order = await createRazorpayOrder(options);
+    const order = await razorpayCreateOrder(options);
 
     return res.json({
       orderId: order.id,
