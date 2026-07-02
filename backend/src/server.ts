@@ -23,8 +23,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Welcome page / Health check
-app.get('/', (req, res) => {
+// Health check for Render / monitoring
+app.get('/api/health', (_req, res) => {
   res.json({
     status: 'online',
     message: 'PatentBridge AI Engine & REST API is fully operational.',
