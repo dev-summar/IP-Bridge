@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../context/authStore';
-import { getHomePathForRole } from '../utils/authRoutes';
+import { getHomePathForRole, getListIPPath } from '../utils/authRoutes';
 import { LogOut, Menu, X, Plus } from 'lucide-react';
 import { BrandLogo } from '../components/BrandLogo';
 import { Button } from '../components/ui/Button';
@@ -28,6 +28,7 @@ export const Navbar = () => {
   };
 
   const dashPath = user ? getHomePathForRole(user.role) : '/dashboard';
+  const listIpPath = getListIPPath(user?.role);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl safe-top">
@@ -64,7 +65,7 @@ export const Navbar = () => {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link to="/list-ip" className="hidden sm:block">
+          <Link to={listIpPath} className="hidden sm:block">
             <Button variant="outline" size="sm" className="gap-1.5 font-medium border-zinc-200">
               <Plus className="h-3.5 w-3.5" />
               List IP
@@ -116,7 +117,7 @@ export const Navbar = () => {
               {item.label}
             </Link>
           ))}
-          <Link to="/list-ip" className="block px-3 py-2.5 text-base font-medium rounded-lg hover:bg-zinc-50">
+          <Link to={listIpPath} className="block px-3 py-2.5 text-base font-medium rounded-lg hover:bg-zinc-50">
             List IP
           </Link>
           {!isAuthenticated && (

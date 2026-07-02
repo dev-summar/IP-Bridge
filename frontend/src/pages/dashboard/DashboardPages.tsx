@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { Plus } from 'lucide-react';
+import { getListIPPath } from '../../utils/authRoutes';
+import { useAuthStore } from '../../context/authStore';
 import {
   PortfolioManager,
   AccessRequestsManager,
@@ -13,13 +15,17 @@ import {
   BookmarksManager,
 } from '../Dashboards';
 
-export const AssetsPage = () => (
+export const AssetsPage = () => {
+  const { user } = useAuthStore();
+  const listIpPath = getListIPPath(user?.role);
+
+  return (
   <div>
     <PageHeader
       title="My IP Assets"
       description="Manage your portfolio listings, AI scores, and verification status."
       action={
-        <Link to="/list-ip">
+        <Link to={listIpPath}>
           <Button size="sm" className="rounded-xl gap-1.5">
             <Plus className="h-4 w-4" />
             List new IP
@@ -29,7 +35,8 @@ export const AssetsPage = () => (
     />
     <PortfolioManager embedded />
   </div>
-);
+  );
+};
 
 export const AccessRequestsPage = () => (
   <div>

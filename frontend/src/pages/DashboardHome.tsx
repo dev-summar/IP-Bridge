@@ -4,6 +4,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Compass, Plus } from 'lucide-react';
 import { DashboardOverview } from './Dashboards';
+import { getListIPPath } from '../utils/authRoutes';
 
 export const DashboardHome = () => {
   const { user } = useAuthStore();
@@ -29,7 +30,7 @@ export const DashboardHome = () => {
               </Button>
             </Link>
           ) : user?.role === 'owner' ? (
-            <Link to="/list-ip">
+            <Link to={getListIPPath(user.role)}>
               <Button className="gap-2 rounded-xl">
                 <Plus className="h-4 w-4" />
                 List new IP

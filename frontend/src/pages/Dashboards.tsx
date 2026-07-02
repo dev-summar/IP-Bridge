@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../hooks/useApi';
 import { useAuthStore } from '../context/authStore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
@@ -604,6 +604,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
 // 2. Portfolio Manager (Owner only)
 // ==========================================
 export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [portfolio, setPortfolio] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isNewOpen, setIsNewOpen] = React.useState(false);
@@ -633,6 +634,17 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
   React.useEffect(() => {
     fetchPortfolio();
   }, [fetchPortfolio]);
+
+  React.useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setIsNewOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('new');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const openNewDialog = () => setIsNewOpen(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -673,7 +685,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
             <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Patent Portfolio</h1>
             <p className="text-sm text-zinc-500 mt-1">Register new innovation patents or monitor verification status.</p>
           </div>
-          <Button onClick={() => setIsNewOpen(true)} className="rounded-xl gap-1.5 text-xs font-semibold">
+          <Button onClick={openNewDialog} className="rounded-xl gap-1.5 text-xs font-semibold">
             <Plus className="h-4 w-4" />
             List a Patent
           </Button>
@@ -682,7 +694,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
 
       {embedded && (
         <div className="flex justify-end">
-          <Button onClick={() => setIsNewOpen(true)} size="sm" className="rounded-xl gap-1.5">
+          <Button onClick={openNewDialog} size="sm" className="rounded-xl gap-1.5">
             <Plus className="h-4 w-4" />
             List IP
           </Button>
@@ -695,7 +707,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
           title="Your portfolio is empty"
           description='List your first patent or IP asset to reach corporate acquirers and licensees.'
           actionLabel="List IP"
-          onAction={() => setIsNewOpen(true)}
+          onAction={openNewDialog}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
