@@ -7,15 +7,22 @@ interface StaggerListProps {
   children: React.ReactNode;
   className?: string;
   as?: 'div' | 'ul' | 'section';
+  /** Set false to skip hidden→visible stagger (avoids blank list on remount/back nav). */
+  animateOnMount?: boolean;
 }
 
-export const StaggerList: React.FC<StaggerListProps> = ({ children, className, as = 'div' }) => {
+export const StaggerList: React.FC<StaggerListProps> = ({
+  children,
+  className,
+  as = 'div',
+  animateOnMount = true,
+}) => {
   const Component = motion[as];
 
   return (
     <Component
       variants={staggerContainer}
-      initial="hidden"
+      initial={animateOnMount ? 'hidden' : false}
       animate="visible"
       className={cn(className)}
     >

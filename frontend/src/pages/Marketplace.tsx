@@ -82,11 +82,14 @@ export const Marketplace = () => {
     if (!aiActive) fetchPatents();
   }, [fetchPatents, aiActive]);
 
+  // Refetch when restored from browser back-forward cache
   useEffect(() => {
-    if (!aiActive && !loading) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [page, aiActive]);
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && !aiActive) fetchPatents();
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [fetchPatents, aiActive]);
 
   const runAiSearch = async (text?: string) => {
     const q = (text ?? query).trim();
@@ -340,7 +343,7 @@ export const Marketplace = () => {
           />
         ) : (
           <>
-            <StaggerList key={displayList.map((p) => p._id).join('-')} className="">
+            <StaggerList key={`discover-page-${page}`} animateOnMount={false} className="">
               {displayList.map((p) => (
                 <StaggerItem key={p._id} as="div">
                   <PatentCard
