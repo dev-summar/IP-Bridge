@@ -6,9 +6,20 @@ import { PatentAnalysisModel, InterestRequestModel, MeetingRequestModel, AccessR
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../middleware/auth';
 
-async function checkAccessAndEnrich(p: any, userId: string, userRole: string) {
-  const analysis = await dbStore.patentAnalysis.findOne({ patentId: String(p._id) });
-  const owner = await dbStore.users.findById(p.ownerId);
+async function checkAccessAndEnrich(
+  p: any,
+  userId: string,
+  userRole: string,
+  preload?: { analysis?: any | null; owner?: any | null }
+) {
+  const analysis =
+    preload && 'analysis' in preload
+      ? preload.analysis
+      : await dbStore.patentAnalysis.findOne({ patentId: String(p._id) });
+  const owner =
+    preload && 'owner' in preload
+      ? preload.owner
+      : await dbStore.users.findById(p.ownerId);
 
   let accessStatus = 'none';
   let hasAccess = false;
@@ -105,6 +116,69 @@ async function checkAccessAndEnrich(p: any, userId: string, userRole: string) {
   }
 
   return enrichedPatent;
+}
+
+async function loadAnalysesByPatentIds(patentIds: string[]): Promise<Map<string, any>> {
+  const map = new Map<string, any>();
+  if (patentIds.length === 0) return map;
+
+  if (getUseMongo()) {
+    const rows = await PatentAnalysisModel.find({
+      patentId: { $in: patentIds.map(String) },
+    }).lean();
+    for (const row of rows) {
+      map.set(String(row.patentId), row);
+    }
+    return map;
+  }
+
+  for (const id of patentIds) {
+    const row = await dbStore.patentAnalysis.findOne({ patentId: id });
+    if (row) map.set(String(id), row);
+  }
+  return map;
+}
+
+async function loadOwnersByIds(ownerIds: string[]): Promise<Map<string, any>> {
+  const map = new Map<string, any>();
+  const unique = [...new Set(ownerIds.filter(Boolean))];
+  await Promise.all(
+    unique.map(async (id) => {
+      const owner = await dbStore.users.findById(id);
+      if (owner) map.set(String(id), owner);
+    })
+  );
+  return map;
+}
+
+function scorePatentKeywordMatch(
+  p: any,
+  analysis: any,
+  queryTokens: string[],
+  q: string
+): number {
+  let score = 0;
+  if (queryTokens.length === 0) {
+    if (p.title.toLowerCase().includes(q) || p.abstract.toLowerCase().includes(q)) {
+      score = 65;
+    }
+    return score;
+  }
+
+  let totalPoints = 0;
+  queryTokens.forEach((token) => {
+    if (p.title.toLowerCase().includes(token)) totalPoints += 35;
+    if (analysis?.keywords?.some((kw: string) => kw.toLowerCase().includes(token))) totalPoints += 25;
+    if (p.abstract.toLowerCase().includes(token)) totalPoints += 15;
+    if (analysis?.industryClassification?.some((ind: string) => ind.toLowerCase().includes(token))) {
+      totalPoints += 20;
+    }
+  });
+
+  if (totalPoints > 0) {
+    score = Math.min(99, Math.round(45 + (totalPoints / (queryTokens.length * 35)) * 54));
+  }
+  return score;
 }
 
 // Seed initial patents if empty
@@ -205,12 +279,14 @@ export async function seedInitialPatents() {
   }
 }
 
-// Get all approved patents for marketplace
+// Get approved patents for marketplace (paginated)
 export async function getMarketplacePatents(req: Request, res: Response) {
   try {
     const { query, industry, status } = req.query;
-    
-    // Fetch all patents
+    const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1);
+    const limit = Math.min(48, Math.max(1, parseInt(String(req.query.limit || '12'), 10) || 12));
+    const paginate = req.query.page !== undefined || req.query.limit !== undefined;
+
     let patents = await dbStore.patents.find();
 
     // Decode token if present
@@ -226,74 +302,88 @@ export async function getMarketplacePatents(req: Request, res: Response) {
       } catch (err) {}
     }
 
-    // Attach analysis details to each patent
-    const patentsWithAnalysis = [];
-    for (const p of patents) {
-      const enriched = await checkAccessAndEnrich(p, userId, userRole);
-      patentsWithAnalysis.push(enriched);
-    }
+    let filtered = patents.filter((p) => {
+      if (status) return p.status === status;
+      return p.status === 'approved';
+    });
 
-    // Filter results
-    let filtered = patentsWithAnalysis;
-
-    // Filter: By default, normal users see approved. Admin/Owners see more on specific routes
-    const role = (req as any).user?.role;
-    if (status) {
-      filtered = filtered.filter(p => p.status === status);
-    } else {
-      // General marketplace shows approved patents
-      filtered = filtered.filter(p => p.status === 'approved');
-    }
+    const analysisMap = await loadAnalysesByPatentIds(filtered.map((p) => String(p._id)));
 
     if (industry) {
-      filtered = filtered.filter(p => 
-        p.analysis?.industryClassification.some((i: string) => i.toLowerCase() === (industry as string).toLowerCase())
+      const industryLower = (industry as string).toLowerCase();
+      filtered = filtered.filter((p) =>
+        analysisMap
+          .get(String(p._id))
+          ?.industryClassification?.some((i: string) => i.toLowerCase() === industryLower)
       );
     }
 
     if (query) {
       const q = (query as string).toLowerCase();
-      
-      // Clean query tokens (ignore common stop words)
-      const stopWords = new Set(['the', 'and', 'for', 'with', 'system', 'method', 'device', 'apparatus', 'processing', 'about', 'from', 'this', 'that', 'new']);
-      const queryTokens = q.split(/[\s,\.\-\/]+/).map(t => t.trim()).filter(t => t.length > 2 && !stopWords.has(t));
-      
-      const scoredResults = filtered.map(p => {
-        let score = 0;
-        
-        if (queryTokens.length === 0) {
-          // Fallback if query only contains short words
-          if (p.title.toLowerCase().includes(q) || p.abstract.toLowerCase().includes(q)) {
-            score = 65;
-          }
-        } else {
-          let totalPoints = 0;
-          queryTokens.forEach(token => {
-            if (p.title.toLowerCase().includes(token)) totalPoints += 35;
-            if (p.analysis?.keywords.some((kw: string) => kw.toLowerCase().includes(token))) totalPoints += 25;
-            if (p.abstract.toLowerCase().includes(token)) totalPoints += 15;
-            if (p.analysis?.industryClassification.some((ind: string) => ind.toLowerCase().includes(token))) totalPoints += 20;
-          });
-          
-          if (totalPoints > 0) {
-            // Map total points to percentage scale (starting at 45% base, capped at 99%)
-            score = Math.min(99, Math.round(45 + (totalPoints / (queryTokens.length * 35)) * 54));
-          }
-        }
-        
-        return {
-          ...p,
-          matchPercentage: score
-        };
+      const stopWords = new Set([
+        'the', 'and', 'for', 'with', 'system', 'method', 'device', 'apparatus',
+        'processing', 'about', 'from', 'this', 'that', 'new',
+      ]);
+      const queryTokens = q
+        .split(/[\s,.\-/]+/)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 2 && !stopWords.has(t));
+
+      filtered = filtered
+        .map((p) => ({
+          patent: p,
+          matchPercentage: scorePatentKeywordMatch(
+            p,
+            analysisMap.get(String(p._id)),
+            queryTokens,
+            q
+          ),
+        }))
+        .filter((row) => row.matchPercentage > 0)
+        .sort((a, b) => b.matchPercentage - a.matchPercentage)
+        .map((row) => ({ ...row.patent, matchPercentage: row.matchPercentage }));
+    } else {
+      filtered.sort((a, b) => {
+        const scoreA = analysisMap.get(String(a._id))?.commercialPotentialScore ?? 0;
+        const scoreB = analysisMap.get(String(b._id))?.commercialPotentialScore ?? 0;
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
-      
-      // Only keep hits with > 0 matching score, and sort by score descending
-      filtered = scoredResults
-        .filter(r => r.matchPercentage > 0)
-        .sort((a, b) => b.matchPercentage - a.matchPercentage);
     }
 
-    return res.json(filtered);
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * limit;
+    const pageSlice = paginate ? filtered.slice(start, start + limit) : filtered;
+
+    const ownerMap = await loadOwnersByIds(pageSlice.map((p) => p.ownerId));
+
+    const patentsWithAnalysis = [];
+    for (const p of pageSlice) {
+      const enriched = await checkAccessAndEnrich(p, userId, userRole, {
+        analysis: analysisMap.get(String(p._id)) ?? null,
+        owner: ownerMap.get(String(p.ownerId)) ?? null,
+      });
+      if ((p as any).matchPercentage !== undefined) {
+        enriched.matchPercentage = (p as any).matchPercentage;
+      }
+      patentsWithAnalysis.push(enriched);
+    }
+
+    if (!paginate) {
+      return res.json(patentsWithAnalysis);
+    }
+
+    return res.json({
+      data: patentsWithAnalysis,
+      pagination: {
+        page: safePage,
+        limit,
+        total,
+        totalPages,
+      },
+    });
   } catch (error: any) {
     return res.status(500).json({ message: 'Failed to retrieve marketplace patents.', error: error.message });
   }

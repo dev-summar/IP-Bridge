@@ -5,11 +5,15 @@ import { useAuthStore } from '../context/authStore';
 import { apiFetch } from '../hooks/useApi';
 import { PatentCard } from '../components/PatentCard';
 import { StaggerList, StaggerItem } from '../components/motion/StaggerList';
-import { Search, Sparkles, SlidersHorizontal, X, Compass } from 'lucide-react';
+import { Search, Sparkles, SlidersHorizontal, X, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
 import { IP_CATEGORIES } from '../constants/ip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn } from '../utils/cn';
 import { springSnappy, transition } from '../utils/motion';
+
+import { Button } from '../components/ui/Button';
+
+const PAGE_SIZE = 12;
 
 const QUICK_SEARCHES = [
   { label: 'Edge AI', query: 'low power neural architecture edge inference' },
@@ -28,6 +32,9 @@ export const Marketplace = () => {
   const [keyword, setKeyword] = useState('');
 
   const [patents, setPatents] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,26 +48,45 @@ export const Marketplace = () => {
     if (ind) setSelectedIndustry(ind);
   }, [searchParams]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, selectedIndustry]);
+
   const fetchPatents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const params = new URLSearchParams();
+      params.append('page', String(page));
+      params.append('limit', String(PAGE_SIZE));
       if (keyword) params.append('query', keyword);
       if (selectedIndustry) params.append('industry', selectedIndustry);
-      const qs = params.toString();
-      const data = await apiFetch(`/api/patents${qs ? `?${qs}` : ''}`);
-      setPatents(data);
+      const data = await apiFetch(`/api/patents?${params.toString()}`);
+      if (Array.isArray(data)) {
+        setPatents(data);
+        setTotal(data.length);
+        setTotalPages(1);
+      } else {
+        setPatents(data.data || []);
+        setTotal(data.pagination?.total ?? 0);
+        setTotalPages(data.pagination?.totalPages ?? 1);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load IP assets.');
     } finally {
       setLoading(false);
     }
-  }, [keyword, selectedIndustry]);
+  }, [keyword, selectedIndustry, page]);
 
   useEffect(() => {
     if (!aiActive) fetchPatents();
   }, [fetchPatents, aiActive]);
+
+  useEffect(() => {
+    if (!aiActive && !loading) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [page, aiActive]);
 
   const runAiSearch = async (text?: string) => {
     const q = (text ?? query).trim();
@@ -87,6 +113,7 @@ export const Marketplace = () => {
     setAiResults([]);
     setAiError(null);
     setQuery('');
+    setPage(1);
   };
 
   const applyCategory = (industry: string) => {
@@ -94,6 +121,7 @@ export const Marketplace = () => {
     setAiActive(false);
     setAiResults([]);
     setQuery('');
+    setPage(1);
   };
 
   const handleToggleBookmark = async (id: string, e: React.MouseEvent) => {
@@ -119,10 +147,10 @@ export const Marketplace = () => {
   const resultLabel = aiActive
     ? `AI matches for “${query.length > 48 ? `${query.slice(0, 48)}…` : query}”`
     : selectedIndustry
-    ? `${selectedIndustry} · ${displayList.length} assets`
+    ? `${selectedIndustry} · ${total} assets`
     : keyword
-    ? `Results for “${keyword}”`
-    : `${displayList.length} IP assets`;
+    ? `${total} results for “${keyword}”`
+    : `${total} IP assets`;
 
   return (
     <div className="min-h-[calc(100dvh-4rem)] bg-zinc-50 dark:bg-zinc-950">
@@ -277,6 +305,7 @@ export const Marketplace = () => {
                   setKeyword('');
                   setSelectedIndustry('');
                   setShowFilters(false);
+                  setPage(1);
                 }}
                 className="text-sm text-primary hover:underline"
               >
@@ -310,20 +339,57 @@ export const Marketplace = () => {
             description="Try a different search or remove filters."
           />
         ) : (
-          <StaggerList key={displayList.map((p) => p._id).join('-')} className="">
-            {displayList.map((p) => (
-              <StaggerItem key={p._id} as="div">
-                <PatentCard
-                  variant="compact"
-                  patent={p}
-                  isSaved={isBookmarked(p._id)}
-                  onToggleBookmark={handleToggleBookmark}
-                  onExplore={(id) => navigate(`/marketplace/${id}`)}
-                  showMatchReason={aiActive && !!p.matchReason}
-                />
-              </StaggerItem>
-            ))}
-          </StaggerList>
+          <>
+            <StaggerList key={displayList.map((p) => p._id).join('-')} className="">
+              {displayList.map((p) => (
+                <StaggerItem key={p._id} as="div">
+                  <PatentCard
+                    variant="compact"
+                    patent={p}
+                    isSaved={isBookmarked(p._id)}
+                    onToggleBookmark={handleToggleBookmark}
+                    onExplore={(id) => navigate(`/marketplace/${id}`)}
+                    showMatchReason={aiActive && !!p.matchReason}
+                  />
+                </StaggerItem>
+              ))}
+            </StaggerList>
+
+            {!aiActive && totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-8 mt-2 border-t border-zinc-200/70 dark:border-zinc-800">
+                <p className="text-sm text-zinc-500 order-2 sm:order-1">
+                  Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+                </p>
+                <div className="flex items-center gap-2 order-1 sm:order-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl gap-1"
+                    disabled={page <= 1 || loading}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 px-2">
+                    {page} / {totalPages}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl gap-1"
+                    disabled={page >= totalPages || loading}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>

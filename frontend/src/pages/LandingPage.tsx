@@ -60,8 +60,8 @@ export const LandingPage = () => {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    apiFetch('/api/patents')
-      .then((data) => setPatents(data.slice(0, 3)))
+    apiFetch('/api/patents?limit=3&page=1')
+      .then((data) => setPatents((Array.isArray(data) ? data : data.data || []).slice(0, 3)))
       .catch(() => setPatents([]))
       .finally(() => setLoading(false));
   }, []);
