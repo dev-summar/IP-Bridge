@@ -94,7 +94,7 @@ export const LandingPage = () => {
             transition={{ delay: 0.1 }}
             className="mt-6 text-lg sm:text-xl md:text-2xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed"
           >
-            Discover, evaluate, license, and transfer patents through one secure platform — built for universities, startups, and corporates.
+            Patents, designs, and every form of IP — discover, evaluate, license, and transfer it all on one secure platform built for universities, startups, and corporates.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
