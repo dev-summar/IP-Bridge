@@ -338,6 +338,19 @@ export const dbStore = {
       const db = readJSON();
       db.patentAnalysis = db.patentAnalysis.filter((pa: any) => String(pa.patentId) !== id);
       writeJSON(db);
+    },
+
+    async find(filter: any = {}): Promise<any[]> {
+      if (useMongo) {
+        return await PatentAnalysisModel.find(filter).lean();
+      }
+      const db = readJSON();
+      return db.patentAnalysis.filter((pa: any) => {
+        for (const key in filter) {
+          if (String(pa[key]) !== String(filter[key])) return false;
+        }
+        return true;
+      });
     }
   },
 

@@ -281,18 +281,8 @@ function getLocalFallback(title: string, abstract: string): IPatentAIAnalysis {
   };
 }
 
-// Live LLM query wrapper
-export async function analyzePatentWithAI(title: string, abstract: string): Promise<IPatentAIAnalysis> {
-  const apiKey = process.env.LLM_API_KEY;
-  const endpoint = process.env.LLM_API_ENDPOINT || 'https://ai-services.mietjmu.in/gateway/llm/chat';
-  const modelName = process.env.LLM_MODEL || 'qwen3:latest';
-
-  if (!apiKey) {
-    console.log('[AI] LLM_API_KEY is not set. Falling back to local keyword heuristics.');
-    return getLocalFallback(title, abstract);
-  }
-
-  const prompt = `You are a world-class patent commercialization analyst. Analyze the patent titled "${title}" with abstract: "${abstract}".
+function buildAnalysisPrompt(title: string, abstract: string): string {
+  return `You are a world-class patent commercialization analyst. Analyze the patent titled "${title}" with abstract: "${abstract}".
 
 Provide a comprehensive commercial readiness analysis. You MUST return ONLY a valid JSON object matching this TypeScript interface:
 {
@@ -323,6 +313,88 @@ Provide a comprehensive commercial readiness analysis. You MUST return ONLY a va
 }
 
 IMPORTANT: Return ONLY the raw JSON string starting with "{" and ending with "}". Do NOT wrap the JSON inside markdown code blocks (do not use \`\`\`json ... \`\`\`). Do NOT include any introductory or wrap-up text.`;
+}
+
+function normalizeParsedAnalysis(parsed: IPatentAIAnalysis): IPatentAIAnalysis {
+  if (!parsed.potentialBuyers) parsed.potentialBuyers = parsed.commercialApplications?.potentialIndustries || [];
+  if (!parsed.marketOpportunity) {
+    parsed.marketOpportunity = parsed.summary?.commercialValue || 'This technology presents high potential for integration into enterprise systems.';
+  }
+  if (!parsed.filingYear) parsed.filingYear = 2022;
+
+  if (!parsed.commercialBreakdown) {
+    const clamp = (v: number) => Math.min(100, Math.max(0, Math.round(v)));
+    const score = parsed.commercialPotentialScore;
+    parsed.commercialBreakdown = {
+      technicalFeasibility: clamp(score * 0.95),
+      marketDemand: clamp(score * 1.02),
+      implementationSpeed: clamp(score * 0.88),
+      licensingValue: clamp(score * 0.98),
+      ipProtection: clamp(score * 0.94)
+    };
+  }
+
+  return parsed;
+}
+
+function parseAnalysisJson(rawContent: string): IPatentAIAnalysis {
+  let cleanJson = rawContent.trim();
+  if (cleanJson.startsWith('```')) {
+    cleanJson = cleanJson.replace(/^```(json)?/, '').replace(/```$/, '').trim();
+  }
+
+  const parsed = JSON.parse(cleanJson) as IPatentAIAnalysis;
+  if (!parsed.summary || !parsed.industryClassification || !parsed.commercialApplications || typeof parsed.commercialPotentialScore !== 'number') {
+    throw new Error('Parsed JSON is missing required structure fields.');
+  }
+
+  return normalizeParsedAnalysis(parsed);
+}
+
+async function runGeminiPatentAnalysis(prompt: string, apiKey: string): Promise<IPatentAIAnalysis> {
+  const parsed = await queryGeminiLLM(prompt, apiKey);
+  if (!parsed?.summary || !parsed?.industryClassification || !parsed?.commercialApplications) {
+    throw new Error('Gemini response is missing required patent analysis fields.');
+  }
+  return normalizeParsedAnalysis(parsed as IPatentAIAnalysis);
+}
+
+// Live LLM query wrapper
+export async function analyzePatentWithAI(title: string, abstract: string): Promise<IPatentAIAnalysis> {
+  const prompt = buildAnalysisPrompt(title, abstract);
+  const provider = (process.env.AI_ANALYSIS_PROVIDER || '').trim().toLowerCase();
+  const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
+  const apiKey = process.env.LLM_API_KEY?.trim();
+  const endpoint = process.env.LLM_API_ENDPOINT || 'https://ai-services.mietjmu.in/gateway/llm/chat';
+  const modelName = process.env.LLM_MODEL || 'qwen3:latest';
+
+  const preferGemini = provider === 'gemini' || (!apiKey && !!geminiApiKey);
+
+  if (preferGemini && geminiApiKey) {
+    try {
+      console.log('[AI] Using Google Gemini as primary analysis provider.');
+      return await runGeminiPatentAnalysis(prompt, geminiApiKey);
+    } catch (geminiErr: any) {
+      console.warn(`[AI] Gemini primary failed (Error: ${geminiErr.message}).`);
+      if (!apiKey) {
+        console.log('[AI] Falling back to local diagnostics.');
+        return getLocalFallback(title, abstract);
+      }
+    }
+  }
+
+  if (!apiKey) {
+    if (geminiApiKey) {
+      try {
+        console.log('[AI] LLM_API_KEY missing — trying Google Gemini.');
+        return await runGeminiPatentAnalysis(prompt, geminiApiKey);
+      } catch (geminiErr: any) {
+        console.warn(`[AI] Gemini failed (Error: ${geminiErr.message}).`);
+      }
+    }
+    console.log('[AI] No LLM_API_KEY or working GEMINI_API_KEY. Falling back to local keyword heuristics.');
+    return getLocalFallback(title, abstract);
+  }
 
   console.log(`[AI] Attempting live patent analysis with model: ${modelName}`);
 
@@ -343,7 +415,6 @@ IMPORTANT: Return ONLY the raw JSON string starting with "{" and ending with "}"
         ],
         temperature: 0.2
       }),
-      // Set 25 second connection timeout
       signal: AbortSignal.timeout(25000)
     });
 
@@ -353,59 +424,25 @@ IMPORTANT: Return ONLY the raw JSON string starting with "{" and ending with "}"
 
     const data = await response.json() as any;
     const rawContent = data.choices?.[0]?.message?.content || data.message?.content || '';
-    
+
     if (!rawContent) {
       throw new Error('LLM response returned empty content.');
     }
 
-    // Clean JSON content if LLM ignores instructions and wraps it in code blocks
-    let cleanJson = rawContent.trim();
-    if (cleanJson.startsWith('```')) {
-      cleanJson = cleanJson.replace(/^```(json)?/, '').replace(/```$/, '').trim();
-    }
-
-    const parsed = JSON.parse(cleanJson) as IPatentAIAnalysis;
-    
-    // Safety check fields
-    if (!parsed.summary || !parsed.industryClassification || !parsed.commercialApplications || typeof parsed.commercialPotentialScore !== 'number') {
-      throw new Error('Parsed JSON is missing required structure fields.');
-    }
-
-    // Fallbacks if LLM misses new fields
-    if (!parsed.potentialBuyers) parsed.potentialBuyers = parsed.commercialApplications?.potentialIndustries || [];
-    if (!parsed.marketOpportunity) parsed.marketOpportunity = parsed.summary?.commercialValue || 'This technology presents high potential for integration into enterprise systems.';
-    if (!parsed.filingYear) parsed.filingYear = 2022;
-
-    if (!parsed.commercialBreakdown) {
-      const clamp = (v: number) => Math.min(100, Math.max(0, Math.round(v)));
-      const score = parsed.commercialPotentialScore;
-      parsed.commercialBreakdown = {
-        technicalFeasibility: clamp(score * 0.95),
-        marketDemand: clamp(score * 1.02),
-        implementationSpeed: clamp(score * 0.88),
-        licensingValue: clamp(score * 0.98),
-        ipProtection: clamp(score * 0.94)
-      };
-    }
-
+    const parsed = parseAnalysisJson(rawContent);
     console.log('[AI] Successfully generated live analysis from LLM.');
     return parsed;
 
   } catch (err: any) {
     console.warn(`[AI] Live LLM query failed (Error: ${err.message}).`);
 
-    // Attempt Gemini Fallback
-    const geminiApiKey = process.env.GEMINI_API_KEY;
     if (geminiApiKey) {
       try {
-        console.log('[AI] Attempting fallback to Google Gemini (gemini-1.5-flash)...');
-        const parsedGemini = await queryGeminiLLM(prompt, geminiApiKey);
-        
-        // Safety check fields
-        if (parsedGemini.summary && parsedGemini.industryClassification && parsedGemini.commercialApplications) {
-          console.log('[AI] Successfully generated analysis from Google Gemini.');
-          return parsedGemini;
-        }
+        const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+        console.log(`[AI] Attempting fallback to Google Gemini (${geminiModel})...`);
+        const parsedGemini = await runGeminiPatentAnalysis(prompt, geminiApiKey);
+        console.log('[AI] Successfully generated analysis from Google Gemini.');
+        return parsedGemini;
       } catch (geminiErr: any) {
         console.warn(`[AI] Google Gemini fallback failed (Error: ${geminiErr.message}).`);
       }
@@ -416,10 +453,18 @@ IMPORTANT: Return ONLY the raw JSON string starting with "{" and ending with "}"
   }
 }
 
-// Google Gemini API direct query utility
+// Google Gemini API direct query utility (Google AI Studio key — starts with AIza...)
 export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<any> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-  
+  const trimmedKey = apiKey.trim();
+  if (!trimmedKey.startsWith('AIza')) {
+    throw new Error(
+      'Invalid GEMINI_API_KEY format. Use a Google AI Studio API key (starts with AIza...), not a Vertex/OAuth token. Create one at https://aistudio.google.com/apikey'
+    );
+  }
+
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trimmedKey}`;
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -439,11 +484,17 @@ export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<an
         responseMimeType: 'application/json'
       }
     }),
-    signal: AbortSignal.timeout(20000)
+    signal: AbortSignal.timeout(45000)
   });
 
   if (!response.ok) {
-    throw new Error(`Google Gemini API returned status ${response.status}`);
+    const body = await response.text();
+    if (response.status === 401) {
+      throw new Error(
+        'Google Gemini API returned 401 — your key is invalid or wrong type. Use a Google AI Studio API key (AIza...), not a Vertex/OAuth token. See https://aistudio.google.com/apikey'
+      );
+    }
+    throw new Error(`Google Gemini API returned status ${response.status}: ${body.substring(0, 240)}`);
   }
 
   const data = await response.json() as any;

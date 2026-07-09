@@ -2,6 +2,11 @@ import { Request, Response } from 'express';
 import { dbStore, getUseMongo } from '../services/dbStore';
 import { IAuthRequest } from '../middleware/auth';
 import { analyzePatentWithAI, queryGeminiLLM } from '../services/aiParser';
+import {
+  buildDuplicateDescriptionSet,
+  comparePatentsByQualityThenScore,
+  isQualityPatentAnalysis,
+} from '../services/analysisQuality';
 import { PatentAnalysisModel, InterestRequestModel, MeetingRequestModel, AccessRequestModel } from '../models/schemas';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../middleware/auth';
@@ -308,6 +313,9 @@ export async function getMarketplacePatents(req: Request, res: Response) {
     });
 
     const analysisMap = await loadAnalysesByPatentIds(filtered.map((p) => String(p._id)));
+    const duplicateDescriptions = buildDuplicateDescriptionSet(
+      filtered.map((p) => analysisMap.get(String(p._id))).filter(Boolean)
+    );
 
     if (industry) {
       const industryLower = (industry as string).toLowerCase();
@@ -340,15 +348,22 @@ export async function getMarketplacePatents(req: Request, res: Response) {
           ),
         }))
         .filter((row) => row.matchPercentage > 0)
-        .sort((a, b) => b.matchPercentage - a.matchPercentage)
+        .sort((a, b) => {
+          if (b.matchPercentage !== a.matchPercentage) {
+            return b.matchPercentage - a.matchPercentage;
+          }
+          return comparePatentsByQualityThenScore(
+            a.patent,
+            b.patent,
+            analysisMap,
+            duplicateDescriptions
+          );
+        })
         .map((row) => ({ ...row.patent, matchPercentage: row.matchPercentage }));
     } else {
-      filtered.sort((a, b) => {
-        const scoreA = analysisMap.get(String(a._id))?.commercialPotentialScore ?? 0;
-        const scoreB = analysisMap.get(String(b._id))?.commercialPotentialScore ?? 0;
-        if (scoreB !== scoreA) return scoreB - scoreA;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
+      filtered.sort((a, b) =>
+        comparePatentsByQualityThenScore(a, b, analysisMap, duplicateDescriptions)
+      );
     }
 
     const total = filtered.length;
@@ -368,6 +383,10 @@ export async function getMarketplacePatents(req: Request, res: Response) {
       if ((p as any).matchPercentage !== undefined) {
         enriched.matchPercentage = (p as any).matchPercentage;
       }
+      enriched.isAiEvaluated = isQualityPatentAnalysis(
+        analysisMap.get(String(p._id)),
+        duplicateDescriptions
+      );
       patentsWithAnalysis.push(enriched);
     }
 
