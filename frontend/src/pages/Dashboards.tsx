@@ -794,6 +794,16 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
   });
   const [submitting, setSubmitting] = React.useState(false);
   const [aiBusyId, setAiBusyId] = React.useState<string | null>(null);
+  const [readinessPatent, setReadinessPatent] = React.useState<any | null>(null);
+  const [readinessForm, setReadinessForm] = React.useState({
+    hasPrototype: false,
+    hasProduct: false,
+    prototypeDescription: '',
+  });
+  const [aiResult, setAiResult] = React.useState<{
+    title: string;
+    body: string;
+  } | null>(null);
 
   const fetchPortfolio = React.useCallback(async () => {
     try {
@@ -862,52 +872,64 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
     }
   };
 
+  const openReadinessDialog = (patent: any) => {
+    setReadinessPatent(patent);
+    setReadinessForm({
+      hasPrototype: !!patent.hasPrototype,
+      hasProduct: !!patent.hasProduct,
+      prototypeDescription: patent.prototypeDescription || '',
+    });
+  };
+
   const runInventorAi = async (
     patentId: string,
-    action: 'pricing-guidance' | 'readiness' | 'commercial-potential'
+    action: 'pricing-guidance' | 'readiness' | 'commercial-potential',
+    readinessBody?: {
+      hasPrototype: boolean;
+      hasProduct: boolean;
+      prototypeDescription: string;
+    }
   ) => {
     try {
       setAiBusyId(`${patentId}:${action}`);
-      let body: any = undefined;
-      if (action === 'readiness') {
-        const patent = portfolio.find((p) => p._id === patentId);
-        const hasPrototype =
-          patent?.hasPrototype ??
-          window.confirm('Do you have a working prototype for this patent?');
-        const hasProduct =
-          patent?.hasProduct ??
-          window.confirm('Do you have a product based on this patent?');
-        const prototypeDescription =
-          patent?.prototypeDescription ||
-          window.prompt('Briefly describe the prototype/product (optional):') ||
-          '';
-        body = { hasPrototype, hasProduct, prototypeDescription };
-      }
       const res = await apiFetch(`/api/patents/${patentId}/${action}`, {
         method: 'POST',
-        ...(body ? { body } : {}),
+        ...(action === 'readiness' && readinessBody ? { body: readinessBody } : {}),
       });
       if (action === 'pricing-guidance' && res.pricingGuidance) {
         const g = res.pricingGuidance;
-        alert(
-          `AI pricing guidance (INR)\nSale: ${formatINR(g.suggestedSaleMinInr)} – ${formatINR(g.suggestedSaleMaxInr)}\nAnnual license: ${formatINR(g.suggestedLicenseAnnualInr)}\nConfidence: ${g.confidence}%\n\n${g.rationale}`
-        );
+        setAiResult({
+          title: 'AI pricing guidance',
+          body: `Suggested sale: ${formatINR(g.suggestedSaleMinInr)} – ${formatINR(g.suggestedSaleMaxInr)}\nAnnual license: ${formatINR(g.suggestedLicenseAnnualInr)}\nConfidence: ${g.confidence}%\n\n${g.rationale || ''}`,
+        });
       } else if (action === 'readiness' && res.readinessAssessment) {
         const r = res.readinessAssessment;
-        alert(
-          `Readiness: ${r.maturityLabel}\nTRL ${r.trlLevel} · Score ${r.readinessScore}/100\n\nNext: ${(r.nextSteps || []).slice(0, 3).join('; ')}`
-        );
+        setReadinessPatent(null);
+        setAiResult({
+          title: 'Prototype readiness',
+          body: `${r.maturityLabel}\nTRL ${r.trlLevel} · Score ${r.readinessScore}/100\n\nNext steps:\n${(r.nextSteps || []).slice(0, 3).map((s: string) => `• ${s}`).join('\n')}`,
+        });
       } else if (action === 'commercial-potential') {
-        alert(
-          `Commercial potential refreshed: ${res.commercialPotentialScore}/100\n${res.marketOpportunity || ''}`
-        );
+        setAiResult({
+          title: 'Commercial potential',
+          body: `Score: ${res.commercialPotentialScore}/100\n\n${res.marketOpportunity || 'Analysis refreshed.'}`,
+        });
       }
       fetchPortfolio();
     } catch (err: any) {
-      alert(err.message || 'AI action failed.');
+      setAiResult({
+        title: 'AI action failed',
+        body: err.message || 'Something went wrong. Please try again.',
+      });
     } finally {
       setAiBusyId(null);
     }
+  };
+
+  const submitReadiness = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!readinessPatent) return;
+    await runInventorAi(readinessPatent._id, 'readiness', readinessForm);
   };
 
   if (loading) return <div className="grid gap-4 sm:grid-cols-2">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>;
@@ -998,7 +1020,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   size="sm"
                   className="text-[10px] rounded-lg h-7"
                   isLoading={aiBusyId === `${p._id}:readiness`}
-                  onClick={() => runInventorAi(p._id, 'readiness')}
+                  onClick={() => openReadinessDialog(p)}
                 >
                   Prototype rate
                 </Button>
@@ -1238,6 +1260,116 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
             </div>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        isOpen={!!readinessPatent}
+        onClose={() => !aiBusyId && setReadinessPatent(null)}
+        title="Prototype or product?"
+        description={
+          readinessPatent
+            ? `Tell us about readiness for “${readinessPatent.title}”. AI will rate TRL from your answer.`
+            : undefined
+        }
+        className="max-w-lg"
+      >
+        <form onSubmit={submitReadiness} className="space-y-5">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label
+              className={cn(
+                'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all',
+                readinessForm.hasPrototype
+                  ? 'border-emerald-500/50 bg-emerald-50/40 dark:bg-emerald-950/20'
+                  : 'border-zinc-200 dark:border-zinc-800'
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={readinessForm.hasPrototype}
+                onChange={(e) =>
+                  setReadinessForm((prev) => ({ ...prev, hasPrototype: e.target.checked }))
+                }
+                className="mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+              />
+              <span>
+                <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Working prototype
+                </span>
+                <span className="block text-xs text-zinc-500 mt-0.5">Lab or field demo available</span>
+              </span>
+            </label>
+            <label
+              className={cn(
+                'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all',
+                readinessForm.hasProduct
+                  ? 'border-emerald-500/50 bg-emerald-50/40 dark:bg-emerald-950/20'
+                  : 'border-zinc-200 dark:border-zinc-800'
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={readinessForm.hasProduct}
+                onChange={(e) =>
+                  setReadinessForm((prev) => ({ ...prev, hasProduct: e.target.checked }))
+                }
+                className="mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+              />
+              <span>
+                <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Product in market
+                </span>
+                <span className="block text-xs text-zinc-500 mt-0.5">Sold, piloted, or deployed</span>
+              </span>
+            </label>
+          </div>
+          <div>
+            <label className={cn('block mb-1.5', formLabelClass)}>Describe readiness (optional)</label>
+            <textarea
+              rows={3}
+              placeholder="e.g. Bench prototype validated with 12 athletes; seeking manufacturing partner…"
+              value={readinessForm.prototypeDescription}
+              onChange={(e) =>
+                setReadinessForm((prev) => ({ ...prev, prototypeDescription: e.target.value }))
+              }
+              className={cn(formFieldClass, 'resize-y min-h-[80px]')}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              disabled={!!aiBusyId}
+              onClick={() => setReadinessPatent(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="rounded-xl font-semibold gap-1.5"
+              isLoading={!!readinessPatent && aiBusyId === `${readinessPatent._id}:readiness`}
+            >
+              <Sparkles className="h-4 w-4" />
+              Rate with AI
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog
+        isOpen={!!aiResult}
+        onClose={() => setAiResult(null)}
+        title={aiResult?.title || 'AI result'}
+        className="max-w-md"
+      >
+        <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
+          {aiResult?.body}
+        </p>
+        <div className="flex justify-end mt-5">
+          <Button type="button" className="rounded-xl" onClick={() => setAiResult(null)}>
+            Done
+          </Button>
+        </div>
       </Dialog>
     </div>
   );
