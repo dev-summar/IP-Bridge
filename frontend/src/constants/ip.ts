@@ -8,6 +8,18 @@ export const IP_CATEGORIES = [
   'Sustainability',
 ] as const;
 
+/** Suggested tech tags for buyer interests (signup + profile). */
+export const INTEREST_SUGGESTIONS = [
+  'edge AI',
+  'drug delivery',
+  'battery storage',
+  'IoT security',
+  'robotics',
+  'clean energy',
+  'medical imaging',
+  'fintech',
+] as const;
+
 export const ASSET_TYPES = [
   'Patent',
   'Software IP',

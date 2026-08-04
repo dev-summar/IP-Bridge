@@ -64,6 +64,9 @@ const getStatIcon = (label: string) => {
   if (lowercaseLabel.includes('user') || lowercaseLabel.includes('client')) {
     return <UsersIcon className="h-5 w-5 text-blue-650 dark:text-blue-450" />;
   }
+  if (lowercaseLabel.includes('rank') || lowercaseLabel.includes('readiness') || lowercaseLabel.includes('score')) {
+    return <Sparkles className="h-5 w-5 text-lvx-blue" />;
+  }
   return <Sparkles className="h-5 w-5 text-lvx-blue" />;
 };
 
@@ -371,29 +374,183 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
 
       {user?.role === 'owner' && (
         <div className="grid lg:grid-cols-[1fr_400px] gap-6">
-          {/* Timeline chart representing reach and views */}
-          <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
-            <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800">
-              <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">Portfolio Views & Deal-Flow Trends</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockTimelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="areaGradientViews" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4a90e2" stopOpacity={0.4}/>
-                      <stop offset="100%" stopColor="#4a90e2" stopOpacity={0.01}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
-                  <XAxis dataKey="month" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 12 }} />
-                  <Area type="monotone" dataKey="views" stroke="#4a90e2" strokeWidth={2} fillOpacity={1} fill="url(#areaGradientViews)" name="Patent Views" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
+              <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800">
+                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200">
+                  Institution benchmarking & ranking
+                </CardTitle>
+                <CardDescription className="text-xs text-zinc-500 mt-1">
+                  Your standing among inventors and institutions on the platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+                {data?.benchmarking ? (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-100 dark:border-zinc-800 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Platform rank</p>
+                        <p className="text-xl font-bold text-zinc-900 dark:text-white mt-1">
+                          #{data.benchmarking.individual?.platformRank ?? '—'}
+                        </p>
+                        <p className="text-[10px] text-zinc-500">
+                          of {data.benchmarking.individual?.platformInventors ?? 0} inventors
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-100 dark:border-zinc-800 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Percentile</p>
+                        <p className="text-xl font-bold text-zinc-900 dark:text-white mt-1">
+                          {data.benchmarking.individual?.percentile ?? '—'}%
+                        </p>
+                        <p className="text-[10px] text-zinc-500">vs all inventors</p>
+                      </div>
+                      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-100 dark:border-zinc-800 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Org peer rank</p>
+                        <p className="text-xl font-bold text-zinc-900 dark:text-white mt-1">
+                          #{data.benchmarking.individual?.orgPeerRank ?? '—'}
+                        </p>
+                        <p className="text-[10px] text-zinc-500">
+                          of {data.benchmarking.individual?.orgPeerCount ?? 0} at{' '}
+                          {data.benchmarking.organization || 'org'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-100 dark:border-zinc-800 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Institution rank</p>
+                        <p className="text-xl font-bold text-zinc-900 dark:text-white mt-1">
+                          #{data.benchmarking.institution?.rank ?? '—'}
+                        </p>
+                        <p className="text-[10px] text-zinc-500">
+                          of {data.benchmarking.institution?.totalInstitutions ?? 0} orgs
+                        </p>
+                      </div>
+                    </div>
+
+                    {data.benchmarking.institution?.vsOrgCommercialDelta != null && (
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                        Your avg commercial score vs org peers:{' '}
+                        <strong
+                          className={
+                            data.benchmarking.institution.vsOrgCommercialDelta >= 0
+                              ? 'text-emerald-600'
+                              : 'text-amber-600'
+                          }
+                        >
+                          {data.benchmarking.institution.vsOrgCommercialDelta >= 0 ? '+' : ''}
+                          {data.benchmarking.institution.vsOrgCommercialDelta} pts
+                        </strong>
+                        {data.benchmarking.institution.peerAvgCommercialScore != null && (
+                          <span className="text-zinc-400">
+                            {' '}
+                            (org avg {data.benchmarking.institution.peerAvgCommercialScore}/100)
+                          </span>
+                        )}
+                      </p>
+                    )}
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                          Top inventors
+                        </h4>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {data.benchmarking.topIndividuals?.map((row: any) => (
+                            <div
+                              key={row.rank}
+                              className={cn(
+                                'flex items-center justify-between text-xs rounded-lg px-2.5 py-2 border',
+                                row.isYou
+                                  ? 'border-lvx-blue/40 bg-lvx-blue/5'
+                                  : 'border-zinc-100 dark:border-zinc-800'
+                              )}
+                            >
+                              <div className="min-w-0">
+                                <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                                  #{row.rank} {row.name.split(' (')[0]}
+                                  {row.isYou ? ' (you)' : ''}
+                                </p>
+                                <p className="text-[10px] text-zinc-400 truncate">{row.organization}</p>
+                              </div>
+                              <span className="text-[10px] font-bold text-zinc-500 shrink-0">
+                                {row.avgCommercialScore}/100
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                          Institution leaderboard
+                        </h4>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {data.benchmarking.institutionLeaderboard?.map((row: any) => (
+                            <div
+                              key={row.rank}
+                              className={cn(
+                                'flex items-center justify-between text-xs rounded-lg px-2.5 py-2 border',
+                                row.isYourOrg
+                                  ? 'border-emerald-400/40 bg-emerald-50/40 dark:bg-emerald-950/20'
+                                  : 'border-zinc-100 dark:border-zinc-800'
+                              )}
+                            >
+                              <div className="min-w-0">
+                                <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                                  #{row.rank} {row.organization}
+                                </p>
+                                <p className="text-[10px] text-zinc-400">
+                                  {row.inventors} inventors · {row.published} published
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-bold text-zinc-500 shrink-0">
+                                {row.benchmarkScore}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-zinc-400 text-center py-8">
+                    Benchmarking data unavailable yet.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Keep light trend chart as secondary context */}
+            <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
+              <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800">
+                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">
+                  Portfolio Views & Deal-Flow Trends
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={mockTimelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="areaGradientViews" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4a90e2" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#4a90e2" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
+                    <XAxis dataKey="month" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip contentStyle={{ fontSize: 11, borderRadius: 12 }} />
+                    <Area
+                      type="monotone"
+                      dataKey="views"
+                      stroke="#4a90e2"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#areaGradientViews)"
+                      name="Patent Views"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="space-y-6">
             {/* Recent Leads received */}
@@ -630,9 +787,13 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
     pdfUrl: '',
     askingPrice: '',
     isForSale: true,
-    isForLicense: true
+    isForLicense: true,
+    hasPrototype: false,
+    hasProduct: false,
+    prototypeDescription: '',
   });
   const [submitting, setSubmitting] = React.useState(false);
+  const [aiBusyId, setAiBusyId] = React.useState<string | null>(null);
 
   const fetchPortfolio = React.useCallback(async () => {
     try {
@@ -674,7 +835,10 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
         method: 'POST',
         body: {
           ...form,
-          askingPrice: Number(parsePriceDigits(form.askingPrice)) || 0
+          askingPrice: Number(parsePriceDigits(form.askingPrice)) || 0,
+          hasPrototype: form.hasPrototype,
+          hasProduct: form.hasProduct,
+          prototypeDescription: form.prototypeDescription || undefined,
         }
       });
       setIsNewOpen(false);
@@ -685,13 +849,64 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
         pdfUrl: '',
         askingPrice: '',
         isForSale: true,
-        isForLicense: true
+        isForLicense: true,
+        hasPrototype: false,
+        hasProduct: false,
+        prototypeDescription: '',
       });
       fetchPortfolio();
     } catch (err: any) {
       alert(err.message || 'Failed to submit patent.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const runInventorAi = async (
+    patentId: string,
+    action: 'pricing-guidance' | 'readiness' | 'commercial-potential'
+  ) => {
+    try {
+      setAiBusyId(`${patentId}:${action}`);
+      let body: any = undefined;
+      if (action === 'readiness') {
+        const patent = portfolio.find((p) => p._id === patentId);
+        const hasPrototype =
+          patent?.hasPrototype ??
+          window.confirm('Do you have a working prototype for this patent?');
+        const hasProduct =
+          patent?.hasProduct ??
+          window.confirm('Do you have a product based on this patent?');
+        const prototypeDescription =
+          patent?.prototypeDescription ||
+          window.prompt('Briefly describe the prototype/product (optional):') ||
+          '';
+        body = { hasPrototype, hasProduct, prototypeDescription };
+      }
+      const res = await apiFetch(`/api/patents/${patentId}/${action}`, {
+        method: 'POST',
+        ...(body ? { body } : {}),
+      });
+      if (action === 'pricing-guidance' && res.pricingGuidance) {
+        const g = res.pricingGuidance;
+        alert(
+          `AI pricing guidance (INR)\nSale: ${formatINR(g.suggestedSaleMinInr)} – ${formatINR(g.suggestedSaleMaxInr)}\nAnnual license: ${formatINR(g.suggestedLicenseAnnualInr)}\nConfidence: ${g.confidence}%\n\n${g.rationale}`
+        );
+      } else if (action === 'readiness' && res.readinessAssessment) {
+        const r = res.readinessAssessment;
+        alert(
+          `Readiness: ${r.maturityLabel}\nTRL ${r.trlLevel} · Score ${r.readinessScore}/100\n\nNext: ${(r.nextSteps || []).slice(0, 3).join('; ')}`
+        );
+      } else if (action === 'commercial-potential') {
+        alert(
+          `Commercial potential refreshed: ${res.commercialPotentialScore}/100\n${res.marketOpportunity || ''}`
+        );
+      }
+      fetchPortfolio();
+    } catch (err: any) {
+      alert(err.message || 'AI action failed.');
+    } finally {
+      setAiBusyId(null);
     }
   };
 
@@ -750,11 +965,50 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                 <span className="text-xs text-zinc-500">
                   AI score: <strong className="text-zinc-800 dark:text-zinc-200">{p.analysis?.commercialPotentialScore ?? '—'}</strong>
+                  {p.trlLevel ? ` · TRL ${p.trlLevel}` : ''}
                 </span>
                 <Link to={`/marketplace/${p._id}`}>
                   <Button variant="ghost" size="sm" className="text-xs rounded-lg">View</Button>
                 </Link>
               </div>
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-[10px] rounded-lg h-7"
+                  isLoading={aiBusyId === `${p._id}:commercial-potential`}
+                  onClick={() => runInventorAi(p._id, 'commercial-potential')}
+                >
+                  Commercial AI
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-[10px] rounded-lg h-7"
+                  isLoading={aiBusyId === `${p._id}:pricing-guidance`}
+                  onClick={() => runInventorAi(p._id, 'pricing-guidance')}
+                >
+                  Price guide
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-[10px] rounded-lg h-7"
+                  isLoading={aiBusyId === `${p._id}:readiness`}
+                  onClick={() => runInventorAi(p._id, 'readiness')}
+                >
+                  Prototype rate
+                </Button>
+              </div>
+              {p.analysis?.pricingGuidance && (
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-2">
+                  Suggested sale: {formatINR(p.analysis.pricingGuidance.suggestedSaleMinInr)} –{' '}
+                  {formatINR(p.analysis.pricingGuidance.suggestedSaleMaxInr)}
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -896,6 +1150,75 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   </label>
                 </div>
               </fieldset>
+            </section>
+
+            <section className="space-y-4 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+              <div>
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  Do you have a prototype or product?
+                </h4>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  AI rates technology readiness (TRL) from your answer.
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label
+                  className={cn(
+                    'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all',
+                    form.hasPrototype
+                      ? 'border-emerald-500/50 bg-emerald-50/40 dark:bg-emerald-950/20'
+                      : 'border-zinc-200 dark:border-zinc-800'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.hasPrototype}
+                    onChange={(e) => setForm((prev) => ({ ...prev, hasPrototype: e.target.checked }))}
+                    className="mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      Working prototype
+                    </span>
+                    <span className="block text-xs text-zinc-500 mt-0.5">Lab or field demo available</span>
+                  </span>
+                </label>
+                <label
+                  className={cn(
+                    'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all',
+                    form.hasProduct
+                      ? 'border-emerald-500/50 bg-emerald-50/40 dark:bg-emerald-950/20'
+                      : 'border-zinc-200 dark:border-zinc-800'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.hasProduct}
+                    onChange={(e) => setForm((prev) => ({ ...prev, hasProduct: e.target.checked }))}
+                    className="mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      Product in market
+                    </span>
+                    <span className="block text-xs text-zinc-500 mt-0.5">Sold, piloted, or deployed</span>
+                  </span>
+                </label>
+              </div>
+              {(form.hasPrototype || form.hasProduct) && (
+                <div>
+                  <label className={cn('block mb-1.5', formLabelClass)}>Describe readiness (optional)</label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. Bench prototype validated with 12 athletes; seeking manufacturing partner…"
+                    value={form.prototypeDescription}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, prototypeDescription: e.target.value }))
+                    }
+                    className={cn(formFieldClass, 'resize-y min-h-[80px]')}
+                  />
+                </div>
+              )}
             </section>
           </div>
 

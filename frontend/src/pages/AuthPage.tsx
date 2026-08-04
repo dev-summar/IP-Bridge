@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button';
 import { BrandLogo } from '../components/BrandLogo';
 import { cn } from '../utils/cn';
 import { springSnappy, transition } from '../utils/motion';
+import { IP_CATEGORIES, INTEREST_SUGGESTIONS } from '../constants/ip';
 import {
   KeyRound,
   ArrowRight,
@@ -103,6 +104,9 @@ export const AuthPage = () => {
   const [name, setName] = React.useState('');
   const [organization, setOrganization] = React.useState('');
   const [role, setRole] = React.useState<'owner' | 'buyer'>('buyer');
+  const [domains, setDomains] = React.useState<string[]>([]);
+  const [interests, setInterests] = React.useState<string[]>([]);
+  const [customInterest, setCustomInterest] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -158,7 +162,16 @@ export const AuthPage = () => {
       if (isRegister) {
         const res = await apiFetch('/api/auth/register', {
           method: 'POST',
-          body: { name, email, password, organization, role },
+          body: {
+            name,
+            email,
+            password,
+            organization,
+            role,
+            ...(role === 'buyer'
+              ? { domains, interests }
+              : {}),
+          },
         });
         setAuth(res.token, res.user);
         navigate(getHomePathForRole(res.user.role));
@@ -204,7 +217,7 @@ export const AuthPage = () => {
   const formTitle = isRegister ? 'Create your account' : 'Sign in';
   const formSubtitle = isRegister
     ? role === 'buyer'
-      ? 'Set up your buyer account to discover and license IP.'
+      ? 'Tell us what tech you care about so Discover can match patents for you.'
       : 'Set up your inventor account to list and manage IP.'
     : 'Use your work email to access your dashboard and deals.';
 
@@ -302,7 +315,7 @@ export const AuthPage = () => {
               </div>
 
               <div className="flex-1 flex items-center justify-center px-6 sm:px-10 lg:px-16 py-8 lg:py-12">
-                <div className="w-full max-w-[400px] space-y-8">
+                <div className="w-full max-w-[440px] space-y-8">
                   <div className="space-y-2">
                     <button
                       type="button"
@@ -380,6 +393,126 @@ export const AuthPage = () => {
                                   {label}
                                 </button>
                               ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {role === 'buyer' && (
+                          <div className="space-y-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/40 p-4 text-left">
+                            <div>
+                              <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+                                Technologies you&apos;re interested in
+                              </p>
+                              <p className="text-xs text-zinc-500 mt-0.5">
+                                Optional — you can change this anytime in Profile.
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+                                Domains
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {IP_CATEGORIES.map((cat) => (
+                                  <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() =>
+                                      setDomains((prev) =>
+                                        prev.includes(cat)
+                                          ? prev.filter((x) => x !== cat)
+                                          : [...prev, cat].slice(0, 12)
+                                      )
+                                    }
+                                    className={cn(
+                                      'px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                                      domains.includes(cat)
+                                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+                                        : 'border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-950'
+                                    )}
+                                  >
+                                    {cat}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+                                Interests
+                              </p>
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {INTEREST_SUGGESTIONS.map((tag) => (
+                                  <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() =>
+                                      setInterests((prev) =>
+                                        prev.includes(tag)
+                                          ? prev.filter((x) => x !== tag)
+                                          : [...prev, tag].slice(0, 20)
+                                      )
+                                    }
+                                    className={cn(
+                                      'px-2.5 py-1 rounded-full text-xs font-medium capitalize transition-colors',
+                                      interests.includes(tag)
+                                        ? 'bg-primary/15 text-primary border border-primary/30'
+                                        : 'border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-950'
+                                    )}
+                                  >
+                                    {tag}
+                                  </button>
+                                ))}
+                                {interests
+                                  .filter((i) => !(INTEREST_SUGGESTIONS as readonly string[]).includes(i))
+                                  .map((tag) => (
+                                    <button
+                                      key={tag}
+                                      type="button"
+                                      onClick={() =>
+                                        setInterests((prev) => prev.filter((x) => x !== tag))
+                                      }
+                                      className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/30"
+                                    >
+                                      {tag} ×
+                                    </button>
+                                  ))}
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  value={customInterest}
+                                  onChange={(e) => setCustomInterest(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      const t = customInterest.trim();
+                                      if (!t) return;
+                                      setInterests((prev) =>
+                                        prev.includes(t) ? prev : [...prev, t].slice(0, 20)
+                                      );
+                                      setCustomInterest('');
+                                    }
+                                  }}
+                                  placeholder="Add custom interest…"
+                                  className="flex-1 px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 outline-none focus:border-primary/40"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-xl"
+                                  onClick={() => {
+                                    const t = customInterest.trim();
+                                    if (!t) return;
+                                    setInterests((prev) =>
+                                      prev.includes(t) ? prev : [...prev, t].slice(0, 20)
+                                    );
+                                    setCustomInterest('');
+                                  }}
+                                >
+                                  Add
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         )}

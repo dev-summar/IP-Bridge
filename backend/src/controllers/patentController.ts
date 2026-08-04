@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { dbStore, getUseMongo } from '../services/dbStore';
 import { IAuthRequest } from '../middleware/auth';
-import { analyzePatentWithAI, queryGeminiLLM } from '../services/aiParser';
+import { analyzePatentWithAI, queryGeminiLLM, ratePrototypeReadiness } from '../services/aiParser';
 import {
   buildDuplicateDescriptionSet,
   comparePatentsByQualityThenScore,
@@ -390,6 +390,20 @@ export async function getMarketplacePatents(req: Request, res: Response) {
       patentsWithAnalysis.push(enriched);
     }
 
+    // Persist search for personalized Discover (individuals)
+    if (userId && (query || industry)) {
+      try {
+        await dbStore.searchHistory.create({
+          userId,
+          query: String(query || industry).trim().slice(0, 500),
+          source: industry && !query ? 'industry' : 'keyword',
+          resultCount: total,
+        });
+      } catch {
+        /* non-blocking */
+      }
+    }
+
     if (!paginate) {
       return res.json(patentsWithAnalysis);
     }
@@ -452,6 +466,20 @@ export async function getAIMatchedPatents(req: Request, res: Response) {
     const modelName = process.env.LLM_MODEL || 'qwen3:latest';
 
     // Local diagnostic fallback
+    const persistAiSearch = async (count: number) => {
+      if (!userId) return;
+      try {
+        await dbStore.searchHistory.create({
+          userId,
+          query: String(query).trim().slice(0, 500),
+          source: 'ai-match',
+          resultCount: count,
+        });
+      } catch {
+        /* non-blocking */
+      }
+    };
+
     const getLocalHeuristicMatches = () => {
       const q = query.toLowerCase();
       const stopWords = new Set(['the', 'and', 'for', 'with', 'system', 'method', 'device', 'apparatus', 'processing', 'about', 'from', 'this', 'that', 'new']);
@@ -492,7 +520,9 @@ export async function getAIMatchedPatents(req: Request, res: Response) {
 
     if (!apiKey) {
       console.log('[AI Match] No API key. Using local heuristic matching.');
-      return res.json(getLocalHeuristicMatches());
+      const local = getLocalHeuristicMatches();
+      await persistAiSearch(local.length);
+      return res.json(local);
     }
 
     // Prepare clean patent summary list for LLM context
@@ -571,6 +601,7 @@ IMPORTANT: Return ONLY the raw JSON string starting with "[" and ending with "]"
       }).filter(p => p.matchPercentage > 20) // Only keep items with a meaningful match
         .sort((a, b) => b.matchPercentage - a.matchPercentage);
 
+      await persistAiSearch(matchedPatents.length);
       return res.json(matchedPatents);
 
     } catch (err: any) {
@@ -594,6 +625,7 @@ IMPORTANT: Return ONLY the raw JSON string starting with "[" and ending with "]"
             .sort((a, b) => b.matchPercentage - a.matchPercentage);
 
           console.log('[AI Match] Successfully generated matches from Google Gemini.');
+          await persistAiSearch(matchedPatents.length);
           return res.json(matchedPatents);
         } catch (geminiErr: any) {
           console.warn(`[AI Match] Google Gemini fallback failed (${geminiErr.message}).`);
@@ -601,7 +633,9 @@ IMPORTANT: Return ONLY the raw JSON string starting with "[" and ending with "]"
       }
 
       console.log('[AI Match] Falling back to local heuristics.');
-      return res.json(getLocalHeuristicMatches());
+      const local = getLocalHeuristicMatches();
+      await persistAiSearch(local.length);
+      return res.json(local);
     }
 
   } catch (error: any) {
@@ -613,7 +647,18 @@ IMPORTANT: Return ONLY the raw JSON string starting with "[" and ending with "]"
 export async function registerPatent(req: Request, res: Response) {
   try {
     const authReq = req as IAuthRequest;
-    const { patentNumber, title, abstract, pdfUrl, askingPrice, isForSale, isForLicense } = req.body;
+    const {
+      patentNumber,
+      title,
+      abstract,
+      pdfUrl,
+      askingPrice,
+      isForSale,
+      isForLicense,
+      hasPrototype,
+      hasProduct,
+      prototypeDescription,
+    } = req.body;
 
     if (!patentNumber || !title || !abstract) {
       return res.status(400).json({ message: 'Patent number, title, and abstract are required.' });
@@ -625,6 +670,9 @@ export async function registerPatent(req: Request, res: Response) {
       return res.status(400).json({ message: 'A patent with this patent number is already registered.' });
     }
 
+    const proto = Boolean(hasPrototype);
+    const product = Boolean(hasProduct);
+
     // Create Patent
     const newPatent = await dbStore.patents.create({
       patentNumber,
@@ -634,15 +682,38 @@ export async function registerPatent(req: Request, res: Response) {
       askingPrice: askingPrice ? Number(askingPrice) : 0,
       isForSale: isForSale !== undefined ? Boolean(isForSale) : true,
       isForLicense: isForLicense !== undefined ? Boolean(isForLicense) : true,
+      hasPrototype: proto,
+      hasProduct: product,
+      prototypeDescription:
+        typeof prototypeDescription === 'string' ? prototypeDescription.slice(0, 2000) : undefined,
       ownerId: authReq.user!.id,
       status: 'pending' // Admin must review
     });
 
     // Run AI analysis automatically
     const aiAnalysis = await analyzePatentWithAI(title, abstract);
+    let readinessAssessment = undefined;
+    if (proto || product || prototypeDescription) {
+      readinessAssessment = await ratePrototypeReadiness({
+        title,
+        abstract,
+        hasPrototype: proto,
+        hasProduct: product,
+        prototypeDescription:
+          typeof prototypeDescription === 'string' ? prototypeDescription : undefined,
+        commercialPotentialScore: aiAnalysis.commercialPotentialScore,
+      });
+      await dbStore.patents.update(String(newPatent._id), {
+        trlLevel: readinessAssessment.trlLevel,
+        readinessScore: readinessAssessment.readinessScore,
+        readinessNotes: readinessAssessment.maturityLabel,
+      });
+    }
+
     const analysis = await dbStore.patentAnalysis.create({
       patentId: newPatent._id,
-      ...aiAnalysis
+      ...aiAnalysis,
+      ...(readinessAssessment ? { readinessAssessment } : {}),
     });
 
     // Write audit log
@@ -654,8 +725,12 @@ export async function registerPatent(req: Request, res: Response) {
 
     return res.status(201).json({
       message: 'Patent registered successfully and sent for AI/Admin review.',
-      patent: newPatent,
-      analysis
+      patent: await dbStore.patents.findById(String(newPatent._id)),
+      analysis,
+      readinessPrompt: {
+        question: 'Do you have a prototype or a product based on this patent?',
+        answered: proto || product || !!prototypeDescription,
+      },
     });
 
   } catch (error: any) {
@@ -712,6 +787,20 @@ export async function getPendingPatents(req: Request, res: Response) {
 export async function getPatentById(req: Request, res: Response) {
   try {
     const { id } = req.params;
+
+    // Reserved path segments must never be treated as Mongo ObjectIds
+    const reserved = new Set([
+      'featured',
+      'pending',
+      'saved',
+      'ai-match',
+      'my-portfolio',
+      'reanalyze-all',
+    ]);
+    if (reserved.has(String(id).toLowerCase())) {
+      return res.status(404).json({ message: 'Patent route not found.' });
+    }
+
     const patent = await dbStore.patents.findById(id);
     if (!patent) {
       return res.status(404).json({ message: 'Patent not found.' });

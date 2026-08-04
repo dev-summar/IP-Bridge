@@ -6,6 +6,8 @@ interface IUser {
   email: string;
   role: 'admin' | 'owner' | 'buyer';
   organization?: string;
+  interests?: string[];
+  domains?: string[];
   savedPatents: string[];
 }
 
@@ -18,6 +20,8 @@ interface AuthState {
   logout: () => void;
   initialize: () => Promise<void>;
 }
+
+export type { IUser };
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
@@ -48,29 +52,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialize: async () => {
     const token = localStorage.getItem('pb_token');
     const userStr = localStorage.getItem('pb_user');
-    
+
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
         set({ token, user, isAuthenticated: true });
-        
-        // Quietly verify token against backend
+
         const res = await fetch('/api/auth/me', {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
         if (res.ok) {
           const freshUser = await res.json();
           set({ user: freshUser, isAuthenticated: true });
           localStorage.setItem('pb_user', JSON.stringify(freshUser));
         } else {
-          // Token expired or invalid
           get().logout();
         }
       } catch (e) {
         get().logout();
       }
     }
-  }
+  },
 }));

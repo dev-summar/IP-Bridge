@@ -4,13 +4,13 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../context/authStore';
 import { apiFetch } from '../hooks/useApi';
 import { PatentCard } from '../components/PatentCard';
+import { ProfilePreferences } from '../components/ProfilePreferences';
 import { StaggerList, StaggerItem } from '../components/motion/StaggerList';
 import { Search, Sparkles, SlidersHorizontal, X, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
 import { IP_CATEGORIES } from '../constants/ip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn } from '../utils/cn';
 import { springSnappy, transition } from '../utils/motion';
-
 import { Button } from '../components/ui/Button';
 
 const PAGE_SIZE = 12;
@@ -37,6 +37,16 @@ export const Marketplace = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [featuredMode, setFeaturedMode] = useState(true);
+  const [personalized, setPersonalized] = useState(false);
+  const [profileSignals, setProfileSignals] = useState<any>(null);
+  const [rails, setRails] = useState<{
+    forYou: any[];
+    fromSearches: any[];
+    fromSaves: any[];
+    inYourDomains: any[];
+    trending: any[];
+  } | null>(null);
 
   const [aiResults, setAiResults] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -52,10 +62,44 @@ export const Marketplace = () => {
     setPage(1);
   }, [keyword, selectedIndustry]);
 
+  const fetchFeatured = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setFeaturedMode(true);
+      const data = await apiFetch(`/api/patents/featured?limit=${PAGE_SIZE}`);
+      const list = Array.isArray(data) ? data : data.patents || [];
+      setPatents(list);
+      setTotal(list.length);
+      setTotalPages(1);
+      setPersonalized(!!data?.personalized);
+      setProfileSignals(data?.profileSignals || null);
+      setRails(data?.rails || null);
+
+      // Sync learned interests only when they actually changed (avoid refetch loops)
+      const nextInterests: string[] = data?.profileSignals?.interests || [];
+      const current = useAuthStore.getState().user;
+      if (current && nextInterests.length > 0) {
+        const prev = current.interests || [];
+        const changed =
+          nextInterests.length !== prev.length ||
+          nextInterests.some((i, idx) => i !== prev[idx]);
+        if (changed) {
+          updateUser({ interests: nextInterests });
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load featured IP.');
+    } finally {
+      setLoading(false);
+    }
+  }, [updateUser]);
+
   const fetchPatents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setFeaturedMode(false);
       const params = new URLSearchParams();
       params.append('page', String(page));
       params.append('limit', String(PAGE_SIZE));
@@ -78,18 +122,18 @@ export const Marketplace = () => {
     }
   }, [keyword, selectedIndustry, page]);
 
-  useEffect(() => {
-    if (!aiActive) fetchPatents();
-  }, [fetchPatents, aiActive]);
+  const browsingDefault = !aiActive && !keyword && !selectedIndustry;
 
-  // Refetch when restored from browser back-forward cache
   useEffect(() => {
-    const onPageShow = (event: PageTransitionEvent) => {
-      if (event.persisted && !aiActive) fetchPatents();
-    };
-    window.addEventListener('pageshow', onPageShow);
-    return () => window.removeEventListener('pageshow', onPageShow);
-  }, [fetchPatents, aiActive]);
+    if (aiActive) return;
+    if (browsingDefault) {
+      fetchFeatured();
+    } else {
+      fetchPatents();
+    }
+    // Intentionally only re-run on browse/search mode changes, not on every user profile sync
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiActive, browsingDefault, page, keyword, selectedIndustry, isAuthenticated]);
 
   const runAiSearch = async (text?: string) => {
     const q = (text ?? query).trim();
@@ -104,6 +148,17 @@ export const Marketplace = () => {
         body: { query: q },
       });
       setAiResults(data);
+      // Persist search so featured learns buyer taste
+      if (isAuthenticated) {
+        try {
+          await apiFetch('/api/searches', {
+            method: 'POST',
+            body: { query: q, source: 'ai-match', resultCount: Array.isArray(data) ? data.length : 0 },
+          });
+        } catch {
+          /* non-blocking */
+        }
+      }
     } catch (err: any) {
       setAiError(err.message || 'Search failed. Try again.');
     } finally {
@@ -153,15 +208,20 @@ export const Marketplace = () => {
     ? `${selectedIndustry} · ${total} assets`
     : keyword
     ? `${total} results for “${keyword}”`
+    : featuredMode
+    ? personalized
+      ? `${total} patents matched to your profile`
+      : `${total} featured high-match patents`
     : `${total} IP assets`;
 
   return (
     <div className="min-h-[calc(100dvh-4rem)] bg-zinc-50 dark:bg-zinc-950">
-      {/* Search hero — Google-style */}
       <section
         className={cn(
           'px-4 sm:px-6 transition-all duration-300',
-          hasActiveSearch ? 'pt-6 pb-4 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl sticky top-16 z-30' : 'pt-16 sm:pt-24 pb-8'
+          hasActiveSearch
+            ? 'pt-6 pb-4 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl sticky top-16 z-30'
+            : 'pt-16 sm:pt-24 pb-8'
         )}
       >
         <div className="max-w-2xl mx-auto text-center space-y-6">
@@ -175,7 +235,11 @@ export const Marketplace = () => {
               <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-white">
                 Discover IP
               </h1>
-              <p className="text-base text-zinc-500">Search patents and technologies to license or acquire.</p>
+              <p className="text-base text-zinc-500">
+                {personalized
+                  ? 'Personalized matches from your interests, domains, and past searches.'
+                  : 'Search patents and technologies to license or acquire.'}
+              </p>
             </motion.div>
           )}
 
@@ -220,23 +284,30 @@ export const Marketplace = () => {
           </motion.form>
 
           {!hasActiveSearch && (
-            <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-              {QUICK_SEARCHES.map((s, i) => (
-                <motion.button
-                  key={s.label}
-                  type="button"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...transition, delay: 0.1 + i * 0.05 }}
-                  whileHover={{ scale: 1.04, borderColor: 'rgba(79,70,229,0.35)' }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => runAiSearch(s.query)}
-                  className="px-3.5 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-primary transition-colors"
-                >
-                  {s.label}
-                </motion.button>
-              ))}
-            </div>
+            <>
+              <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+                {QUICK_SEARCHES.map((s, i) => (
+                  <motion.button
+                    key={s.label}
+                    type="button"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...transition, delay: 0.1 + i * 0.05 }}
+                    whileHover={{ scale: 1.04, borderColor: 'rgba(79,70,229,0.35)' }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => runAiSearch(s.query)}
+                    className="px-3.5 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-primary transition-colors"
+                  >
+                    {s.label}
+                  </motion.button>
+                ))}
+              </div>
+              {isAuthenticated && (
+                <div className="max-w-xl mx-auto">
+                  <ProfilePreferences compact onSaved={fetchFeatured} />
+                </div>
+              )}
+            </>
           )}
 
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -245,7 +316,9 @@ export const Marketplace = () => {
               onClick={() => setShowFilters((v) => !v)}
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-                showFilters ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                showFilters
+                  ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
               )}
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -295,25 +368,56 @@ export const Marketplace = () => {
         </div>
       </section>
 
-      {/* Results — single-column list like search results */}
       <section className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {hasActiveSearch && (
-          <div className="flex items-center justify-between mb-4 pb-2">
-            <p className="text-sm text-zinc-500">{isLoading ? 'Searching…' : resultLabel}</p>
-            {(aiActive || keyword || selectedIndustry) && (
-              <button
-                type="button"
-                onClick={() => {
-                  clearAi();
-                  setKeyword('');
-                  setSelectedIndustry('');
-                  setShowFilters(false);
-                  setPage(1);
-                }}
-                className="text-sm text-primary hover:underline"
-              >
-                Clear all
-              </button>
+        {(hasActiveSearch || featuredMode) && (
+          <div className="mb-4 pb-2 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-zinc-500">{isLoading ? 'Searching…' : resultLabel}</p>
+              {(aiActive || keyword || selectedIndustry) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearAi();
+                    setKeyword('');
+                    setSelectedIndustry('');
+                    setShowFilters(false);
+                    setPage(1);
+                  }}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+            {featuredMode && personalized && profileSignals && !isLoading && (
+              <div className="flex flex-wrap gap-1.5 justify-start text-left">
+                {(profileSignals.recentSearches || []).slice(0, 3).map((s: string) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => runAiSearch(s)}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-primary/40 hover:text-primary"
+                  >
+                    Searched: {s.length > 28 ? `${s.slice(0, 28)}…` : s}
+                  </button>
+                ))}
+                {(profileSignals.interests || []).slice(0, 4).map((i: string) => (
+                  <span
+                    key={i}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20"
+                  >
+                    Interest: {i}
+                  </span>
+                ))}
+                {(profileSignals.domains || []).slice(0, 3).map((d: string) => (
+                  <span
+                    key={d}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-900/5 dark:bg-white/10 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                  >
+                    Domain: {d}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -339,11 +443,53 @@ export const Marketplace = () => {
           <EmptyState
             icon={<Compass className="h-10 w-10" />}
             title="No matches"
-            description="Try a different search or remove filters."
+            description={
+              featuredMode && isAuthenticated
+                ? 'Set interests or run a search — Discover will learn what you want.'
+                : 'Try a different search or remove filters.'
+            }
           />
+        ) : featuredMode && personalized && rails ? (
+          <div className="space-y-10">
+            {(
+              [
+                { key: 'forYou', title: 'Picked for you', subtitle: 'Highest match to your taste', items: rails.forYou },
+                { key: 'fromSearches', title: 'Because you searched', subtitle: 'From your recent queries', items: rails.fromSearches },
+                { key: 'inYourDomains', title: 'In your domains & interests', subtitle: 'Aligned with what you care about', items: rails.inYourDomains },
+                { key: 'fromSaves', title: 'Similar to what you saved', subtitle: 'Same themes as your bookmarks', items: rails.fromSaves },
+                { key: 'trending', title: 'Also worth a look', subtitle: 'Strong commercial IP nearby', items: rails.trending },
+              ] as const
+            )
+              .filter((rail) => rail.items?.length > 0)
+              .map((rail) => (
+                <div key={rail.key}>
+                  <div className="mb-3 text-left">
+                    <h2 className="text-base font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      {rail.title}
+                    </h2>
+                    <p className="text-xs text-zinc-500 mt-0.5">{rail.subtitle}</p>
+                  </div>
+                  <StaggerList key={`rail-${rail.key}`} animateOnMount={false}>
+                    {rail.items.map((p) => (
+                      <StaggerItem key={`${rail.key}-${p._id}`} as="div">
+                        <PatentCard
+                          variant="compact"
+                          patent={p}
+                          isSaved={isBookmarked(p._id)}
+                          onToggleBookmark={handleToggleBookmark}
+                          onExplore={(id) => navigate(`/marketplace/${id}`)}
+                          showMatchReason
+                        />
+                      </StaggerItem>
+                    ))}
+                  </StaggerList>
+                </div>
+              ))}
+          </div>
         ) : (
           <>
-            <StaggerList key={`discover-page-${page}`} animateOnMount={false} className="">
+            <StaggerList key={`discover-page-${page}-${featuredMode}`} animateOnMount={false} className="">
               {displayList.map((p) => (
                 <StaggerItem key={p._id} as="div">
                   <PatentCard
@@ -352,13 +498,16 @@ export const Marketplace = () => {
                     isSaved={isBookmarked(p._id)}
                     onToggleBookmark={handleToggleBookmark}
                     onExplore={(id) => navigate(`/marketplace/${id}`)}
-                    showMatchReason={aiActive && !!p.matchReason}
+                    showMatchReason={
+                      (aiActive && !!p.matchReason) ||
+                      (featuredMode && (!!p.matchPercentage || !!p.matchReasons?.length))
+                    }
                   />
                 </StaggerItem>
               ))}
             </StaggerList>
 
-            {!aiActive && totalPages > 1 && (
+            {!aiActive && !featuredMode && totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-8 mt-2 border-t border-zinc-200/70 dark:border-zinc-800">
                 <p className="text-sm text-zinc-500 order-2 sm:order-1">
                   Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}

@@ -9,25 +9,23 @@ interface ThemeState {
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   theme: 'light',
-  
+
   toggleTheme: () => {
     const nextTheme = get().theme === 'light' ? 'dark' : 'light';
     setThemeHelper(nextTheme);
     set({ theme: nextTheme });
   },
-  
+
   setTheme: (theme) => {
     setThemeHelper(theme);
     set({ theme });
   },
-  
+
   initializeTheme: () => {
-    const savedTheme = localStorage.getItem('pb_theme') as 'light' | 'dark';
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
-    setThemeHelper(initialTheme);
-    set({ theme: initialTheme });
-  }
+    // Product default is light (not system dark).
+    setThemeHelper('light');
+    set({ theme: 'light' });
+  },
 }));
 
 function setThemeHelper(theme: 'light' | 'dark') {

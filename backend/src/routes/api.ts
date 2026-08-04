@@ -1,13 +1,21 @@
 import { Router } from 'express';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
 import { 
-  register, login, getMe, getAllUsers 
+  register, login, getMe, getAllUsers, updateProfile 
 } from '../controllers/authController';
 import { 
   getMarketplacePatents, getAIMatchedPatents, registerPatent, getMyPortfolio, 
   getPendingPatents, getPatentById, reviewPatent, 
   toggleSavePatent, getSavedPatents, reanalyzePatent, reanalyzeAllPatents 
 } from '../controllers/patentController';
+import {
+  getFeaturedPatents,
+  recordSearch,
+  getMySearches,
+  getPricingGuidance,
+  submitReadinessAssessment,
+  refreshCommercialPotential,
+} from '../controllers/discoverController';
 import { 
   createInterestRequest, createMeetingRequest, 
   getLeads, getMeetings, updateLeadStatus, updateMeetingStatus,
@@ -34,12 +42,14 @@ const router = Router();
 router.post('/auth/register', register);
 router.post('/auth/login', login);
 router.get('/auth/me', authenticateToken, getMe);
+router.put('/auth/profile', authenticateToken, updateProfile);
 router.get('/auth/users', authenticateToken, authorizeRoles('admin'), getAllUsers);
 
 // ==========================================
 // Patent Listings Routes
 // ==========================================
 router.get('/patents', getMarketplacePatents);
+router.get('/patents/featured', getFeaturedPatents);
 router.post('/patents/ai-match', getAIMatchedPatents);
 router.get('/patents/pending', authenticateToken, authorizeRoles('admin'), getPendingPatents);
 router.get('/patents/my-portfolio', authenticateToken, authorizeRoles('owner'), getMyPortfolio);
@@ -50,6 +60,15 @@ router.put('/patents/:id/review', authenticateToken, authorizeRoles('admin'), re
 router.post('/patents/:id/reanalyze', authenticateToken, authorizeRoles('owner', 'admin'), reanalyzePatent);
 router.post('/patents/reanalyze-all', authenticateToken, authorizeRoles('admin'), reanalyzeAllPatents);
 router.post('/patents/:id/save', authenticateToken, authorizeRoles('buyer'), toggleSavePatent);
+
+// Inventor AI: pricing, commercial potential, prototype readiness
+router.post('/patents/:id/pricing-guidance', authenticateToken, authorizeRoles('owner', 'admin'), getPricingGuidance);
+router.post('/patents/:id/readiness', authenticateToken, authorizeRoles('owner', 'admin'), submitReadinessAssessment);
+router.post('/patents/:id/commercial-potential', authenticateToken, authorizeRoles('owner', 'admin'), refreshCommercialPotential);
+
+// Search history (personalized Discover)
+router.post('/searches', authenticateToken, recordSearch);
+router.get('/searches/mine', authenticateToken, getMySearches);
 
 // ==========================================
 // lead / meeting System Routes

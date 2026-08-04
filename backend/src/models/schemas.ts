@@ -7,6 +7,10 @@ export interface IUser extends Document {
   passwordHash: string;
   organization?: string;
   role: 'admin' | 'owner' | 'buyer';
+  /** Preference tags for personalized Discover (individuals) */
+  interests: string[];
+  /** Domain / industry focus areas, e.g. Healthcare, AI */
+  domains: string[];
   savedPatents: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -18,6 +22,8 @@ export const UserSchema = new Schema<IUser>({
   passwordHash: { type: String, required: true },
   organization: { type: String },
   role: { type: String, enum: ['admin', 'owner', 'buyer'], required: true },
+  interests: { type: [String], default: [] },
+  domains: { type: [String], default: [] },
   savedPatents: { type: [String], default: [] },
 }, { timestamps: true });
 
@@ -34,6 +40,15 @@ export interface IPatent extends Document {
   askingPrice?: number;
   isForSale?: boolean;
   isForLicense?: boolean;
+  /** Inventor-declared maturity */
+  hasPrototype?: boolean;
+  hasProduct?: boolean;
+  prototypeDescription?: string;
+  /** TRL 1–9 when rated */
+  trlLevel?: number;
+  /** AI readiness score 0–100 */
+  readinessScore?: number;
+  readinessNotes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,10 +62,38 @@ export const PatentSchema = new Schema<IPatent>({
   pdfUrl: { type: String },
   askingPrice: { type: Number, default: 0 },
   isForSale: { type: Boolean, default: true },
-  isForLicense: { type: Boolean, default: true }
+  isForLicense: { type: Boolean, default: true },
+  hasPrototype: { type: Boolean, default: false },
+  hasProduct: { type: Boolean, default: false },
+  prototypeDescription: { type: String },
+  trlLevel: { type: Number, min: 1, max: 9 },
+  readinessScore: { type: Number, min: 0, max: 100 },
+  readinessNotes: { type: String }
 }, { timestamps: true });
 
 export const PatentModel = mongoose.models.Patent || mongoose.model<IPatent>('Patent', PatentSchema);
+
+export interface IPricingGuidance {
+  suggestedSaleMinInr: number;
+  suggestedSaleMaxInr: number;
+  suggestedLicenseAnnualInr: number;
+  currency: string;
+  confidence: number;
+  rationale: string;
+  pricingFactors: string[];
+  comparableNote?: string;
+  generatedAt?: Date;
+}
+
+export interface IReadinessAssessment {
+  trlLevel: number;
+  readinessScore: number;
+  maturityLabel: string;
+  strengths: string[];
+  gaps: string[];
+  nextSteps: string[];
+  generatedAt?: Date;
+}
 
 // Patent Analysis Schema
 export interface IPatentAnalysis extends Document {
@@ -79,6 +122,8 @@ export interface IPatentAnalysis extends Document {
     licensingValue: number;
     ipProtection: number;
   };
+  pricingGuidance?: IPricingGuidance;
+  readinessAssessment?: IReadinessAssessment;
   createdAt: Date;
 }
 
@@ -107,10 +152,48 @@ export const PatentAnalysisSchema = new Schema<IPatentAnalysis>({
     implementationSpeed: { type: Number, default: 70 },
     licensingValue: { type: Number, default: 70 },
     ipProtection: { type: Number, default: 70 }
+  },
+  pricingGuidance: {
+    suggestedSaleMinInr: { type: Number },
+    suggestedSaleMaxInr: { type: Number },
+    suggestedLicenseAnnualInr: { type: Number },
+    currency: { type: String, default: 'INR' },
+    confidence: { type: Number, min: 0, max: 100 },
+    rationale: { type: String },
+    pricingFactors: { type: [String], default: [] },
+    comparableNote: { type: String },
+    generatedAt: { type: Date }
+  },
+  readinessAssessment: {
+    trlLevel: { type: Number, min: 1, max: 9 },
+    readinessScore: { type: Number, min: 0, max: 100 },
+    maturityLabel: { type: String },
+    strengths: { type: [String], default: [] },
+    gaps: { type: [String], default: [] },
+    nextSteps: { type: [String], default: [] },
+    generatedAt: { type: Date }
   }
 }, { timestamps: true });
 
 export const PatentAnalysisModel = mongoose.models.PatentAnalysis || mongoose.model<IPatentAnalysis>('PatentAnalysis', PatentAnalysisSchema);
+
+// Search History — powers personalized Discover for individuals
+export interface ISearchHistory extends Document {
+  userId: string;
+  query: string;
+  source: 'keyword' | 'ai-match' | 'industry' | 'featured';
+  resultCount?: number;
+  createdAt: Date;
+}
+
+export const SearchHistorySchema = new Schema<ISearchHistory>({
+  userId: { type: String, required: true, index: true },
+  query: { type: String, required: true },
+  source: { type: String, enum: ['keyword', 'ai-match', 'industry', 'featured'], default: 'keyword' },
+  resultCount: { type: Number },
+}, { timestamps: true });
+
+export const SearchHistoryModel = mongoose.models.SearchHistory || mongoose.model<ISearchHistory>('SearchHistory', SearchHistorySchema);
 
 // Interest Request Schema
 export interface IInterestRequest extends Document {

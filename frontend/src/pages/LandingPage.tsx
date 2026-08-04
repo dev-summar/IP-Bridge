@@ -60,8 +60,11 @@ export const LandingPage = () => {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    apiFetch('/api/patents?limit=3&page=1')
-      .then((data) => setPatents((Array.isArray(data) ? data : data.data || []).slice(0, 3)))
+    apiFetch('/api/patents/featured?limit=5')
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data.patents || [];
+        setPatents(list.slice(0, 5));
+      })
       .catch(() => setPatents([]))
       .finally(() => setLoading(false));
   }, []);
@@ -230,6 +233,7 @@ export const LandingPage = () => {
                       isSaved={false}
                       onToggleBookmark={() => {}}
                       onExplore={(id) => navigate(`/marketplace/${id}`)}
+                      showMatchReason={!!(p.matchPercentage || p.matchReasons?.length)}
                     />
                   </StaggerItem>
                 ))}

@@ -128,10 +128,28 @@ export const PatentCard: React.FC<PatentCardProps> = ({
             <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed line-clamp-2">
               {patent.abstract}
             </p>
-            {showMatchReason && patent.matchReason && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-500 line-clamp-2">
-                {patent.matchReason}
-              </p>
+            {showMatchReason && (patent.matchReason || patent.matchReasons?.length || patent.matchPercentage || patent.whyChips?.length) && (
+              <div className="space-y-1.5 pt-0.5">
+                <p className="text-sm text-emerald-700 dark:text-emerald-400 line-clamp-2">
+                  {patent.matchPercentage != null && (
+                    <span className="font-semibold">{Math.round(patent.matchPercentage)}% match · </span>
+                  )}
+                  {patent.matchReason ||
+                    (Array.isArray(patent.matchReasons) ? patent.matchReasons[0] : '')}
+                </p>
+                {Array.isArray(patent.whyChips) && patent.whyChips.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {patent.whyChips.slice(0, 3).map((chip: string) => (
+                      <span
+                        key={chip}
+                        className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50"
+                      >
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             <p className="text-sm text-zinc-500 dark:text-zinc-500 pt-0.5">
               {[patent.ownerOrganization, status].filter(Boolean).join(' · ')}

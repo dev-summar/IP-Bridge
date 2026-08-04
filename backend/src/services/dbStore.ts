@@ -3,6 +3,7 @@ import path from 'path';
 import { 
   UserModel, PatentModel, PatentAnalysisModel, 
   InterestRequestModel, MeetingRequestModel, AuditLogModel, OfferModel, NDASignatureModel, TransactionModel, AccessRequestModel,
+  SearchHistoryModel,
   IUser, IPatent, IPatentAnalysis, IInterestRequest, IMeetingRequest, IAuditLog, IOffer, INDASignature, ITransaction, IAccessRequest
 } from '../models/schemas';
 
@@ -34,6 +35,7 @@ interface ILocalDB {
   ndaSignatures: any[];
   transactions: any[];
   accessRequests: any[];
+  searchHistory: any[];
 }
 
 const emptyDB: ILocalDB = {
@@ -46,7 +48,8 @@ const emptyDB: ILocalDB = {
   offers: [],
   ndaSignatures: [],
   transactions: [],
-  accessRequests: []
+  accessRequests: [],
+  searchHistory: []
 };
 
 // Helper functions to read/write JSON file
@@ -124,7 +127,9 @@ export const dbStore = {
       const newUser = {
         _id: generateId(),
         ...data,
-        savedPatents: [],
+        interests: data.interests || [],
+        domains: data.domains || [],
+        savedPatents: data.savedPatents || [],
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -754,6 +759,52 @@ export const dbStore = {
       db.accessRequests = db.accessRequests.filter(ar => ar._id !== id);
       writeJSON(db);
       return db.accessRequests.length < initialLength;
+    }
+  },
+
+  searchHistory: {
+    async find(filter: any = {}, options: { limit?: number } = {}): Promise<any[]> {
+      const limit = options.limit || 50;
+      if (useMongo) {
+        return await SearchHistoryModel.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
+      }
+      const db = readJSON();
+      if (!db.searchHistory) db.searchHistory = [];
+      return db.searchHistory
+        .filter((s: any) => {
+          for (const key in filter) {
+            if (String(s[key]) !== String(filter[key])) return false;
+          }
+          return true;
+        })
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, limit);
+    },
+
+    async create(data: any): Promise<any> {
+      if (useMongo) {
+        const row = new SearchHistoryModel(data);
+        return await row.save();
+      }
+      const db = readJSON();
+      if (!db.searchHistory) db.searchHistory = [];
+      const newRow = {
+        _id: generateId(),
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      db.searchHistory.unshift(newRow);
+      // Cap per-user history in JSON mode
+      const userRows = db.searchHistory.filter((s: any) => s.userId === data.userId);
+      if (userRows.length > 100) {
+        const keep = new Set(userRows.slice(0, 100).map((s: any) => s._id));
+        db.searchHistory = db.searchHistory.filter(
+          (s: any) => s.userId !== data.userId || keep.has(s._id)
+        );
+      }
+      writeJSON(db);
+      return newRow;
     }
   }
 };

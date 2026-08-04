@@ -1,6 +1,6 @@
 import {
   Compass, Inbox, Handshake, CheckCircle2, FolderKanban, Lock,
-  TrendingUp, Users, FileStack, FileKey2, BarChart3, Home, Calendar, Bookmark
+  TrendingUp, Users, FileStack, FileKey2, BarChart3, Home, Calendar, Bookmark, UserCircle
 } from 'lucide-react';
 
 export const PUBLIC_NAV = [
@@ -18,6 +18,7 @@ export const BUYER_NAV = [
   { label: 'Saved IP', path: '/dashboard/saved', icon: Bookmark },
   { label: 'Completed Deals', path: '/dashboard/deals/completed', icon: CheckCircle2 },
   { label: 'Discover', path: '/discover', icon: Compass },
+  { label: 'Profile', path: '/dashboard/profile', icon: UserCircle },
 ];
 
 export const INVENTOR_NAV = [
@@ -27,6 +28,7 @@ export const INVENTOR_NAV = [
   { label: 'Meetings', path: '/dashboard/meetings', icon: Calendar },
   { label: 'Active Negotiations', path: '/dashboard/negotiations', icon: Handshake },
   { label: 'Revenue', path: '/dashboard/revenue', icon: TrendingUp },
+  { label: 'Profile', path: '/dashboard/profile', icon: UserCircle },
 ];
 
 export const ADMIN_NAV = [
@@ -35,6 +37,7 @@ export const ADMIN_NAV = [
   { label: 'Deals', path: '/dashboard/deals', icon: Handshake },
   { label: 'Escrow', path: '/dashboard/escrow', icon: FileKey2 },
   { label: 'Reports', path: '/dashboard/reports', icon: BarChart3 },
+  { label: 'Profile', path: '/dashboard/profile', icon: UserCircle },
 ];
 
 export function getDashboardNav(role: string) {

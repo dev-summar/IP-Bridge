@@ -19,6 +19,7 @@ import { BuyerRequestsPage } from './pages/BuyerRequestsPage';
 import { DealsHub } from './pages/DealsHub';
 import { RevenuePage } from './pages/RevenuePage';
 import { ReportsPage } from './pages/ReportsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import {
   AssetsPage,
   AccessRequestsPage,
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="deals" element={<DealsHub />} />
             <Route path="deals/completed" element={<DealsHub completedOnly />} />
             <Route path="deals/:id" element={<DealRoom />} />
+            <Route path="profile" element={<ProfilePage />} />
             {/* Inventor */}
             <Route path="assets" element={<AssetsPage />} />
             <Route path="access-requests" element={<AccessRequestsPage />} />

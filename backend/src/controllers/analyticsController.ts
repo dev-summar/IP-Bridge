@@ -127,8 +127,10 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
       });
     }
 
-    // 2. OWNER PORTFOLIO ANALYTICS
+    // 2. OWNER PORTFOLIO ANALYTICS (+ institution benchmarking / ranking)
     if (role === 'owner') {
+      const me = users.find(u => u._id === userId || String(u._id) === String(userId));
+      const myOrg = (me?.organization || '').trim();
       const myPatents = patents.filter(p => p.ownerId === userId);
       const myPublished = myPatents.filter(p => p.status === 'approved');
       const myPending = myPatents.filter(p => p.status === 'pending');
@@ -138,14 +140,170 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
       // Average commercial potential score for owner's portfolio
       let totalScore = 0;
       let scoreCount = 0;
+      let totalReadiness = 0;
+      let readinessCount = 0;
+      let prototypeCount = 0;
+      let productCount = 0;
+      const myPatentRows: any[] = [];
+
       for (const p of myPatents) {
         const analysis = await dbStore.patentAnalysis.findOne({ patentId: p._id });
         if (analysis) {
           totalScore += analysis.commercialPotentialScore;
           scoreCount++;
         }
+        if (typeof p.readinessScore === 'number') {
+          totalReadiness += p.readinessScore;
+          readinessCount++;
+        }
+        if (p.hasPrototype) prototypeCount++;
+        if (p.hasProduct) productCount++;
+        myPatentRows.push({
+          id: p._id,
+          title: p.title,
+          status: p.status,
+          commercialPotentialScore: analysis?.commercialPotentialScore ?? null,
+          trlLevel: p.trlLevel ?? analysis?.readinessAssessment?.trlLevel ?? null,
+          readinessScore: p.readinessScore ?? null,
+          hasPrototype: !!p.hasPrototype,
+          hasProduct: !!p.hasProduct,
+          askingPrice: p.askingPrice || 0,
+          suggestedSaleMaxInr: analysis?.pricingGuidance?.suggestedSaleMaxInr ?? null,
+        });
       }
       const avgScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
+      const avgReadiness = readinessCount > 0 ? Math.round(totalReadiness / readinessCount) : 0;
+
+      // --- Institution benchmarking & individual ranking ---
+      const owners = users.filter(u => u.role === 'owner');
+      const ownerMetrics: {
+        userId: string;
+        name: string;
+        organization: string;
+        patentCount: number;
+        publishedCount: number;
+        avgCommercialScore: number;
+        leadCount: number;
+        dealCount: number;
+        rankScore: number;
+      }[] = [];
+
+      for (const owner of owners) {
+        const oPatents = patents.filter(p => String(p.ownerId) === String(owner._id));
+        let oScoreSum = 0;
+        let oScoreN = 0;
+        for (const p of oPatents) {
+          const a = await dbStore.patentAnalysis.findOne({ patentId: p._id });
+          if (a) {
+            oScoreSum += a.commercialPotentialScore;
+            oScoreN++;
+          }
+        }
+        const oAvg = oScoreN > 0 ? oScoreSum / oScoreN : 0;
+        const oLeads = leads.filter(l => String(l.ownerId) === String(owner._id)).length;
+        const oDeals = offers.filter(o => String(o.ownerId) === String(owner._id)).length;
+        const published = oPatents.filter(p => p.status === 'approved').length;
+        // Composite rank: portfolio size, quality, engagement
+        const rankScore =
+          published * 12 +
+          oAvg * 0.45 +
+          oLeads * 4 +
+          oDeals * 8 +
+          oPatents.filter((p: any) => p.hasPrototype || p.hasProduct).length * 5;
+
+        ownerMetrics.push({
+          userId: String(owner._id),
+          name: owner.name,
+          organization: owner.organization || 'Independent',
+          patentCount: oPatents.length,
+          publishedCount: published,
+          avgCommercialScore: Math.round(oAvg),
+          leadCount: oLeads,
+          dealCount: oDeals,
+          rankScore: Math.round(rankScore),
+        });
+      }
+
+      ownerMetrics.sort((a, b) => b.rankScore - a.rankScore);
+      const myRankIndex = ownerMetrics.findIndex(o => o.userId === String(userId));
+      const myRank = myRankIndex >= 0 ? myRankIndex + 1 : null;
+      const platformOwnerCount = ownerMetrics.length;
+
+      // Org peer set
+      const orgPeers = myOrg
+        ? ownerMetrics.filter(o => o.organization.toLowerCase() === myOrg.toLowerCase())
+        : [];
+      const orgPeerRankIndex = orgPeers.findIndex(o => o.userId === String(userId));
+      const orgAvgCommercial =
+        orgPeers.length > 0
+          ? Math.round(
+              orgPeers.reduce((s, o) => s + o.avgCommercialScore, 0) / orgPeers.length
+            )
+          : null;
+      const orgAvgPatents =
+        orgPeers.length > 0
+          ? Math.round(
+              (orgPeers.reduce((s, o) => s + o.patentCount, 0) / orgPeers.length) * 10
+            ) / 10
+          : null;
+
+      // Institution leaderboard (aggregate by organization)
+      const orgMap = new Map<string, {
+        organization: string;
+        inventors: number;
+        patents: number;
+        published: number;
+        avgCommercialScore: number;
+        leads: number;
+        scoreSum: number;
+        scoreN: number;
+      }>();
+
+      for (const m of ownerMetrics) {
+        const key = m.organization.toLowerCase();
+        const cur = orgMap.get(key) || {
+          organization: m.organization,
+          inventors: 0,
+          patents: 0,
+          published: 0,
+          avgCommercialScore: 0,
+          leads: 0,
+          scoreSum: 0,
+          scoreN: 0,
+        };
+        cur.inventors += 1;
+        cur.patents += m.patentCount;
+        cur.published += m.publishedCount;
+        cur.leads += m.leadCount;
+        if (m.avgCommercialScore > 0) {
+          cur.scoreSum += m.avgCommercialScore;
+          cur.scoreN += 1;
+        }
+        orgMap.set(key, cur);
+      }
+
+      const institutionLeaderboard = [...orgMap.values()]
+        .map(o => ({
+          organization: o.organization,
+          inventors: o.inventors,
+          patents: o.patents,
+          published: o.published,
+          leads: o.leads,
+          avgCommercialScore: o.scoreN > 0 ? Math.round(o.scoreSum / o.scoreN) : 0,
+          benchmarkScore: Math.round(
+            o.published * 10 +
+              (o.scoreN > 0 ? o.scoreSum / o.scoreN : 0) * 0.5 +
+              o.leads * 3 +
+              o.inventors * 5
+          ),
+        }))
+        .sort((a, b) => b.benchmarkScore - a.benchmarkScore);
+
+      const myInstitutionRank = myOrg
+        ? institutionLeaderboard.findIndex(
+            i => i.organization.toLowerCase() === myOrg.toLowerCase()
+          ) + 1 || null
+        : null;
 
       // Active leads info
       const recentLeads = myLeads.slice(0, 5).map(l => {
@@ -169,10 +327,52 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
           { label: 'Commercial Leads', value: myLeads.length, change: `${myLeads.filter(l => l.status === 'new').length} new enquiries`, type: 'leads' },
           { label: 'Meeting Invites', value: myMeetings.length, change: `${myMeetings.filter(m => m.status === 'pending').length} pending approval`, type: 'meetings' },
           { label: 'Active Deals', value: offers.filter(o => o.ownerId === userId && ['pending', 'countered'].includes(o.status)).length, change: 'Offers pending review', type: 'deals' },
-          { label: 'Avg Portfolio Score', value: `${avgScore}/100`, change: 'Based on AI analysis', type: 'score' }
+          { label: 'Avg Portfolio Score', value: `${avgScore}/100`, change: 'Based on AI analysis', type: 'score' },
+          { label: 'Avg Readiness', value: readinessCount ? `${avgReadiness}/100` : '—', change: `${prototypeCount} prototypes · ${productCount} products`, type: 'readiness' },
+          { label: 'Platform Rank', value: myRank ? `#${myRank} of ${platformOwnerCount}` : '—', change: 'Among individual inventors', type: 'rank' },
         ],
         recentLeads,
-        upcomingMeetingsCount: myMeetings.filter(m => m.status === 'accepted').length
+        upcomingMeetingsCount: myMeetings.filter(m => m.status === 'accepted').length,
+        portfolioPatents: myPatentRows.sort(
+          (a, b) => (b.commercialPotentialScore || 0) - (a.commercialPotentialScore || 0)
+        ),
+        benchmarking: {
+          organization: myOrg || null,
+          individual: {
+            platformRank: myRank,
+            platformInventors: platformOwnerCount,
+            percentile:
+              myRank && platformOwnerCount
+                ? Math.round(((platformOwnerCount - myRank + 1) / platformOwnerCount) * 100)
+                : null,
+            avgCommercialScore: avgScore,
+            orgPeerRank: orgPeerRankIndex >= 0 ? orgPeerRankIndex + 1 : null,
+            orgPeerCount: orgPeers.length,
+          },
+          institution: {
+            rank: myInstitutionRank,
+            totalInstitutions: institutionLeaderboard.length,
+            peerAvgCommercialScore: orgAvgCommercial,
+            peerAvgPatents: orgAvgPatents,
+            vsOrgCommercialDelta:
+              orgAvgCommercial != null ? avgScore - orgAvgCommercial : null,
+          },
+          topIndividuals: ownerMetrics.slice(0, 10).map((o, idx) => ({
+            rank: idx + 1,
+            name: o.name,
+            organization: o.organization,
+            publishedCount: o.publishedCount,
+            avgCommercialScore: o.avgCommercialScore,
+            isYou: o.userId === String(userId),
+          })),
+          institutionLeaderboard: institutionLeaderboard.slice(0, 10).map((o, idx) => ({
+            rank: idx + 1,
+            ...o,
+            isYourOrg: myOrg
+              ? o.organization.toLowerCase() === myOrg.toLowerCase()
+              : false,
+          })),
+        },
       });
     }
 

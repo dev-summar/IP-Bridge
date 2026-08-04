@@ -82,7 +82,7 @@ export async function seedInitialUsers() {
 
 export async function register(req: Request, res: Response) {
   try {
-    const { name, email, password, organization, role } = req.body;
+    const { name, email, password, organization, role, interests, domains } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: 'Missing required registration fields.' });
@@ -100,12 +100,19 @@ export async function register(req: Request, res: Response) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    const cleanList = (arr: unknown, max: number) =>
+      Array.isArray(arr)
+        ? arr.map((x) => String(x).trim()).filter(Boolean).slice(0, max)
+        : [];
+
     const newUser = await dbStore.users.create({
       name,
       email: email.toLowerCase(),
       passwordHash,
       organization,
-      role
+      role,
+      interests: cleanList(interests, 30),
+      domains: cleanList(domains, 20),
     });
 
     // Generate JWT
@@ -123,7 +130,9 @@ export async function register(req: Request, res: Response) {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        organization: newUser.organization
+        organization: newUser.organization,
+        interests: newUser.interests || [],
+        domains: newUser.domains || []
       }
     });
 
@@ -166,6 +175,8 @@ export async function login(req: Request, res: Response) {
         email: user.email,
         role: user.role,
         organization: user.organization,
+        interests: user.interests || [],
+        domains: user.domains || [],
         savedPatents: user.savedPatents || []
       }
     });
@@ -193,11 +204,65 @@ export async function getMe(req: Request, res: Response) {
       email: user.email,
       role: user.role,
       organization: user.organization,
+      interests: user.interests || [],
+      domains: user.domains || [],
       savedPatents: user.savedPatents || []
     });
 
   } catch (error: any) {
     return res.status(500).json({ message: 'Failed to fetch profile.', error: error.message });
+  }
+}
+
+/** PUT /api/auth/profile — update interests/domains for personalized Discover */
+export async function updateProfile(req: Request, res: Response) {
+  try {
+    const authReq = req as IAuthRequest;
+    if (!authReq.user) {
+      return res.status(401).json({ message: 'Not authenticated.' });
+    }
+
+    const updates: any = {};
+    if (typeof req.body.name === 'string' && req.body.name.trim()) {
+      updates.name = req.body.name.trim();
+    }
+    if (typeof req.body.organization === 'string') {
+      updates.organization = req.body.organization.trim();
+    }
+    if (Array.isArray(req.body.interests)) {
+      updates.interests = req.body.interests
+        .map((i: any) => String(i).trim())
+        .filter(Boolean)
+        .slice(0, 30);
+    }
+    if (Array.isArray(req.body.domains)) {
+      updates.domains = req.body.domains
+        .map((d: any) => String(d).trim())
+        .filter(Boolean)
+        .slice(0, 20);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: 'No valid profile fields to update.' });
+    }
+
+    const user = await dbStore.users.update(authReq.user.id, updates);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    return res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organization: user.organization,
+      interests: user.interests || [],
+      domains: user.domains || [],
+      savedPatents: user.savedPatents || [],
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Failed to update profile.', error: error.message });
   }
 }
 

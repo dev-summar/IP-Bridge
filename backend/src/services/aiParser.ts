@@ -510,3 +510,301 @@ export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<an
 
   return JSON.parse(cleanJson);
 }
+
+// ---------------------------------------------------------------------------
+// Shared LLM JSON helper (Gemini primary → MIET LLM → local fallback)
+// ---------------------------------------------------------------------------
+
+async function queryJsonLLM(prompt: string): Promise<any | null> {
+  const provider = (process.env.AI_ANALYSIS_PROVIDER || '').trim().toLowerCase();
+  const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
+  const apiKey = process.env.LLM_API_KEY?.trim();
+  const endpoint = process.env.LLM_API_ENDPOINT || 'https://ai-services.mietjmu.in/gateway/llm/chat';
+  const modelName = process.env.LLM_MODEL || 'qwen3:latest';
+  const preferGemini = provider === 'gemini' || (!apiKey && !!geminiApiKey);
+
+  if (preferGemini && geminiApiKey) {
+    try {
+      return await queryGeminiLLM(prompt, geminiApiKey);
+    } catch (err: any) {
+      console.warn(`[AI] Gemini JSON query failed: ${err.message}`);
+    }
+  }
+
+  if (apiKey) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.2,
+        }),
+        signal: AbortSignal.timeout(25000),
+      });
+      if (!response.ok) throw new Error(`Gateway HTTP ${response.status}`);
+      const data = (await response.json()) as any;
+      const raw = data.choices?.[0]?.message?.content || data.message?.content || '';
+      if (!raw) throw new Error('Empty LLM content');
+      let clean = raw.trim();
+      if (clean.startsWith('```')) {
+        clean = clean.replace(/^```(json)?/, '').replace(/```$/, '').trim();
+      }
+      return JSON.parse(clean);
+    } catch (err: any) {
+      console.warn(`[AI] LLM JSON query failed: ${err.message}`);
+    }
+  }
+
+  if (geminiApiKey && !preferGemini) {
+    try {
+      return await queryGeminiLLM(prompt, geminiApiKey);
+    } catch (err: any) {
+      console.warn(`[AI] Gemini fallback JSON failed: ${err.message}`);
+    }
+  }
+
+  return null;
+}
+
+export interface IIPPricingGuidance {
+  suggestedSaleMinInr: number;
+  suggestedSaleMaxInr: number;
+  suggestedLicenseAnnualInr: number;
+  currency: string;
+  confidence: number;
+  rationale: string;
+  pricingFactors: string[];
+  comparableNote?: string;
+  generatedAt: Date;
+}
+
+export interface IReadinessAssessmentResult {
+  trlLevel: number;
+  readinessScore: number;
+  maturityLabel: string;
+  strengths: string[];
+  gaps: string[];
+  nextSteps: string[];
+  generatedAt: Date;
+}
+
+function heuristicPricing(
+  title: string,
+  abstract: string,
+  commercialPotentialScore: number,
+  hasPrototype: boolean,
+  hasProduct: boolean,
+  askingPrice?: number
+): IIPPricingGuidance {
+  const base = 2_000_000 + commercialPotentialScore * 120_000;
+  let mult = 1;
+  if (hasProduct) mult += 0.55;
+  else if (hasPrototype) mult += 0.28;
+  const t = (title + ' ' + abstract).toLowerCase();
+  if (t.includes('health') || t.includes('medic') || t.includes('pharma')) mult += 0.25;
+  if (t.includes('ai') || t.includes('semiconductor') || t.includes('battery')) mult += 0.15;
+
+  const mid = Math.round(base * mult);
+  const min = Math.round(mid * 0.65);
+  const max = Math.round(mid * 1.45);
+  const license = Math.round(mid * 0.12);
+
+  const factors = [
+    `Commercial potential score ${commercialPotentialScore}/100`,
+    hasProduct ? 'Marketed product raises valuation' : hasPrototype ? 'Working prototype supports premium' : 'Concept-stage discounts valuation',
+    'Indicative India IP marketplace band (heuristic)',
+  ];
+
+  return {
+    suggestedSaleMinInr: askingPrice && askingPrice > 0 ? Math.min(askingPrice, min) : min,
+    suggestedSaleMaxInr: askingPrice && askingPrice > 0 ? Math.max(askingPrice, max) : max,
+    suggestedLicenseAnnualInr: license,
+    currency: 'INR',
+    confidence: 55,
+    rationale:
+      'Heuristic valuation based on commercial potential, maturity (prototype/product), and sector multipliers. Use as guidance only — not a formal appraisal.',
+    pricingFactors: factors,
+    comparableNote: 'Comparable Indian university / SME patent transfers often price via staged licensing rather than outright sale.',
+    generatedAt: new Date(),
+  };
+}
+
+function heuristicReadiness(
+  hasPrototype: boolean,
+  hasProduct: boolean,
+  prototypeDescription?: string,
+  commercialPotentialScore = 70
+): IReadinessAssessmentResult {
+  let trl = 3;
+  if (hasProduct) trl = 8;
+  else if (hasPrototype) trl = prototypeDescription && prototypeDescription.length > 80 ? 6 : 5;
+  else trl = 3;
+
+  const readinessScore = Math.min(
+    100,
+    Math.round(trl * 9 + commercialPotentialScore * 0.25 + (hasProduct ? 12 : hasPrototype ? 6 : 0))
+  );
+
+  const labels: Record<number, string> = {
+    1: 'Basic principles',
+    2: 'Technology concept',
+    3: 'Proof of concept',
+    4: 'Lab validation',
+    5: 'Relevant environment validation',
+    6: 'Demo prototype',
+    7: 'System prototype',
+    8: 'System complete / qualified',
+    9: 'Operational product',
+  };
+
+  return {
+    trlLevel: trl,
+    readinessScore,
+    maturityLabel: labels[trl] || 'Emerging',
+    strengths: [
+      hasProduct ? 'Product already in market or production' : hasPrototype ? 'Prototype available for demos' : 'Clear technical concept documented',
+      `Commercial potential signal: ${commercialPotentialScore}/100`,
+    ],
+    gaps: hasProduct
+      ? ['Document scale-up and regulatory evidence for buyers']
+      : hasPrototype
+        ? ['Bridge prototype to pilot customers', 'Collect performance benchmarks']
+        : ['Build a working prototype', 'Define pilot use-case and KPIs'],
+    nextSteps: hasProduct
+      ? ['Package case studies', 'Set license vs sale strategy', 'Prepare diligence data room']
+      : hasPrototype
+        ? ['Run a paid pilot', 'File follow-on claims if needed', 'Request AI pricing guidance']
+        : ['Confirm lab PoC', 'Decide make-vs-license path', 'Capture prototype photos/video'],
+    generatedAt: new Date(),
+  };
+}
+
+/** AI guidance for IP sale / license pricing (inventors). */
+export async function estimateIPPricing(input: {
+  title: string;
+  abstract: string;
+  industryClassification?: string[];
+  commercialPotentialScore?: number;
+  commercialBreakdown?: IPatentAIAnalysis['commercialBreakdown'];
+  hasPrototype?: boolean;
+  hasProduct?: boolean;
+  askingPrice?: number;
+  marketOpportunity?: string;
+}): Promise<IIPPricingGuidance> {
+  const score = input.commercialPotentialScore ?? 70;
+  const prompt = `You are an Indian IP valuation advisor for inventors and universities.
+Estimate indicative pricing for this patent (INR). Guidance only — not a formal appraisal.
+
+Title: ${input.title}
+Abstract: ${input.abstract}
+Industries: ${(input.industryClassification || []).join(', ') || 'General'}
+Commercial potential score: ${score}/100
+Breakdown: ${JSON.stringify(input.commercialBreakdown || {})}
+Has prototype: ${!!input.hasPrototype}
+Has product: ${!!input.hasProduct}
+Current asking price (INR): ${input.askingPrice || 0}
+Market opportunity note: ${input.marketOpportunity || 'n/a'}
+
+Return ONLY JSON:
+{
+  "suggestedSaleMinInr": number,
+  "suggestedSaleMaxInr": number,
+  "suggestedLicenseAnnualInr": number,
+  "currency": "INR",
+  "confidence": number, // 0-100
+  "rationale": string, // 2-4 sentences
+  "pricingFactors": string[], // 3-6 bullets
+  "comparableNote": string
+}`;
+
+  const parsed = await queryJsonLLM(prompt);
+  if (
+    parsed &&
+    typeof parsed.suggestedSaleMinInr === 'number' &&
+    typeof parsed.suggestedSaleMaxInr === 'number'
+  ) {
+    return {
+      suggestedSaleMinInr: Math.round(parsed.suggestedSaleMinInr),
+      suggestedSaleMaxInr: Math.round(parsed.suggestedSaleMaxInr),
+      suggestedLicenseAnnualInr: Math.round(
+        parsed.suggestedLicenseAnnualInr || parsed.suggestedSaleMinInr * 0.1
+      ),
+      currency: 'INR',
+      confidence: Math.min(100, Math.max(0, Math.round(parsed.confidence ?? 65))),
+      rationale: parsed.rationale || 'AI-estimated pricing band for this IP asset.',
+      pricingFactors: Array.isArray(parsed.pricingFactors) ? parsed.pricingFactors : [],
+      comparableNote: parsed.comparableNote,
+      generatedAt: new Date(),
+    };
+  }
+
+  return heuristicPricing(
+    input.title,
+    input.abstract,
+    score,
+    !!input.hasPrototype,
+    !!input.hasProduct,
+    input.askingPrice
+  );
+}
+
+/** Rate prototype / product readiness (TRL + score) after inventor declares maturity. */
+export async function ratePrototypeReadiness(input: {
+  title: string;
+  abstract: string;
+  hasPrototype: boolean;
+  hasProduct: boolean;
+  prototypeDescription?: string;
+  commercialPotentialScore?: number;
+}): Promise<IReadinessAssessmentResult> {
+  const score = input.commercialPotentialScore ?? 70;
+  const prompt = `You are a technology readiness (TRL) assessor for patents.
+Inventor declared: hasPrototype=${input.hasPrototype}, hasProduct=${input.hasProduct}.
+Prototype / product notes: ${input.prototypeDescription || 'none provided'}
+
+Patent: ${input.title}
+Abstract: ${input.abstract}
+Commercial potential score: ${score}/100
+
+Return ONLY JSON:
+{
+  "trlLevel": number, // 1-9 NASA/ISO TRL
+  "readinessScore": number, // 0-100 overall commercialization readiness
+  "maturityLabel": string,
+  "strengths": string[],
+  "gaps": string[],
+  "nextSteps": string[]
+}
+Respect inventor declaration: if hasProduct=true TRL should be 7-9; if only prototype 4-7; if neither 1-4.`;
+
+  const parsed = await queryJsonLLM(prompt);
+  if (parsed && typeof parsed.trlLevel === 'number' && typeof parsed.readinessScore === 'number') {
+    let trl = Math.min(9, Math.max(1, Math.round(parsed.trlLevel)));
+    if (input.hasProduct) trl = Math.max(trl, 7);
+    else if (input.hasPrototype) trl = Math.max(4, Math.min(trl, 7));
+    else trl = Math.min(trl, 4);
+
+    return {
+      trlLevel: trl,
+      readinessScore: Math.min(100, Math.max(0, Math.round(parsed.readinessScore))),
+      maturityLabel: parsed.maturityLabel || `TRL ${trl}`,
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+      gaps: Array.isArray(parsed.gaps) ? parsed.gaps : [],
+      nextSteps: Array.isArray(parsed.nextSteps) ? parsed.nextSteps : [],
+      generatedAt: new Date(),
+    };
+  }
+
+  return heuristicReadiness(
+    input.hasPrototype,
+    input.hasProduct,
+    input.prototypeDescription,
+    score
+  );
+}
+
