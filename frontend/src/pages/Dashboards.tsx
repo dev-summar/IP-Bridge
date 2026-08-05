@@ -40,6 +40,44 @@ const formatPriceInput = (value: string) => {
 
 const cardClass = 'rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
 
+type AiResultView =
+  | {
+      kind: 'pricing';
+      title: string;
+      patentTitle?: string;
+      saleMin: number;
+      saleMax: number;
+      licenseAnnual: number;
+      confidence: number;
+      rationale: string;
+      factors: string[];
+      comparableNote?: string;
+    }
+  | {
+      kind: 'readiness';
+      title: string;
+      maturityLabel: string;
+      trlLevel: number;
+      readinessScore: number;
+      nextSteps: string[];
+      strengths?: string[];
+      gaps?: string[];
+    }
+  | {
+      kind: 'commercial';
+      title: string;
+      score: number;
+      marketOpportunity: string;
+      breakdown?: {
+        technicalFeasibility?: number;
+        marketDemand?: number;
+        implementationSpeed?: number;
+        licensingValue?: number;
+        ipProtection?: number;
+      };
+    }
+  | { kind: 'error'; title: string; message: string };
+
 // ==========================================
 // 1. Dashboard Overview Component
 // ==========================================
@@ -800,10 +838,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
     hasProduct: false,
     prototypeDescription: '',
   });
-  const [aiResult, setAiResult] = React.useState<{
-    title: string;
-    body: string;
-  } | null>(null);
+  const [aiResult, setAiResult] = React.useState<AiResultView | null>(null);
 
   const fetchPortfolio = React.useCallback(async () => {
     try {
@@ -896,44 +931,49 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
         method: 'POST',
         ...(action === 'readiness' && readinessBody ? { body: readinessBody } : {}),
       });
+      const patent = portfolio.find((p) => p._id === patentId);
       if (action === 'pricing-guidance' && res.pricingGuidance) {
         const g = res.pricingGuidance;
-        const factors = (g.pricingFactors || [])
-          .slice(0, 5)
-          .map((f: string) => `• ${f}`)
-          .join('\n');
         setAiResult({
+          kind: 'pricing',
           title: 'AI pricing guidance',
-          body: [
-            `Suggested sale: ${formatINR(g.suggestedSaleMinInr)} – ${formatINR(g.suggestedSaleMaxInr)}`,
-            `Annual license: ${formatINR(g.suggestedLicenseAnnualInr)}`,
-            `Confidence: ${g.confidence}%`,
-            '',
-            g.rationale || '',
-            factors ? `\nWhy this patent:\n${factors}` : '',
-            g.comparableNote ? `\n${g.comparableNote}` : '',
-          ]
-            .filter(Boolean)
-            .join('\n'),
+          patentTitle: patent?.title,
+          saleMin: g.suggestedSaleMinInr,
+          saleMax: g.suggestedSaleMaxInr,
+          licenseAnnual: g.suggestedLicenseAnnualInr,
+          confidence: g.confidence ?? 0,
+          rationale: g.rationale || '',
+          factors: Array.isArray(g.pricingFactors) ? g.pricingFactors.slice(0, 6) : [],
+          comparableNote: g.comparableNote,
         });
       } else if (action === 'readiness' && res.readinessAssessment) {
         const r = res.readinessAssessment;
         setReadinessPatent(null);
         setAiResult({
+          kind: 'readiness',
           title: 'Prototype readiness',
-          body: `${r.maturityLabel}\nTRL ${r.trlLevel} · Score ${r.readinessScore}/100\n\nNext steps:\n${(r.nextSteps || []).slice(0, 3).map((s: string) => `• ${s}`).join('\n')}`,
+          maturityLabel: r.maturityLabel,
+          trlLevel: r.trlLevel,
+          readinessScore: r.readinessScore,
+          nextSteps: (r.nextSteps || []).slice(0, 4),
+          strengths: (r.strengths || []).slice(0, 3),
+          gaps: (r.gaps || []).slice(0, 3),
         });
       } else if (action === 'commercial-potential') {
         setAiResult({
+          kind: 'commercial',
           title: 'Commercial potential',
-          body: `Score: ${res.commercialPotentialScore}/100\n\n${res.marketOpportunity || 'Analysis refreshed.'}`,
+          score: res.commercialPotentialScore ?? 0,
+          marketOpportunity: res.marketOpportunity || 'Analysis refreshed.',
+          breakdown: res.commercialBreakdown || res.analysis?.commercialBreakdown,
         });
       }
       fetchPortfolio();
     } catch (err: any) {
       setAiResult({
+        kind: 'error',
         title: 'AI action failed',
-        body: err.message || 'Something went wrong. Please try again.',
+        message: err.message || 'Something went wrong. Please try again.',
       });
     } finally {
       setAiBusyId(null);
@@ -1007,22 +1047,22 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   <Button variant="ghost" size="sm" className="text-xs rounded-lg">View</Button>
                 </Link>
               </div>
-              <div className="flex flex-wrap gap-1.5 mt-3">
+              <div className="grid grid-cols-3 gap-1.5 mt-3">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="text-[10px] rounded-lg h-7"
+                  className="text-[10px] rounded-lg h-8 px-1"
                   isLoading={aiBusyId === `${p._id}:commercial-potential`}
                   onClick={() => runInventorAi(p._id, 'commercial-potential')}
                 >
-                  Commercial AI
+                  Commercial
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="text-[10px] rounded-lg h-7"
+                  className="text-[10px] rounded-lg h-8 px-1"
                   isLoading={aiBusyId === `${p._id}:pricing-guidance`}
                   onClick={() => runInventorAi(p._id, 'pricing-guidance')}
                 >
@@ -1032,18 +1072,23 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="text-[10px] rounded-lg h-7"
+                  className="text-[10px] rounded-lg h-8 px-1"
                   isLoading={aiBusyId === `${p._id}:readiness`}
                   onClick={() => openReadinessDialog(p)}
                 >
-                  Prototype rate
+                  Prototype
                 </Button>
               </div>
               {p.analysis?.pricingGuidance && (
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-2">
-                  Suggested sale: {formatINR(p.analysis.pricingGuidance.suggestedSaleMinInr)} –{' '}
-                  {formatINR(p.analysis.pricingGuidance.suggestedSaleMaxInr)}
-                </p>
+                <div className="mt-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 px-3 py-2">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-emerald-700/70 dark:text-emerald-400/70">
+                    Suggested sale
+                  </p>
+                  <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mt-0.5 tabular-nums">
+                    {formatINR(p.analysis.pricingGuidance.suggestedSaleMinInr)} –{' '}
+                    {formatINR(p.analysis.pricingGuidance.suggestedSaleMaxInr)}
+                  </p>
+                </div>
               )}
             </div>
           ))}
@@ -1374,16 +1419,207 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
         isOpen={!!aiResult}
         onClose={() => setAiResult(null)}
         title={aiResult?.title || 'AI result'}
-        className="max-w-md"
+        description={
+          aiResult?.kind === 'pricing' && aiResult.patentTitle
+            ? aiResult.patentTitle
+            : aiResult?.kind === 'pricing'
+              ? 'Indicative sale and license bands for negotiation'
+              : undefined
+        }
+        className="max-w-xl"
       >
-        <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
-          {aiResult?.body}
-        </p>
-        <div className="flex justify-end mt-5">
-          <Button type="button" className="rounded-xl" onClick={() => setAiResult(null)}>
-            Done
-          </Button>
-        </div>
+        {aiResult?.kind === 'pricing' && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 dark:bg-emerald-950/25 dark:border-emerald-900/50 p-4">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700/80 dark:text-emerald-400/80">
+                  Suggested sale
+                </p>
+                <p className="mt-1.5 text-xl sm:text-2xl font-semibold tracking-tight text-emerald-900 dark:text-emerald-100 tabular-nums">
+                  {formatINR(aiResult.saleMin)}
+                  <span className="mx-1.5 text-emerald-600/50 dark:text-emerald-400/40 font-normal">–</span>
+                  {formatINR(aiResult.saleMax)}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/60 p-4">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                  Confidence
+                </p>
+                <div className="mt-2 flex items-end gap-2">
+                  <p className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">
+                    {aiResult.confidence}%
+                  </p>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-lvx-blue transition-all"
+                    style={{ width: `${Math.min(100, Math.max(0, aiResult.confidence))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 px-4 py-3.5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                  Annual license
+                </p>
+                <p className="mt-1 text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">
+                  {formatINR(aiResult.licenseAnnual)}
+                  <span className="text-sm font-normal text-zinc-500"> / year</span>
+                </p>
+              </div>
+              <Sparkles className="h-5 w-5 text-lvx-blue shrink-0 opacity-70" />
+            </div>
+
+            {aiResult.rationale && (
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                  Why this range
+                </h4>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  {aiResult.rationale}
+                </p>
+              </div>
+            )}
+
+            {aiResult.factors.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2.5">
+                  Pricing factors
+                </h4>
+                <ul className="space-y-2">
+                  {aiResult.factors.map((f) => (
+                    <li
+                      key={f}
+                      className="flex gap-2.5 text-sm text-zinc-600 dark:text-zinc-400 leading-snug"
+                    >
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-lvx-blue shrink-0" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <p className="text-[11px] text-zinc-500 leading-relaxed border-t border-zinc-100 dark:border-zinc-800 pt-4">
+              {aiResult.comparableNote ? `${aiResult.comparableNote} ` : ''}
+              AI guidance for negotiation — not a formal valuation certificate.
+            </p>
+
+            <div className="flex justify-end pt-1">
+              <Button type="button" className="rounded-xl px-5" onClick={() => setAiResult(null)}>
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {aiResult?.kind === 'readiness' && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 p-4">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Maturity</p>
+                <p className="mt-1.5 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                  {aiResult.maturityLabel}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-lvx-blue/20 bg-lvx-blue/5 p-4 text-center">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-lvx-blue/80">TRL</p>
+                <p className="mt-1 text-3xl font-semibold text-lvx-blue tabular-nums">{aiResult.trlLevel}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 px-4 py-3">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-zinc-500">Readiness score</span>
+                <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                  {aiResult.readinessScore}/100
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{ width: `${Math.min(100, aiResult.readinessScore)}%` }}
+                />
+              </div>
+            </div>
+            {aiResult.nextSteps.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2.5">Next steps</h4>
+                <ul className="space-y-2">
+                  {aiResult.nextSteps.map((s) => (
+                    <li key={s} className="flex gap-2.5 text-sm text-zinc-600 dark:text-zinc-400">
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Button type="button" className="rounded-xl px-5" onClick={() => setAiResult(null)}>
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {aiResult?.kind === 'commercial' && (
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-lvx-blue/20 bg-lvx-blue/5 p-5 text-center">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-lvx-blue/80">
+                Commercial potential
+              </p>
+              <p className="mt-1 text-4xl font-semibold tracking-tight text-lvx-blue tabular-nums">
+                {aiResult.score}
+                <span className="text-lg font-medium text-lvx-blue/60">/100</span>
+              </p>
+            </div>
+            {aiResult.breakdown && (
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ['Technical', aiResult.breakdown.technicalFeasibility],
+                    ['Market', aiResult.breakdown.marketDemand],
+                    ['Speed', aiResult.breakdown.implementationSpeed],
+                    ['Licensing', aiResult.breakdown.licensingValue],
+                  ] as const
+                )
+                  .filter(([, v]) => typeof v === 'number')
+                  .map(([label, v]) => (
+                    <div
+                      key={label}
+                      className="rounded-xl border border-zinc-200 dark:border-zinc-800 px-3 py-2.5"
+                    >
+                      <p className="text-[10px] uppercase tracking-wide text-zinc-500">{label}</p>
+                      <p className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                        {v}/100
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            )}
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              {aiResult.marketOpportunity}
+            </p>
+            <div className="flex justify-end">
+              <Button type="button" className="rounded-xl px-5" onClick={() => setAiResult(null)}>
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {aiResult?.kind === 'error' && (
+          <div className="space-y-5">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{aiResult.message}</p>
+            <div className="flex justify-end">
+              <Button type="button" className="rounded-xl px-5" onClick={() => setAiResult(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </Dialog>
     </div>
   );
