@@ -333,12 +333,17 @@ export async function getPricingGuidance(req: Request, res: Response) {
       title: patent.title,
       abstract: patent.abstract,
       industryClassification: analysis?.industryClassification,
+      keywords: analysis?.keywords,
+      keyInnovation: analysis?.summary?.keyInnovation,
+      problemSolved: analysis?.summary?.problemSolved,
+      useCases: analysis?.commercialApplications?.useCases,
       commercialPotentialScore: analysis?.commercialPotentialScore,
       commercialBreakdown: analysis?.commercialBreakdown,
       hasPrototype: !!patent.hasPrototype,
       hasProduct: !!patent.hasProduct,
       askingPrice: patent.askingPrice,
       marketOpportunity: analysis?.marketOpportunity,
+      trlLevel: patent.trlLevel,
     });
 
     if (analysis) {

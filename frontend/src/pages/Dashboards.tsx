@@ -898,9 +898,23 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
       });
       if (action === 'pricing-guidance' && res.pricingGuidance) {
         const g = res.pricingGuidance;
+        const factors = (g.pricingFactors || [])
+          .slice(0, 5)
+          .map((f: string) => `• ${f}`)
+          .join('\n');
         setAiResult({
           title: 'AI pricing guidance',
-          body: `Suggested sale: ${formatINR(g.suggestedSaleMinInr)} – ${formatINR(g.suggestedSaleMaxInr)}\nAnnual license: ${formatINR(g.suggestedLicenseAnnualInr)}\nConfidence: ${g.confidence}%\n\n${g.rationale || ''}`,
+          body: [
+            `Suggested sale: ${formatINR(g.suggestedSaleMinInr)} – ${formatINR(g.suggestedSaleMaxInr)}`,
+            `Annual license: ${formatINR(g.suggestedLicenseAnnualInr)}`,
+            `Confidence: ${g.confidence}%`,
+            '',
+            g.rationale || '',
+            factors ? `\nWhy this patent:\n${factors}` : '',
+            g.comparableNote ? `\n${g.comparableNote}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n'),
         });
       } else if (action === 'readiness' && res.readinessAssessment) {
         const r = res.readinessAssessment;

@@ -593,43 +593,199 @@ export interface IReadinessAssessmentResult {
   generatedAt: Date;
 }
 
-function heuristicPricing(
+type PricingContext = {
+  title: string;
+  abstract: string;
+  industryClassification?: string[];
+  keywords?: string[];
+  keyInnovation?: string;
+  problemSolved?: string;
+  useCases?: string[];
+  commercialPotentialScore?: number;
+  commercialBreakdown?: IPatentAIAnalysis['commercialBreakdown'];
+  hasPrototype?: boolean;
+  hasProduct?: boolean;
+  askingPrice?: number;
+  marketOpportunity?: string;
+  trlLevel?: number;
+};
+
+function extractAbstractSnippet(abstract: string, maxLen = 140): string {
+  const clean = abstract.replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  const sentence = clean.split(/(?<=[.!?])\s+/)[0] || clean;
+  return sentence.length > maxLen ? `${sentence.slice(0, maxLen - 1)}…` : sentence;
+}
+
+function extractPatentKeywords(title: string, abstract: string, extra: string[] = []): string[] {
+  const stop = new Set([
+    'about', 'after', 'also', 'based', 'being', 'between', 'comprising', 'configured',
+    'device', 'method', 'patent', 'present', 'system', 'thereof', 'using', 'wherein', 'which',
+    'with', 'within', 'would', 'their', 'these', 'those', 'through', 'under', 'such',
+  ]);
+  const tokens = `${title} ${abstract} ${extra.join(' ')}`
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 4 && !stop.has(w));
+  const freq = new Map<string, number>();
+  for (const t of tokens) freq.set(t, (freq.get(t) || 0) + 1);
+  return [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([w]) => w);
+}
+
+function sectorMultiplier(
   title: string,
   abstract: string,
-  commercialPotentialScore: number,
-  hasPrototype: boolean,
-  hasProduct: boolean,
-  askingPrice?: number
-): IIPPricingGuidance {
-  const base = 2_000_000 + commercialPotentialScore * 120_000;
-  let mult = 1;
-  if (hasProduct) mult += 0.55;
-  else if (hasPrototype) mult += 0.28;
-  const t = (title + ' ' + abstract).toLowerCase();
-  if (t.includes('health') || t.includes('medic') || t.includes('pharma')) mult += 0.25;
-  if (t.includes('ai') || t.includes('semiconductor') || t.includes('battery')) mult += 0.15;
+  industries: string[] = []
+): { mult: number; label: string } {
+  const t = `${title} ${abstract} ${industries.join(' ')}`.toLowerCase();
+  if (t.match(/health|medic|pharma|clinical|radiolog|diagnos/)) {
+    return { mult: 1.35, label: 'Healthcare / med-tech' };
+  }
+  if (t.match(/semiconductor|battery|energy|solar|power/)) {
+    return { mult: 1.3, label: 'Deep-tech hardware / energy' };
+  }
+  if (t.match(/ai|machine learning|neural|computer vision|llm/)) {
+    return { mult: 1.25, label: 'AI / software IP' };
+  }
+  if (t.match(/iot|cyber|security|privacy|network/)) {
+    return { mult: 1.2, label: 'Cyber / IoT security' };
+  }
+  if (t.match(/wearable|sensor|gait|footwear|biomech/)) {
+    return { mult: 1.22, label: 'Wearables / sensing' };
+  }
+  if (t.match(/agri|food|water|environment/)) {
+    return { mult: 1.1, label: 'Agri / sustainability' };
+  }
+  const primary = industries[0] || 'General technology';
+  return { mult: 1, label: primary };
+}
 
-  const mid = Math.round(base * mult);
-  const min = Math.round(mid * 0.65);
-  const max = Math.round(mid * 1.45);
-  const license = Math.round(mid * 0.12);
+function maturityBand(hasProduct: boolean, hasPrototype: boolean, trlLevel?: number): {
+  mult: number;
+  label: string;
+} {
+  if (hasProduct || (trlLevel && trlLevel >= 8)) {
+    return { mult: 1.55, label: 'Product or late-stage prototype (TRL 8+)' };
+  }
+  if (hasPrototype || (trlLevel && trlLevel >= 5)) {
+    return { mult: 1.28, label: 'Working prototype validated (TRL 5–7)' };
+  }
+  if (trlLevel && trlLevel >= 3) {
+    return { mult: 1.05, label: 'Proof-of-concept / lab validation (TRL 3–4)' };
+  }
+  return { mult: 0.82, label: 'Concept or early lab stage (TRL 1–2)' };
+}
 
+function buildPatentSpecificRationale(ctx: PricingContext, min: number, max: number): string {
+  const snippet = extractAbstractSnippet(ctx.abstract);
+  const keywords = extractPatentKeywords(ctx.title, ctx.abstract, ctx.keywords || []);
+  const sector = sectorMultiplier(ctx.title, ctx.abstract, ctx.industryClassification);
+  const maturity = maturityBand(!!ctx.hasProduct, !!ctx.hasPrototype, ctx.trlLevel);
+  const score = ctx.commercialPotentialScore ?? 70;
+  const invention =
+    ctx.keyInnovation?.trim() ||
+    snippet ||
+    `the invention described in "${ctx.title}"`;
+
+  return [
+    `For "${ctx.title}", pricing reflects ${sector.label} comparables and ${maturity.label.toLowerCase()}.`,
+    `The core IP covers ${invention}`,
+    keywords.length > 0
+      ? `Key technical themes (${keywords.slice(0, 4).join(', ')}) support a ${formatInrShort(min)}–${formatInrShort(max)} outright-sale band at commercial score ${score}/100.`
+      : `Commercial score ${score}/100 supports a ${formatInrShort(min)}–${formatInrShort(max)} indicative band.`,
+    'This is AI guidance for negotiation — not a formal valuation certificate.',
+  ].join(' ');
+}
+
+function buildPatentSpecificFactors(ctx: PricingContext): string[] {
+  const sector = sectorMultiplier(ctx.title, ctx.abstract, ctx.industryClassification);
+  const maturity = maturityBand(!!ctx.hasProduct, !!ctx.hasPrototype, ctx.trlLevel);
+  const keywords = extractPatentKeywords(ctx.title, ctx.abstract, ctx.keywords || []);
   const factors = [
-    `Commercial potential score ${commercialPotentialScore}/100`,
-    hasProduct ? 'Marketed product raises valuation' : hasPrototype ? 'Working prototype supports premium' : 'Concept-stage discounts valuation',
-    'Indicative India IP marketplace band (heuristic)',
+    `Sector: ${sector.label} — derived from patent text and industries`,
+    `Maturity: ${maturity.label}`,
+    `Commercial potential: ${ctx.commercialPotentialScore ?? 70}/100`,
   ];
+  if (keywords.length > 0) {
+    factors.push(`Technical focus in abstract: ${keywords.slice(0, 4).join(', ')}`);
+  }
+  if (ctx.problemSolved?.trim()) {
+    factors.push(`Problem addressed: ${extractAbstractSnippet(ctx.problemSolved, 100)}`);
+  }
+  if (ctx.useCases?.length) {
+    factors.push(`Primary use case: ${ctx.useCases[0]}`);
+  }
+  if (ctx.askingPrice && ctx.askingPrice > 0) {
+    factors.push(`Your listed asking price: ${formatInrShort(ctx.askingPrice)} (used as anchor)`);
+  }
+  return factors.slice(0, 6);
+}
+
+function formatInrShort(amount: number): string {
+  if (amount >= 10_000_000) return `₹${(amount / 10_000_000).toFixed(1)} Cr`;
+  if (amount >= 100_000) return `₹${Math.round(amount / 100_000)} L`;
+  return `₹${amount.toLocaleString('en-IN')}`;
+}
+
+function rationaleGroundingScore(rationale: string, title: string, abstract: string): number {
+  const hay = `${title} ${abstract}`.toLowerCase();
+  const keywords = extractPatentKeywords(title, abstract);
+  if (!rationale?.trim() || keywords.length === 0) return 0;
+  const lower = rationale.toLowerCase();
+  let hits = 0;
+  for (const kw of keywords) {
+    if (lower.includes(kw)) hits++;
+  }
+  if (lower.includes(title.toLowerCase().slice(0, Math.min(20, title.length)))) hits += 2;
+  return hits;
+}
+
+function heuristicPricing(ctx: PricingContext): IIPPricingGuidance {
+  const score = ctx.commercialPotentialScore ?? 70;
+  const sector = sectorMultiplier(ctx.title, ctx.abstract, ctx.industryClassification);
+  const maturity = maturityBand(!!ctx.hasProduct, !!ctx.hasPrototype, ctx.trlLevel);
+
+  // India university / SME patent bands — anchored to maturity + sector, not a flat formula
+  let baseMid = 1_500_000 + score * 45_000;
+  if (ctx.hasProduct) baseMid *= 1.8;
+  else if (ctx.hasPrototype) baseMid *= 1.35;
+  baseMid *= sector.mult * maturity.mult;
+
+  const breakdown = ctx.commercialBreakdown;
+  if (breakdown) {
+    const avg =
+      (breakdown.technicalFeasibility +
+        breakdown.marketDemand +
+        breakdown.licensingValue +
+        breakdown.ipProtection) /
+      4;
+    baseMid *= 0.85 + avg / 200;
+  }
+
+  const mid = Math.round(baseMid);
+  let min = Math.round(mid * 0.7);
+  let max = Math.round(mid * 1.4);
+  const license = Math.round(mid * 0.1);
+
+  if (ctx.askingPrice && ctx.askingPrice > 0) {
+    min = Math.round(Math.min(min, ctx.askingPrice * 0.85));
+    max = Math.round(Math.max(max, ctx.askingPrice * 1.15));
+  }
 
   return {
-    suggestedSaleMinInr: askingPrice && askingPrice > 0 ? Math.min(askingPrice, min) : min,
-    suggestedSaleMaxInr: askingPrice && askingPrice > 0 ? Math.max(askingPrice, max) : max,
+    suggestedSaleMinInr: min,
+    suggestedSaleMaxInr: max,
     suggestedLicenseAnnualInr: license,
     currency: 'INR',
-    confidence: 55,
-    rationale:
-      'Heuristic valuation based on commercial potential, maturity (prototype/product), and sector multipliers. Use as guidance only — not a formal appraisal.',
-    pricingFactors: factors,
-    comparableNote: 'Comparable Indian university / SME patent transfers often price via staged licensing rather than outright sale.',
+    confidence: 52,
+    rationale: buildPatentSpecificRationale(ctx, min, max),
+    pricingFactors: buildPatentSpecificFactors(ctx),
+    comparableNote:
+      'Indian university transfers often use milestone licensing (upfront + royalties). Outright sale bands above are indicative for negotiation.',
     generatedAt: new Date(),
   };
 }
@@ -685,30 +841,39 @@ function heuristicReadiness(
 }
 
 /** AI guidance for IP sale / license pricing (inventors). */
-export async function estimateIPPricing(input: {
-  title: string;
-  abstract: string;
-  industryClassification?: string[];
-  commercialPotentialScore?: number;
-  commercialBreakdown?: IPatentAIAnalysis['commercialBreakdown'];
-  hasPrototype?: boolean;
-  hasProduct?: boolean;
-  askingPrice?: number;
-  marketOpportunity?: string;
-}): Promise<IIPPricingGuidance> {
+export async function estimateIPPricing(input: PricingContext): Promise<IIPPricingGuidance> {
   const score = input.commercialPotentialScore ?? 70;
-  const prompt = `You are an Indian IP valuation advisor for inventors and universities.
-Estimate indicative pricing for this patent (INR). Guidance only — not a formal appraisal.
+  const keywords = extractPatentKeywords(input.title, input.abstract, input.keywords || []);
 
+  const prompt = `You are an Indian IP valuation advisor for university inventors and SMEs.
+Estimate indicative OUTRIGHT SALE and ANNUAL LICENSE pricing in INR for THIS specific patent only.
+Guidance only — not a formal appraisal.
+
+PATENT RECORD (use only this — do not invent unrelated technology):
 Title: ${input.title}
 Abstract: ${input.abstract}
+Key innovation: ${input.keyInnovation || 'See abstract'}
+Problem solved: ${input.problemSolved || 'See abstract'}
 Industries: ${(input.industryClassification || []).join(', ') || 'General'}
-Commercial potential score: ${score}/100
+Keywords: ${keywords.join(', ') || 'n/a'}
+Use cases: ${(input.useCases || []).slice(0, 3).join('; ') || 'n/a'}
+Commercial potential: ${score}/100
 Breakdown: ${JSON.stringify(input.commercialBreakdown || {})}
-Has prototype: ${!!input.hasPrototype}
-Has product: ${!!input.hasProduct}
-Current asking price (INR): ${input.askingPrice || 0}
-Market opportunity note: ${input.marketOpportunity || 'n/a'}
+TRL / maturity: ${input.trlLevel ?? 'unknown'} | Prototype: ${!!input.hasPrototype} | Product: ${!!input.hasProduct}
+Inventor asking price (INR): ${input.askingPrice || 0}
+Market note: ${input.marketOpportunity || 'n/a'}
+
+INDIA BENCHMARKS (indicative):
+- Early concept (TRL 1–3): sale ₹15L–75L, license ₹2L–8L/yr
+- Validated prototype (TRL 4–6): sale ₹50L–2Cr, license ₹5L–20L/yr
+- Product-ready (TRL 7–9): sale ₹1Cr–5Cr+, license ₹10L–50L/yr
+Adjust within these bands using sector demand, IP strength, and the abstract specifics.
+
+STRICT RULES:
+1. rationale MUST mention the patent title OR quote a phrase from the abstract AND reference at least one technical theme (${keywords.slice(0, 4).join(', ') || 'from abstract'}).
+2. pricingFactors MUST each explain why THIS patent earns that factor — no generic bullets like "high market demand" without tying to "${input.title}".
+3. Do NOT discuss technologies not present in the title/abstract above.
+4. suggestedSaleMinInr must be less than suggestedSaleMaxInr. All amounts in INR integers.
 
 Return ONLY JSON:
 {
@@ -716,41 +881,54 @@ Return ONLY JSON:
   "suggestedSaleMaxInr": number,
   "suggestedLicenseAnnualInr": number,
   "currency": "INR",
-  "confidence": number, // 0-100
-  "rationale": string, // 2-4 sentences
-  "pricingFactors": string[], // 3-6 bullets
+  "confidence": number,
+  "rationale": string,
+  "pricingFactors": string[],
   "comparableNote": string
 }`;
 
+  const fallback = heuristicPricing(input);
   const parsed = await queryJsonLLM(prompt);
+
   if (
     parsed &&
     typeof parsed.suggestedSaleMinInr === 'number' &&
-    typeof parsed.suggestedSaleMaxInr === 'number'
+    typeof parsed.suggestedSaleMaxInr === 'number' &&
+    parsed.suggestedSaleMinInr < parsed.suggestedSaleMaxInr
   ) {
+    const min = Math.round(parsed.suggestedSaleMinInr);
+    const max = Math.round(parsed.suggestedSaleMaxInr);
+    const llmRationale = typeof parsed.rationale === 'string' ? parsed.rationale.trim() : '';
+    const grounded = rationaleGroundingScore(llmRationale, input.title, input.abstract) >= 2;
+    const rationale = grounded
+      ? llmRationale
+      : buildPatentSpecificRationale(input, min, max);
+    const factors =
+      Array.isArray(parsed.pricingFactors) && parsed.pricingFactors.length >= 2 && grounded
+        ? parsed.pricingFactors
+        : buildPatentSpecificFactors(input);
+
     return {
-      suggestedSaleMinInr: Math.round(parsed.suggestedSaleMinInr),
-      suggestedSaleMaxInr: Math.round(parsed.suggestedSaleMaxInr),
+      suggestedSaleMinInr: min,
+      suggestedSaleMaxInr: max,
       suggestedLicenseAnnualInr: Math.round(
-        parsed.suggestedLicenseAnnualInr || parsed.suggestedSaleMinInr * 0.1
+        parsed.suggestedLicenseAnnualInr || min * 0.1
       ),
       currency: 'INR',
-      confidence: Math.min(100, Math.max(0, Math.round(parsed.confidence ?? 65))),
-      rationale: parsed.rationale || 'AI-estimated pricing band for this IP asset.',
-      pricingFactors: Array.isArray(parsed.pricingFactors) ? parsed.pricingFactors : [],
-      comparableNote: parsed.comparableNote,
+      confidence: Math.min(
+        100,
+        Math.max(0, Math.round((parsed.confidence ?? 68) - (grounded ? 0 : 12)))
+      ),
+      rationale,
+      pricingFactors: factors,
+      comparableNote:
+        parsed.comparableNote ||
+        fallback.comparableNote,
       generatedAt: new Date(),
     };
   }
 
-  return heuristicPricing(
-    input.title,
-    input.abstract,
-    score,
-    !!input.hasPrototype,
-    !!input.hasProduct,
-    input.askingPrice
-  );
+  return fallback;
 }
 
 /** Rate prototype / product readiness (TRL + score) after inventor declares maturity. */
