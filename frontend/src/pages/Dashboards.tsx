@@ -840,15 +840,15 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
   });
   const [aiResult, setAiResult] = React.useState<AiResultView | null>(null);
 
-  const fetchPortfolio = React.useCallback(async () => {
+  const fetchPortfolio = React.useCallback(async (opts?: { silent?: boolean }) => {
     try {
-      setLoading(true);
+      if (!opts?.silent) setLoading(true);
       const data = await apiFetch('/api/patents/my-portfolio');
       setPortfolio(data);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
@@ -899,7 +899,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
         hasProduct: false,
         prototypeDescription: '',
       });
-      fetchPortfolio();
+      fetchPortfolio({ silent: true });
     } catch (err: any) {
       alert(err.message || 'Failed to submit patent.');
     } finally {
@@ -968,7 +968,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
           breakdown: res.commercialBreakdown || res.analysis?.commercialBreakdown,
         });
       }
-      fetchPortfolio();
+      fetchPortfolio({ silent: true });
     } catch (err: any) {
       setAiResult({
         kind: 'error',
