@@ -7,7 +7,10 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "tsnd --respawn --transpile-only src/server.ts",
+    "test:e2e": "node tests/fullFlow.cjs",
     "clear:interactions": "node clearInteractionData.js",
+    "retire:demo-accounts": "node retireDemoAccounts.js",
+    "provision:admin": "node provisionAdmin.js",
     "reanalyze:patents": "node reanalyzePatents.js"
   },
   "dependencies": {

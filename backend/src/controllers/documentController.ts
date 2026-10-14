@@ -7,13 +7,6 @@ import {
   VerticalAlign 
 } from 'docx';
 
-// Mask Aadhaar card number
-function maskAadhaar(aadhaar: string): string {
-  const clean = aadhaar.replace(/\s|-/g, '');
-  if (clean.length !== 12) return aadhaar;
-  return `XXXX-XXXX-${clean.substring(8)}`;
-}
-
 // Check if buyer has signed NDA for a patent
 export async function checkNDAStatus(req: Request, res: Response) {
   try {
@@ -34,23 +27,19 @@ export async function signNDA(req: Request, res: Response) {
   try {
     const authReq = req as IAuthRequest;
     const { id: patentId } = req.params;
-    const { fullName, aadhaarNumber } = req.body;
+    const fullName = typeof req.body.fullName === 'string' ? req.body.fullName.trim() : '';
+    const accepted = req.body.accepted === true;
     const buyerId = authReq.user!.id;
 
-    if (!fullName || !aadhaarNumber) {
-      return res.status(400).json({ message: 'Full name and 12-digit Aadhaar number are required to sign the NDA.' });
+    if (!fullName || fullName.length > 200 || !accepted) {
+      return res.status(400).json({ message: 'Your full name and explicit NDA acceptance are required.' });
     }
-
-    const cleanAadhaar = aadhaarNumber.replace(/\s|-/g, '');
-    if (cleanAadhaar.length !== 12 || !/^\d+$/.test(cleanAadhaar)) {
-      return res.status(400).json({ message: 'Invalid Aadhaar number. Must be exactly 12 digits.' });
-    }
-
     // Check if patent exists
     const patent = await dbStore.patents.findById(patentId);
     if (!patent) {
       return res.status(404).json({ message: 'Patent not found.' });
     }
+    if (patent.status !== 'approved') return res.status(404).json({ message: 'This listing is not available for NDA acceptance.' });
 
     // Check if already signed
     const existing = await dbStore.ndaSignatures.findOne({ patentId, buyerId });
@@ -64,7 +53,7 @@ export async function signNDA(req: Request, res: Response) {
       patentId,
       buyerId,
       fullName,
-      aadhaarNumber: maskAadhaar(cleanAadhaar),
+      acceptanceMethod: 'typed_name',
       ipAddress,
       signedAt: new Date()
     });
@@ -73,11 +62,11 @@ export async function signNDA(req: Request, res: Response) {
     await dbStore.auditLogs.create({
       userId: buyerId,
       action: 'NDA_SIGNED',
-      details: `Buyer ${fullName} successfully e-signed NDA for patent ${patent.patentNumber} (${patent.title}) via Aadhaar OTP.`
+      details: `Buyer ${fullName} recorded NDA acceptance for patent ${patent.patentNumber} (${patent.title}) using the signed-in account and typed name.`
     });
 
     return res.status(201).json({
-      message: 'NDA successfully signed and verified via Aadhaar eSign.',
+      message: 'NDA acceptance recorded successfully.',
       signature
     });
   } catch (error: any) {
@@ -393,7 +382,7 @@ export async function downloadNDADocx(req: Request, res: Response) {
             spacing: { before: 60, after: 240, line: 360 },
             children: [
               new TextRun({
-                text: "The parties agree that execution of this Agreement via the PatentBridge platform using digital signature workflows and UIDAI Aadhaar eSign verification constitutes a legally binding electronic signature in accordance with Section 3 and Section 4 of the Indian Information Technology Act, 2000.",
+                text: "This platform records the receiving party's account, typed name, and acceptance timestamp. The platform does not perform Aadhaar or other identity verification in this acceptance step.",
                 font: "Times New Roman",
                 size: 24
               })
@@ -453,7 +442,7 @@ export async function downloadNDADocx(req: Request, res: Response) {
                       }),
                       new Paragraph({
                         spacing: { before: 60, after: 60 },
-                        children: [new TextRun({ text: "eSign Status: Platform Pre-Authorized", font: "Times New Roman", size: 18, color: "2E7D32" })]
+                        children: [new TextRun({ text: "Inventor: Platform account", font: "Times New Roman", size: 18, color: "2E7D32" })]
                       })
                     ]
                   }),
@@ -479,7 +468,7 @@ export async function downloadNDADocx(req: Request, res: Response) {
                       new Paragraph({
                         spacing: { before: 60, after: 60 },
                         children: [
-                          new TextRun({ text: `Aadhaar ID: ${signature.aadhaarNumber}`, font: "Times New Roman", size: 20 }),
+                          new TextRun({ text: `Acceptance method: ${signature.acceptanceMethod || 'Legacy platform record'}`, font: "Times New Roman", size: 20 }),
                         ]
                       }),
                       new Paragraph({
@@ -496,7 +485,7 @@ export async function downloadNDADocx(req: Request, res: Response) {
                       }),
                       new Paragraph({
                         spacing: { before: 60, after: 120 },
-                        children: [new TextRun({ text: "eSign Status: Verified via UIDAI OTP eSign Gateway", font: "Times New Roman", size: 18, color: "2E7D32", bold: true })]
+                        children: [new TextRun({ text: "Status: Platform acceptance recorded", font: "Times New Roman", size: 18, color: "2E7D32", bold: true })]
                       })
                     ]
                   })

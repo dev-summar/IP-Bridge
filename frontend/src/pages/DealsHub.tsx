@@ -5,7 +5,7 @@ import { apiFetch } from '../hooks/useApi';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Handshake } from 'lucide-react';
-import { formatINR } from '../constants/ip';
+import { formatINR, inferAssetType } from '../constants/ip';
 import { Badge } from '../components/ui/Badge';
 
 interface DealsHubProps {
@@ -68,6 +68,7 @@ export const DealsHub = ({ completedOnly = false }: DealsHubProps) => {
                 </Badge>
               </div>
               <p className="text-lg font-bold mt-3">{formatINR(deal.price)}</p>
+              <Badge variant="indigo" className="mt-3 text-xs">{inferAssetType(deal)}</Badge>
               {deal.tx && (
                 <p className="text-xs text-zinc-500 mt-2 capitalize">Escrow: {deal.tx.status.replace('_', ' ')}</p>
               )}

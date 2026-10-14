@@ -32,6 +32,7 @@ export const INVENTOR_NAV = [
 ];
 
 export const ADMIN_NAV = [
+  { label: 'Dashboard', path: '/dashboard', icon: Home },
   { label: 'Users', path: '/dashboard/users', icon: Users },
   { label: 'IP Listings', path: '/dashboard/listings', icon: FileStack },
   { label: 'Deals', path: '/dashboard/deals', icon: Handshake },

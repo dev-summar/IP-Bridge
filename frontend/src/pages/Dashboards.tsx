@@ -1,3 +1,4 @@
+import { ReviewQueue } from '../components/admin/ReviewQueue';
 import React from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../hooks/useApi';
@@ -19,7 +20,7 @@ import {
 } from 'lucide-react';
 import { EmptyState } from '../components/ui/EmptyState';
 import { CardSkeleton } from '../components/ui/Skeleton';
-import { formatINR } from '../constants/ip';
+import { formatINR, IP_TYPE_OPTIONS, IPType, inferAssetType } from '../constants/ip';
 import { cn } from '../utils/cn';
 
 type ManagerProps = { embedded?: boolean };
@@ -165,25 +166,6 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
   const [error, setError] = React.useState<string | null>(null);
   const [adminTab, setAdminTab] = React.useState<'overview' | 'treasury'>('overview');
 
-  // Mock charts data
-  const mockTimelineData = [
-    { month: 'Jan', views: 80, inquiries: 2 },
-    { month: 'Feb', views: 140, inquiries: 4 },
-    { month: 'Mar', views: 220, inquiries: 9 },
-    { month: 'Apr', views: 300, inquiries: 14 },
-    { month: 'May', views: 410, inquiries: 22 },
-    { month: 'Jun', views: 540, inquiries: 29 }
-  ];
-
-  const mockIndexData = [
-    { month: 'Jan', index: 100, volume: 15 },
-    { month: 'Feb', index: 115, volume: 22 },
-    { month: 'Mar', index: 130, volume: 38 },
-    { month: 'Apr', index: 155, volume: 55 },
-    { month: 'May', index: 180, volume: 84 },
-    { month: 'Jun', index: 214, volume: 114 }
-  ];
-
   const fetchAnalytics = React.useCallback(async () => {
     try {
       setLoading(true);
@@ -313,12 +295,12 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
           </Card>
           <Card className="border border-amber-150 dark:border-amber-900/30 bg-amber-50/10 dark:bg-amber-950/5 shadow-premium-sm hover:shadow-premium-md premium-transition">
             <CardContent className="p-5 flex flex-col justify-between h-32">
-              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Subscription Revenue Stream</span>
+              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Subscription Revenue</span>
               <div>
                 <span className="text-3xl font-bold text-lvx-charcoal dark:text-white block mt-2">
-                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(data?.treasury?.subscriptionRevenue || 0)}
+                  {data?.treasury?.subscriptionRevenue == null ? 'Not tracked' : formatINR(data.treasury.subscriptionRevenue)}
                 </span>
-                <span className="text-[10px] text-lvx-blue font-bold block mt-1 font-sans">Projected monthly stream</span>
+                <span className="text-[10px] text-lvx-blue font-bold block mt-1 font-sans">Subscription billing not connected</span>
               </div>
             </CardContent>
           </Card>
@@ -559,12 +541,12 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
             <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
               <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800">
                 <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">
-                  Portfolio Views & Deal-Flow Trends
+                  Portfolio submissions over time
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockTimelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <AreaChart data={data?.activitySeries || []} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="areaGradientViews" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4a90e2" stopOpacity={0.4} />
@@ -577,12 +559,12 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                     <Tooltip contentStyle={{ fontSize: 11, borderRadius: 12 }} />
                     <Area
                       type="monotone"
-                      dataKey="views"
+                      dataKey="submissions"
                       stroke="#4a90e2"
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#areaGradientViews)"
-                      name="Patent Views"
+                      name="Listings submitted"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -690,11 +672,11 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
             {/* IP Index Chart */}
             <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-md">
               <CardHeader className="py-4 px-6 border-b border-zinc-200/60 dark:border-zinc-800">
-                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">IPBridge Market Index</CardTitle>
+                <CardTitle className="text-sm font-bold text-zinc-900 dark:text-zinc-200/60">Your requests over time</CardTitle>
               </CardHeader>
               <CardContent className="p-6 h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockIndexData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <AreaChart data={data?.activitySeries || []} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="areaGradientIndex" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#10b981" stopOpacity={0.35}/>
@@ -705,7 +687,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                     <XAxis dataKey="month" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
                     <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip contentStyle={{ fontSize: 11, borderRadius: 12 }} />
-                    <Area type="monotone" dataKey="index" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#areaGradientIndex)" name="Deal Index" />
+                    <Area type="monotone" dataKey="inquiries" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#areaGradientIndex)" name="Requests sent" />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -736,6 +718,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                         <h4 className="font-bold text-zinc-900 dark:text-zinc-200/60 text-xs line-clamp-2 leading-snug">
                           {p.title}
                         </h4>
+                        <p className="mt-1 text-xs text-primary truncate">{inferAssetType(p)}</p>
                       </div>
 
                       <Link to={`/marketplace/${p.id}`} className="text-[11px] font-bold text-lvx-blue dark:text-lvx-blue flex items-center gap-0.5 hover:underline pt-3 border-t border-zinc-100 dark:border-zinc-800">
@@ -818,6 +801,12 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
   const [portfolio, setPortfolio] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isNewOpen, setIsNewOpen] = React.useState(false);
+  const [editingPatentId, setEditingPatentId] = React.useState<string | null>(null);
+  const [submissionError, setSubmissionError] = React.useState('');
+  const [ipType, setIpType] = React.useState<IPType | ''>('');
+  const [otherIpType, setOtherIpType] = React.useState('');
+  const [registrationStatus, setRegistrationStatus] = React.useState('');
+  const [grantConfirmed, setGrantConfirmed] = React.useState(false);
   const [form, setForm] = React.useState({
     patentNumber: '',
     title: '',
@@ -858,28 +847,42 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
 
   React.useEffect(() => {
     if (searchParams.get('new') === '1') {
-      setIsNewOpen(true);
+      openNewDialog();
       const next = new URLSearchParams(searchParams);
       next.delete('new');
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
-  const openNewDialog = () => setIsNewOpen(true);
+  const openNewDialog = () => {
+    setEditingPatentId(null); setSubmissionError('');
+    setIpType(''); setOtherIpType(''); setRegistrationStatus(''); setGrantConfirmed(false);
+    setForm({ patentNumber: '', title: '', abstract: '', pdfUrl: '', askingPrice: '', isForSale: true, isForLicense: true, hasPrototype: false, hasProduct: false, prototypeDescription: '' });
+    setIsNewOpen(true);
+  };
+  const openRevision = (patent: any) => {
+    setEditingPatentId(patent._id); setSubmissionError('');
+    setIpType(IP_TYPE_OPTIONS.some(option => option.value === patent.ipType) ? patent.ipType : '');
+    setOtherIpType(patent.otherIpType || ''); setRegistrationStatus(patent.registrationStatus || ''); setGrantConfirmed(false);
+    setForm({ patentNumber: patent.patentNumber, title: patent.title, abstract: patent.abstract, pdfUrl: patent.pdfUrl || '', askingPrice: String(patent.askingPrice || ''), isForSale: !!patent.isForSale, isForLicense: !!patent.isForLicense, hasPrototype: !!patent.hasPrototype, hasProduct: !!patent.hasProduct, prototypeDescription: patent.prototypeDescription || '' });
+    setIsNewOpen(true);
+  };
   const parsedAskingPrice = Number(parsePriceDigits(form.askingPrice)) || 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.isForSale && !form.isForLicense) {
-      alert('Select at least one listing option: sale or licensing.');
+      setSubmissionError('Select at least one listing option: sale or licensing.');
       return;
     }
     try {
       setSubmitting(true);
-      await apiFetch('/api/patents', {
+      setSubmissionError('');
+      await apiFetch(editingPatentId ? `/api/patents/${editingPatentId}/resubmit` : '/api/patents', {
         method: 'POST',
         body: {
           ...form,
+          ipType, otherIpType, registrationStatus, grantConfirmed,
           askingPrice: Number(parsePriceDigits(form.askingPrice)) || 0,
           hasPrototype: form.hasPrototype,
           hasProduct: form.hasProduct,
@@ -901,7 +904,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
       });
       fetchPortfolio({ silent: true });
     } catch (err: any) {
-      alert(err.message || 'Failed to submit patent.');
+      setSubmissionError(err.message || 'Failed to submit patent.');
     } finally {
       setSubmitting(false);
     }
@@ -1030,10 +1033,11 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mt-1 line-clamp-2">{p.title}</h3>
                 </div>
                 <Badge variant={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} className="shrink-0 text-[10px] uppercase">
-                  {p.status}
+                  {p.status === 'changes_requested' ? 'Changes requested' : p.status}
                 </Badge>
               </div>
               <div className="flex flex-wrap gap-1.5 mt-3">
+                <Badge variant="indigo" className="text-xs">{inferAssetType(p)}</Badge>
                 {p.analysis?.industryClassification?.slice(0, 3).map((i: string) => (
                   <Badge key={i} variant="outline" className="text-[10px]">{i}</Badge>
                 ))}
@@ -1079,6 +1083,8 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   Prototype
                 </Button>
               </div>
+              {p.reviewHistory?.length > 0 && <div className="mt-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-3 text-sm"><p className="font-medium text-amber-900 dark:text-amber-300">Latest review feedback</p><p className="mt-1 whitespace-pre-wrap text-amber-800 dark:text-amber-200">{p.reviewHistory[p.reviewHistory.length - 1].notes || 'Your listing was approved.'}</p></div>}
+              {['changes_requested', 'rejected'].includes(p.status) && <Button className="mt-3 w-full" variant="outline" onClick={() => openRevision(p)}>Revise and resubmit</Button>}
               {p.analysis?.pricingGuidance && (
                 <div className="mt-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 px-3 py-2">
                   <p className="text-[10px] font-medium uppercase tracking-wide text-emerald-700/70 dark:text-emerald-400/70">
@@ -1098,21 +1104,23 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
       {/* New Patent Register Dialog */}
       <Dialog
         isOpen={isNewOpen}
-        onClose={() => setIsNewOpen(false)}
-        title="List intellectual property"
-        description="Submit your patent for AI analysis. An admin reviews every listing before it appears on Discover."
+        onClose={() => !submitting && setIsNewOpen(false)}
+        title={editingPatentId ? 'Revise your listing' : 'List intellectual property'}
+        description="Only granted patents or approved registrations are eligible. Add the official approval PDF; an admin checks it before publishing."
         className="max-w-xl"
       >
+        {submissionError && <p role="alert" className="mb-4 text-sm text-red-600">{submissionError}</p>}
         <form onSubmit={handleSubmit} className="flex flex-col">
           <div className="space-y-6">
             <section className="space-y-4">
               <div>
                 <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Patent details</h4>
-                <p className="text-xs text-zinc-500 mt-0.5">Use the official registry information from your filing.</p>
+                <p className="text-xs text-zinc-500 mt-0.5">Use the details from the official grant or registration document.</p>
               </div>
 
               <Input
-                label="Patent number"
+                label="Patent or registration number"
+                disabled={!!editingPatentId}
                 labelClassName={formLabelClass}
                 placeholder="e.g. US-11394025-B2"
                 required
@@ -1121,7 +1129,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
               />
 
               <Input
-                label="Patent title"
+                label="IP title"
                 labelClassName={formLabelClass}
                 placeholder="Adaptive Neural Architecture for Low-Power Edge Inference"
                 required
@@ -1130,8 +1138,29 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
               />
 
               <div>
+                <label htmlFor="listing-ip-type" className={cn('block mb-1.5', formLabelClass)}>IP type <span className="text-red-500">*</span></label>
+                <select id="listing-ip-type" required value={ipType} onChange={event => {
+                  const type = event.target.value as IPType | '';
+                  setIpType(type); setRegistrationStatus(type === 'utility_patent' ? 'granted' : type === 'design' ? 'registered' : ''); setGrantConfirmed(false);
+                }} className={formFieldClass}>
+                  <option value="">Choose the IP type</option>
+                  {IP_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </div>
+              {ipType === 'other' && <Input label="Other IP type" required maxLength={80} placeholder="Describe the approved IP type" value={otherIpType} onChange={event => setOtherIpType(event.target.value)} />}
+              <div>
+                <label htmlFor="listing-registration-status" className={cn('block mb-1.5', formLabelClass)}>Official approval status <span className="text-red-500">*</span></label>
+                <select id="listing-registration-status" required value={registrationStatus} onChange={event => { setRegistrationStatus(event.target.value); setGrantConfirmed(false); }} className={formFieldClass}>
+                  <option value="">Select approval status</option>
+                  {ipType !== 'design' && <option value="granted">Granted</option>}
+                  {ipType !== 'utility_patent' && <option value="registered">Registered / approved</option>}
+                </select>
+                <p className="mt-1.5 text-xs text-zinc-500">Pending applications and published applications without a grant are not accepted.</p>
+              </div>
+
+              <div>
                 <label className={cn('block mb-1.5', formLabelClass)}>
-                  Patent abstract <span className="text-red-500">*</span>
+                  Description / abstract <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   rows={5}
@@ -1152,13 +1181,19 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
               </div>
 
               <Input
-                label="Registry link or PDF URL"
+                label="Official grant / registration PDF link"
+                type="url"
+                required
                 labelClassName={formLabelClass}
                 placeholder="https://patentimages.storage.googleapis.com/..."
                 value={form.pdfUrl}
-                onChange={(e) => setForm((prev) => ({ ...prev, pdfUrl: e.target.value }))}
+                onChange={(e) => { setForm((prev) => ({ ...prev, pdfUrl: e.target.value })); setGrantConfirmed(false); }}
               />
-              <p className="text-xs text-zinc-500 -mt-2">Optional — helps buyers verify the filing.</p>
+              <p className="text-xs text-zinc-500 -mt-2">Required. Use an HTTP(S) link that opens the official approval PDF and can be accessed by the reviewer.</p>
+              <label className="flex items-start gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-sm leading-relaxed">
+                <input type="checkbox" required checked={grantConfirmed} onChange={event => setGrantConfirmed(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-blue-600" />
+                <span>I confirm that this IP has been granted or registered and that the linked PDF is its official approval document.</span>
+              </label>
 
               <div>
                 <Input
@@ -1309,7 +1344,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
               AI generates your commercial brief after submission.
             </p>
             <div className="flex items-center justify-end gap-2 shrink-0">
-              <Button type="button" variant="outline" onClick={() => setIsNewOpen(false)} className="rounded-xl">
+              <Button type="button" variant="outline" disabled={submitting} onClick={() => setIsNewOpen(false)} className="rounded-xl">
                 Cancel
               </Button>
               <Button type="submit" isLoading={submitting} className="rounded-xl font-semibold gap-1.5">
@@ -1678,6 +1713,7 @@ export const BookmarksManager = ({ embedded }: ManagerProps = {}) => {
                   <h4 className="font-bold text-zinc-950 dark:text-zinc-100 text-xs sm:text-sm line-clamp-2 leading-snug">
                     {b.title}
                   </h4>
+                  <p className="mt-1 text-xs text-primary">{inferAssetType(b)}</p>
                   <p className="text-zinc-400 text-[10px] mt-1">Affiliation: {b.ownerOrganization}</p>
                 </div>
 
@@ -1983,119 +2019,7 @@ export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
 // ==========================================
 // 6. Reviews Queue Manager (Admin only)
 // ==========================================
-export const ReviewsManager = ({ embedded }: ManagerProps = {}) => {
-  const [reviews, setReviews] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-
-  const fetchPending = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await apiFetch('/api/patents/pending');
-      setReviews(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchPending();
-  }, [fetchPending]);
-
-  const handleReview = async (id: string, actionStatus: 'approved' | 'rejected') => {
-    try {
-      await apiFetch(`/api/patents/${id}/review`, {
-        method: 'PUT',
-        body: { status: actionStatus }
-      });
-      fetchPending();
-    } catch (err: any) {
-      alert(err.message || 'Review processing failed.');
-    }
-  };
-
-  if (loading) return <div className="grid gap-4">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>;
-
-  return (
-    <div className="space-y-6">
-      {!embedded && (
-        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Review Queue</h1>
-          <p className="text-sm text-zinc-500 mt-1">Approve or reject new listings before they go live.</p>
-        </div>
-      )}
-
-      {reviews.length === 0 ? (
-        <EmptyState
-          icon={<ShieldCheck className="h-10 w-10" />}
-          title="Review queue clear"
-          description="No patents require verification at the moment."
-        />
-      ) : (
-        <div className="space-y-4">
-          {reviews.map((r) => (
-            <div key={r._id} className={`${cardClass} p-6 space-y-4 text-xs`}>
-                
-                {/* Meta details */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-mono text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded font-semibold">{r.patentNumber}</span>
-                    <h3 className="text-sm font-bold text-zinc-950 dark:text-zinc-100 mt-1">{r.title}</h3>
-                  </div>
-                  <span className="text-[10px] text-zinc-400">Filed by {r.ownerName} ({r.ownerOrganization})</span>
-                </div>
-
-                <div className="h-px bg-zinc-100" />
-
-                <div className="grid sm:grid-cols-[1fr_240px] gap-6">
-                  {/* Abstract preview */}
-                  <div className="space-y-2">
-                    <span className="block text-[9px] text-zinc-400 font-bold uppercase">Filing Abstract</span>
-                    <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed font-sans">{r.abstract}</p>
-                  </div>
-
-                  {/* AI brief details */}
-                  <div className="bg-zinc-50 dark:bg-zinc-900/60 rounded-lg p-4 space-y-3.5 border border-zinc-200 dark:border-zinc-800/60">
-                    <div className="flex items-center gap-1.5 text-zinc-800 dark:text-zinc-300 font-semibold">
-                      <Sparkles className="h-3.5 w-3.5 text-zinc-950 dark:text-zinc-100 fill-zinc-950" />
-                      <span>AI Pre-Analysis</span>
-                    </div>
-
-                    <div className="space-y-2 text-[11px]">
-                      <div>
-                        <span className="text-zinc-400">Class: </span>
-                        <span className="font-semibold text-zinc-700 dark:text-zinc-400">{r.analysis?.industryClassification?.[0] || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-400">Keywords: </span>
-                        <span className="font-semibold text-zinc-700 dark:text-zinc-400 truncate block">{r.analysis?.keywords?.join(', ')}</span>
-                      </div>
-                      <div className="flex items-center gap-1 pt-1">
-                        <span className="text-zinc-400">Commercial Potential Score: </span>
-                        <span className="font-bold text-zinc-900 bg-white dark:bg-zinc-900 border px-1.5 rounded">{r.analysis?.commercialPotentialScore}%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Final approvals buttons */}
-                <div className="flex items-center justify-end gap-3.5 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2">
-                  <Button variant="outline" onClick={() => handleReview(r._id, 'rejected')} className="text-xs border-red-200 hover:bg-red-50 hover:text-red-700 text-red-600 font-semibold px-4">
-                    Reject Filing
-                  </Button>
-                  <Button onClick={() => handleReview(r._id, 'approved')} className="text-xs font-semibold px-4 bg-emerald-600 hover:bg-emerald-700 text-white">
-                    Approve & List
-                  </Button>
-                </div>
-
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+export const ReviewsManager = (_props: ManagerProps = {}) => <ReviewQueue />;
 
 // ==========================================
 // 7. Users Directory Table (Admin only)
@@ -2328,6 +2252,7 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
                   <div>
                     <span className="text-[10px] font-mono text-zinc-400">{o.patentNumber}</span>
                     <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{o.patentTitle}</h3>
+                    <p className="mt-1 text-xs text-primary">{inferAssetType(o)}</p>
                     <p className="text-xs text-zinc-500 mt-1">{o.counterParty}</p>
                   </div>
                   <Badge variant={o.status === 'accepted' ? 'success' : o.status === 'declined' ? 'danger' : o.status === 'countered' ? 'indigo' : 'warning'} className="text-[10px] uppercase">
@@ -2432,7 +2357,7 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
             Signed Documents & Agreements
           </h2>
           <p className="text-[11px] text-zinc-500 mt-1">
-            Review and download Mutual Non-Disclosure Agreements (NDAs) officially executed via Aadhaar OTP eSign verification.
+            Review and download recorded NDA acceptances for your listings and requests.
           </p>
         </div>
 
@@ -2476,7 +2401,7 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
                     <td className="p-4">
                       <span className="block font-bold text-zinc-800 dark:text-zinc-200">{nda.buyerName}</span>
                       <span className="text-[10px] text-zinc-400 block">{nda.buyerOrganization || 'Independent'}</span>
-                      <span className="text-[9px] font-mono text-zinc-450 dark:text-zinc-550 block mt-0.5">UIDAI ID: {nda.aadhaarNumber}</span>
+                      <span className="text-xs text-zinc-500 block mt-1">{nda.acceptanceMethod === 'typed_name' ? 'Account and typed-name acceptance' : 'Legacy platform record'}</span>
                     </td>
                     <td className="p-4 font-mono font-medium text-zinc-800 dark:text-zinc-300">
                       {new Date(nda.signedAt).toLocaleDateString('en-IN')} <br />
@@ -2538,11 +2463,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
   const [selectedTx, setSelectedTx] = React.useState<any | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = React.useState(false);
-  const [paymentStep, setPaymentStep] = React.useState(0);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
-  const [cardNumber, setCardNumber] = React.useState('4242 4242 4242 4242');
-  const [expiry, setExpiry] = React.useState('12/28');
-  const [cvv, setCvv] = React.useState('123');
 
   const fetchTransactions = React.useCallback(async () => {
     try {
@@ -2598,11 +2519,6 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
         order_id: orderId,
         handler: async function (response: any) {
           setIsProcessingPayment(true);
-          setPaymentStep(1);
-          
-          const t1 = setTimeout(() => setPaymentStep(2), 700);
-          const t2 = setTimeout(() => setPaymentStep(3), 1400);
-
           try {
             await apiFetch(`/api/transactions/${txId}/verify-payment`, {
               method: 'POST',
@@ -2619,9 +2535,6 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
           } catch (err: any) {
             setIsProcessingPayment(false);
             setPaymentError(err.message || 'Payment signature verification failed.');
-          } finally {
-            clearTimeout(t1);
-            clearTimeout(t2);
           }
         },
         prefill: {
@@ -2733,6 +2646,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                 <div className="bg-zinc-50 dark:bg-zinc-800/40 p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs text-left">
                   <div>
                     <h3 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">{tx.patentTitle}</h3>
+                    <Badge variant="indigo" className="mt-2 text-xs">{inferAssetType(tx)}</Badge>
                     <p className="text-[10px] text-zinc-400 font-mono mt-0.5">Application/Grant Ref: {tx.patentNumber}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
@@ -2888,7 +2802,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
         </div>
       )}
 
-      {/* Checkout Simulator Modal */}
+      {/* Payment confirmation dialog */}
       <Dialog 
         isOpen={isCheckoutOpen} 
         onClose={() => { if (!isProcessingPayment) { setIsCheckoutOpen(false); setSelectedTx(null); } }} 
@@ -2948,17 +2862,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                 <RefreshCw className="h-10 w-10 mx-auto text-lvx-blue animate-spin" />
                 <div className="space-y-1.5">
                   <h4 className="font-bold text-zinc-800 dark:text-zinc-200">Processing Secure Escrow Deposit...</h4>
-                  <div className="max-w-xs mx-auto text-[10px] text-zinc-400 font-mono space-y-1">
-                    <div className={paymentStep >= 1 ? "text-lvx-blue font-bold" : ""}>
-                      {paymentStep >= 1 ? "✔ Link authorized with card gateway" : "Initializing connection..."}
-                    </div>
-                    <div className={paymentStep >= 2 ? "text-lvx-blue font-bold" : ""}>
-                      {paymentStep >= 2 ? "✔ Escrow vault ledger initialized" : "Allocating vault ledger..."}
-                    </div>
-                    <div className={paymentStep >= 3 ? "text-lvx-blue font-bold" : ""}>
-                      {paymentStep >= 3 ? "✔ Securing funds in escrow custody" : "Finalizing vault allocation..."}
-                    </div>
-                  </div>
+                  <p className="text-sm text-zinc-500">Verifying your payment. Keep this window open.</p>
                 </div>
               </div>
             )}

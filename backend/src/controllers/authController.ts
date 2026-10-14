@@ -4,82 +4,6 @@ import jwt from 'jsonwebtoken';
 import { dbStore } from '../services/dbStore';
 import { JWT_SECRET, IAuthRequest } from '../middleware/auth';
 
-// Seed initial users if none exist
-export async function seedInitialUsers() {
-  try {
-    const users = await dbStore.users.find();
-    
-    // In-place database migration to update Sarah Jenkins or Prof. Ankur Gupta to Prof. Ankur Gupta with organization MIET
-    const targetUser = users.find(u => u.email === 'owner@patentbridge.com');
-    if (targetUser && (targetUser.name.includes('Sarah Jenkins') || targetUser.organization !== 'MIET' || targetUser.name !== 'Prof. Ankur Gupta (Inventor)')) {
-      console.log('[Auth] Database migration: Updating Owner User records to Prof. Ankur Gupta and organization MIET...');
-      await dbStore.users.update(targetUser._id, {
-        name: 'Prof. Ankur Gupta (Inventor)',
-        organization: 'MIET'
-      });
-    }
-
-    const adminUser = users.find(u => u.email === 'admin@patentbridge.com');
-    if (adminUser && adminUser.name !== 'Rajesh Sharma (Admin)') {
-      console.log('[Auth] Database migration: Updating Admin User to Rajesh Sharma...');
-      await dbStore.users.update(adminUser._id, {
-        name: 'Rajesh Sharma (Admin)',
-        organization: 'PatentBridge India'
-      });
-    }
-
-    const buyerUser = users.find(u => u.email === 'buyer@patentbridge.com');
-    if (buyerUser && buyerUser.name !== 'Vikram Malhotra (Corporate Acquirer)') {
-      console.log('[Auth] Database migration: Updating Buyer User to Vikram Malhotra...');
-      await dbStore.users.update(buyerUser._id, {
-        name: 'Vikram Malhotra (Corporate Acquirer)',
-        organization: 'Tata Innovation Labs'
-      });
-    }
-
-    if (users.length === 0) {
-      console.log('[Auth] Seeding demo accounts...');
-      
-      const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash('password123', salt);
-      
-      // 1. Admin
-      await dbStore.users.create({
-        name: 'Rajesh Sharma (Admin)',
-        email: 'admin@patentbridge.com',
-        passwordHash,
-        organization: 'PatentBridge India',
-        role: 'admin'
-      });
-
-      // 2. Patent Owner
-      await dbStore.users.create({
-        name: 'Prof. Ankur Gupta (Inventor)',
-        email: 'owner@patentbridge.com',
-        passwordHash,
-        organization: 'MIET',
-        role: 'owner'
-      });
-
-      // 3. Buyer
-      await dbStore.users.create({
-        name: 'Vikram Malhotra (Corporate Acquirer)',
-        email: 'buyer@patentbridge.com',
-        passwordHash,
-        organization: 'Tata Innovation Labs',
-        role: 'buyer'
-      });
-      
-      console.log('[Auth] Demo accounts seeded successfully:');
-      console.log('  - Admin: admin@patentbridge.com (password123)');
-      console.log('  - Owner: owner@patentbridge.com (password123)');
-      console.log('  - Buyer: buyer@patentbridge.com (password123)');
-    }
-  } catch (err) {
-    console.error('[Auth] Error seeding users:', err);
-  }
-}
-
 export async function register(req: Request, res: Response) {
   try {
     const { name, email, password, organization, role, interests, domains } = req.body;
@@ -88,7 +12,10 @@ export async function register(req: Request, res: Response) {
       return res.status(400).json({ message: 'Missing required registration fields.' });
     }
 
-    if (!['admin', 'owner', 'buyer'].includes(role)) {
+    if (role === 'admin') {
+      return res.status(403).json({ message: 'Administrator accounts must be provisioned by an authorized administrator.' });
+    }
+    if (!['owner', 'buyer'].includes(role)) {
       return res.status(400).json({ message: 'Invalid registration role.' });
     }
 

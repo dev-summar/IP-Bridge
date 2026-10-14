@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { IPType, IP_TYPES, isHttpDocumentLink } from '../services/listingRequirements';
 
 // User Schema
 export interface IUser extends Document {
@@ -35,8 +36,16 @@ export interface IPatent extends Document {
   title: string;
   abstract: string;
   ownerId: string;
-  status: 'pending' | 'approved' | 'rejected';
-  pdfUrl?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'changes_requested';
+  reviewHistory?: { status: string; notes: string; reviewerId: string; reviewerName: string; reviewedAt: Date }[];
+  pdfUrl: string;
+  ipType: IPType;
+  otherIpType?: string;
+  registrationStatus: 'granted' | 'registered';
+  grantConfirmed: boolean;
+  grantReviewedAt?: Date;
+  grantReviewedBy?: string;
+  grantReviewedPdfUrl?: string;
   askingPrice?: number;
   isForSale?: boolean;
   isForLicense?: boolean;
@@ -58,8 +67,16 @@ export const PatentSchema = new Schema<IPatent>({
   title: { type: String, required: true },
   abstract: { type: String, required: true },
   ownerId: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
-  pdfUrl: { type: String },
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'changes_requested'], default: 'pending', index: true },
+  reviewHistory: { type: [{ status: String, notes: String, reviewerId: String, reviewerName: String, reviewedAt: Date }], default: [] },
+  pdfUrl: { type: String, required: true, trim: true, validate: isHttpDocumentLink },
+  ipType: { type: String, enum: [...IP_TYPES], required: true },
+  otherIpType: { type: String, trim: true, maxlength: 80, required: function(this: IPatent) { return this.ipType === 'other'; } },
+  registrationStatus: { type: String, enum: ['granted', 'registered'], required: true },
+  grantConfirmed: { type: Boolean, required: true, validate: (value: boolean) => value === true },
+  grantReviewedAt: { type: Date },
+  grantReviewedBy: { type: String },
+  grantReviewedPdfUrl: { type: String },
   askingPrice: { type: Number, default: 0 },
   isForSale: { type: Boolean, default: true },
   isForLicense: { type: Boolean, default: true },
@@ -299,7 +316,8 @@ export interface INDASignature extends Document {
   patentId: string;
   buyerId: string;
   fullName: string;
-  aadhaarNumber: string;
+  aadhaarNumber?: string;
+  acceptanceMethod?: string;
   ipAddress: string;
   signedAt: Date;
 }
@@ -308,7 +326,8 @@ export const NDASignatureSchema = new Schema<INDASignature>({
   patentId: { type: String, required: true, index: true },
   buyerId: { type: String, required: true, index: true },
   fullName: { type: String, required: true },
-  aadhaarNumber: { type: String, required: true },
+  aadhaarNumber: { type: String },
+  acceptanceMethod: { type: String },
   ipAddress: { type: String, required: true },
   signedAt: { type: Date, default: Date.now }
 }, { timestamps: true });

@@ -9,7 +9,7 @@ import { CardSkeleton } from '../components/ui/Skeleton';
 import { cn } from '../utils/cn';
 import { ArrowLeft, FileText, Handshake, Layers, Lock, ScrollText, CheckCircle2 } from 'lucide-react';
 import { NegotiationsManager, EscrowManager } from './Dashboards';
-import { formatINR } from '../constants/ip';
+import { formatINR, inferAssetType } from '../constants/ip';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: FileText },
@@ -66,6 +66,7 @@ export const DealRoom = () => {
         title={offer?.patentTitle || 'Deal Room'}
         description="Central workspace for documents, negotiation, milestones, and escrow."
       />
+      {offer && <p className="text-sm font-medium text-primary">IP type: {inferAssetType(offer)}</p>}
 
       <div className="overflow-x-auto pb-2 -mx-1 px-1">
         <div className="flex gap-1 min-w-max border-b border-zinc-200 dark:border-zinc-800">

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { dbStore } from '../services/dbStore';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'patentbridge-super-secret-key-12345';
 
@@ -12,7 +13,7 @@ export interface IAuthRequest extends Request {
   };
 }
 
-export function authenticateToken(req: Request, res: Response, next: NextFunction) {
+export async function authenticateToken(req: Request, res: Response, next: NextFunction) {
   const authReq = req as IAuthRequest;
   
   // Extract token from header or cookie
@@ -35,18 +36,30 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     return res.status(401).json({ message: 'Access denied. No authentication token provided.' });
   }
 
+  let verified: any;
   try {
-    const verified = jwt.verify(token, JWT_SECRET) as any;
-    authReq.user = {
-      id: verified.id,
-      role: verified.role,
-      email: verified.email,
-      name: verified.name
-    };
-    next();
+    verified = jwt.verify(token, JWT_SECRET);
+    if (typeof verified.id !== 'string' || !verified.id) {
+      return res.status(403).json({ message: 'Invalid or expired session token.' });
+    }
   } catch (error) {
     return res.status(403).json({ message: 'Invalid or expired session token.' });
   }
+  try {
+    const user = await dbStore.users.findById(verified.id);
+    if (!user) {
+      return res.status(401).json({ message: 'This account no longer exists. Please sign in again.' });
+    }
+    authReq.user = {
+      id: String(user._id),
+      role: user.role,
+      email: user.email,
+      name: user.name
+    };
+  } catch (error) {
+    return res.status(503).json({ message: 'Unable to verify your account. Please try again.' });
+  }
+  next();
 }
 
 export function authorizeRoles(...roles: ('admin' | 'owner' | 'buyer')[]) {

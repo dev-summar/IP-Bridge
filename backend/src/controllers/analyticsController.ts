@@ -16,6 +16,21 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
     const offers = await dbStore.offers.find();
     const transactions = await dbStore.transactions.find();
 
+    // Monthly counts from stored records; no fabricated views, revenue, or market index.
+    const activitySeries = Array.from({ length: 6 }, (_, index) => {
+      const now = new Date();
+      const month = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1);
+      const inMonth = (record: any) => {
+        const date = new Date(record.createdAt);
+        return date.getFullYear() === month.getFullYear() && date.getMonth() === month.getMonth();
+      };
+      return {
+        month: month.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+        submissions: patents.filter(p => (role === 'admin' || p.ownerId === userId) && inMonth(p)).length,
+        inquiries: leads.filter(l => (role === 'admin' || (role === 'buyer' ? l.buyerId === userId : l.ownerId === userId)) && inMonth(l)).length,
+      };
+    });
+
     // 1. ADMIN ANALYTICS
     if (role === 'admin') {
       const totalUsers = users.length;
@@ -69,7 +84,7 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         }
       }
 
-      const subscriptionRevenue = users.filter(u => u.role === 'buyer').length * 2500 + users.filter(u => u.role === 'owner').length * 1000;
+      const subscriptionRevenue = null;
 
       // Generate last 6 months time series data for the area chart
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -94,9 +109,9 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
           }
         }
         
-        const baseGmv = monthGmv || (500000 + (d.getMonth() * 120000) % 300000);
-        const baseComm = monthCommissions || Math.round(baseGmv * 0.05);
-        const baseSubs = subscriptionRevenue || 35000;
+        const baseGmv = monthGmv;
+        const baseComm = monthCommissions;
+        const baseSubs = subscriptionRevenue;
 
         timeSeries.push({
           month: label,
@@ -108,9 +123,10 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
 
       return res.json({
         role,
+        activitySeries,
         stats: [
-          { label: 'Total Platform Users', value: totalUsers, change: '+12% from last month', type: 'users' },
-          { label: 'Total Patents Filed', value: totalPatents, change: '+8% this week', type: 'patents' },
+          { label: 'Total Platform Users', value: totalUsers, change: 'Registered accounts', type: 'users' },
+          { label: 'Total Patents Filed', value: totalPatents, change: 'Submitted listings', type: 'patents' },
           { label: 'Pending Reviews', value: pendingReviews, change: 'Requires action', type: 'pending', urgent: pendingReviews > 0 },
           { label: 'Approved & Listed', value: publishedPatents, change: 'Active in market', type: 'approved' },
           { label: 'Commercial Enquiries', value: totalLeads, change: 'Qualified leads generated', type: 'leads' }
@@ -159,6 +175,7 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         if (p.hasPrototype) prototypeCount++;
         if (p.hasProduct) productCount++;
         myPatentRows.push({
+          ipType: p.ipType, otherIpType: p.otherIpType,
           id: p._id,
           title: p.title,
           status: p.status,
@@ -320,10 +337,12 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
 
       return res.json({
         role,
+        activitySeries,
         stats: [
           { label: 'Portfolio Size', value: myPatents.length, change: 'Total patents registered', type: 'patents' },
           { label: 'Published Listings', value: myPublished.length, change: 'Active in marketplace', type: 'published' },
           { label: 'Under AI/Admin Review', value: myPending.length, change: 'Awaiting verification', type: 'pending' },
+          { label: 'Changes Requested', value: myPatents.filter(p => p.status === 'changes_requested').length, change: 'Review feedback in your portfolio', type: 'pending', urgent: myPatents.some(p => p.status === 'changes_requested') },
           { label: 'Commercial Leads', value: myLeads.length, change: `${myLeads.filter(l => l.status === 'new').length} new enquiries`, type: 'leads' },
           { label: 'Meeting Invites', value: myMeetings.length, change: `${myMeetings.filter(m => m.status === 'pending').length} pending approval`, type: 'meetings' },
           { label: 'Active Deals', value: offers.filter(o => o.ownerId === userId && ['pending', 'countered'].includes(o.status)).length, change: 'Offers pending review', type: 'deals' },
@@ -389,6 +408,7 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
       for (const p of approvedPatents) {
         const analysis = await dbStore.patentAnalysis.findOne({ patentId: p._id });
         approvedWithAnalysis.push({
+          ipType: p.ipType, otherIpType: p.otherIpType,
           id: p._id,
           title: p.title,
           patentNumber: p.patentNumber,
@@ -439,6 +459,7 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
 
       return res.json({
         role,
+        activitySeries,
         stats: [
           { label: 'Saved Patents', value: savedCount, change: 'Monitored opportunities', type: 'saved' },
           { label: 'Unlock Requests', value: mySentLeads.length, change: 'Interest & access submissions', type: 'leads' },

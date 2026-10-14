@@ -20,21 +20,22 @@ export const INTEREST_SUGGESTIONS = [
   'fintech',
 ] as const;
 
-export const ASSET_TYPES = [
-  'Patent',
-  'Software IP',
-  'Copyright',
-  'Industrial Design',
-  'Trademark',
-  'Research Innovation',
-  'University Technology',
+export const IP_TYPE_OPTIONS = [
+  { value: 'utility_patent', label: 'Utility Patent' },
+  { value: 'design', label: 'Design' },
+  { value: 'other', label: 'Other' },
 ] as const;
+export type IPType = typeof IP_TYPE_OPTIONS[number]['value'];
+export const ASSET_TYPES = ['Utility Patent', 'Design', 'Other'] as const;
 
 export type AssetType = (typeof ASSET_TYPES)[number];
 
-export function inferAssetType(patent: any): AssetType {
+export function inferAssetType(patent: any): string {
+  if (patent?.ipType === 'other') return patent.otherIpType ? `Other · ${patent.otherIpType}` : 'Other';
+  const type = IP_TYPE_OPTIONS.find(option => option.value === patent?.ipType);
+  if (type) return type.label;
   if (patent?.assetType) return patent.assetType;
-  return 'Patent';
+  return 'Type not specified';
 }
 
 export function inferTRL(patent: any, analysis: any): number {

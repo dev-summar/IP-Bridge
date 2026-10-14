@@ -1,19 +1,24 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../context/authStore';
 import { getDashboardNav } from '../constants/navigation';
 import { BrandLogo } from '../components/BrandLogo';
-import { LogOut, Compass } from 'lucide-react';
+import { LogOut, Compass, MoreHorizontal } from 'lucide-react';
+import { Dialog } from '../components/ui/Dialog';
 import { cn } from '../utils/cn';
 
 export const DashboardLayout = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, isInitialized } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  React.useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
   React.useEffect(() => {
-    if (!user) navigate('/auth');
-  }, [user, navigate]);
+    if (isInitialized && !user) navigate('/auth');
+  }, [user, isInitialized, navigate]);
 
+  if (!isInitialized) return <p role="status" className="p-8 text-sm text-zinc-500">Opening your workspace…</p>;
   if (!user) return null;
 
   const menuItems = getDashboardNav(user.role);
@@ -80,25 +85,34 @@ export const DashboardLayout = () => {
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur safe-bottom flex justify-around py-2">
-          {menuItems.slice(0, 4).map((item) => {
+          {menuItems.slice(0, 3).map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
+                end={item.path === '/dashboard'}
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-1 px-2 py-1.5 text-xs font-medium min-w-[4.5rem]',
+                    'flex flex-1 min-w-0 flex-col items-center gap-1 px-1 py-1.5 text-xs font-medium',
                     isActive ? 'text-primary' : 'text-zinc-500'
                   )
                 }
               >
                 <Icon className="h-5 w-5" />
-                <span className="truncate max-w-[4.5rem]">{item.label.split(' ')[0]}</span>
+                <span className="truncate max-w-full">{item.label}</span>
               </NavLink>
             );
           })}
+          <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={cn('flex flex-1 min-w-0 flex-col items-center gap-1 px-1 py-1.5 text-xs font-medium', menuItems.slice(3).some(item => location.pathname.startsWith(item.path)) ? 'text-primary' : 'text-zinc-500')}><MoreHorizontal className="h-5 w-5" /><span>More</span></button>
         </nav>
+
+        <Dialog isOpen={moreOpen} onClose={() => setMoreOpen(false)} title="Your workspace" description={`${user.name} · ${user.role}`}>
+          <nav aria-label="All dashboard sections" className="space-y-1">
+            {menuItems.map(item => <NavLink key={item.path} to={item.path} end={item.path === '/dashboard'} onClick={() => setMoreOpen(false)} className={({ isActive }) => cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium', isActive ? 'bg-primary/10 text-primary' : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800')}><item.icon className="h-5 w-5" />{item.label}</NavLink>)}
+          </nav>
+          <button type="button" onClick={() => { setMoreOpen(false); logout(); navigate('/'); }} className="mt-4 flex w-full items-center gap-3 border-t border-zinc-200 dark:border-zinc-800 px-4 pt-4 pb-2 text-sm text-red-600"><LogOut className="h-5 w-5" />Sign out</button>
+        </Dialog>
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8 max-w-6xl w-full mx-auto">
           <Outlet />

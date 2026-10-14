@@ -35,25 +35,6 @@ const STEPS = [
   { icon: Zap, title: 'Transfer', desc: 'Download the assignment deed when complete.' },
 ];
 
-const TESTIMONIALS = [
-  {
-    quote: 'We found three licensable technologies in our first week. The AI briefs saved our corp dev team months.',
-    name: 'Priya Nair',
-    role: 'Head of Innovation, Tata Innovation Labs',
-  },
-  {
-    quote: 'Finally a platform that treats university IP like a startup asset — not a PDF archive.',
-    name: 'Prof. Ankur Gupta',
-    role: 'MIET Technology Transfer',
-  },
-];
-
-const STATS = [
-  { value: '87+', label: 'Avg. AI commercial score' },
-  { value: '3-step', label: 'Unlock flow' },
-  { value: '5%', label: 'Success fee on close' },
-];
-
 export const LandingPage = () => {
   const navigate = useNavigate();
   const [patents, setPatents] = React.useState<any[]>([]);
@@ -118,26 +99,6 @@ export const LandingPage = () => {
             </Link>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.25 }}
-            className="mt-14 grid grid-cols-3 gap-4 max-w-lg mx-auto"
-          >
-            {STATS.map((s, i) => (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...transition, delay: 0.28 + i * 0.06 }}
-                whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,0.06)' }}
-                className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-3 py-4 premium-transition"
-              >
-                <p className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white">{s.value}</p>
-                <p className="text-[10px] sm:text-xs text-zinc-500 mt-0.5 leading-tight">{s.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
         </div>
       </section>
 
@@ -145,7 +106,7 @@ export const LandingPage = () => {
       <FadeIn>
         <section className="py-10 border-b border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-5">Trusted by</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-5">Built for</p>
             <div className="flex flex-wrap justify-center gap-8 sm:gap-12 text-zinc-600 dark:text-zinc-400">
               {TRUST.map((t, i) => (
                 <motion.span
@@ -205,7 +166,7 @@ export const LandingPage = () => {
 
       {/* Featured IP */}
       <section className="py-16 sm:py-20 bg-zinc-50 dark:bg-zinc-950 border-y border-zinc-200/80 dark:border-zinc-800">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between gap-4 mb-8">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">Featured IP</h2>
             <Link to="/discover" className="text-sm text-primary hover:underline shrink-0 flex items-center gap-1">
@@ -224,11 +185,12 @@ export const LandingPage = () => {
                 ))}
               </div>
             ) : patents.length > 0 ? (
-              <StaggerList>
+              <StaggerList className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {patents.slice(0, 5).map((p) => (
                   <StaggerItem key={p._id} as="div">
                     <PatentCard
                       variant="compact"
+                      showSave={false}
                       patent={p}
                       isSaved={false}
                       onToggleBookmark={() => {}}
@@ -295,45 +257,9 @@ export const LandingPage = () => {
               ))}
             </ul>
           </div>
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-950 p-6 text-left font-mono text-xs text-emerald-400/90 shadow-lg">
-            <p className="text-zinc-500 mb-3">// AI commercial brief</p>
-            <p className="text-zinc-600">{'{'}</p>
-            <p className="pl-4 text-emerald-400/90">&quot;commercialPotentialScore&quot;: 87,</p>
-            <p className="pl-4 text-emerald-400/90">&quot;industryMatch&quot;: &quot;IoT · Cybersecurity&quot;,</p>
-            <p className="pl-4 text-emerald-400/90">&quot;recommendation&quot;: &quot;Strategic license&quot;,</p>
-            <p className="pl-4 text-emerald-400/90">&quot;trlLevel&quot;: 6</p>
-            <p className="text-zinc-600">{'}'}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-16 sm:py-20 border-t border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h2 className="text-3xl font-semibold text-center text-zinc-950 dark:text-white mb-10">What teams are saying</h2>
-          <div className="grid md:grid-cols-2 gap-5">
-            {TESTIMONIALS.map((t, i) => (
-              <motion.blockquote
-                key={t.name}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ ...transition, delay: i * 0.1 }}
-                whileHover={{ y: -2 }}
-                className="p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 shadow-sm premium-transition"
-              >
-                <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-sm">&ldquo;{t.quote}&rdquo;</p>
-                <footer className="mt-6 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
-                    <cite className="not-italic font-semibold text-sm text-zinc-900 dark:text-white">{t.name}</cite>
-                    <p className="text-xs text-zinc-500">{t.role}</p>
-                  </div>
-                </footer>
-              </motion.blockquote>
-            ))}
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
+            <h3 className="text-lg font-semibold mb-4">A closer look at available IP</h3>
+            {patents[0] ? <PatentCard patent={patents[0]} isSaved={false} showSave={false} onToggleBookmark={() => {}} onExplore={(id) => navigate(`/marketplace/${id}`)} /> : <p className="text-sm text-zinc-500 leading-relaxed">Published listings include a technology summary and available AI assessments. Browse the marketplace to explore licensing opportunities.</p>}
           </div>
         </div>
       </section>

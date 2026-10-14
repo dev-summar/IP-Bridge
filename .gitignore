@@ -8,6 +8,10 @@ dist/
 backend/node_modules/
 backend/dist/
 backend/.env
+backend/data/backups/
+backend/data/*.retirement.tmp
+artifacts/ui-preview/
+artifacts/e2e/
 
 frontend/node_modules/
 frontend/dist/

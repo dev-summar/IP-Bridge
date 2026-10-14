@@ -1,3 +1,4 @@
+import { NdaConsentForm } from '../components/ip/NdaConsentForm';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -19,7 +20,7 @@ import { transition } from '../utils/motion';
 export const PatentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isInitialized, token } = useAuthStore();
 
   // Primary data states
   const [patent, setPatent] = useState<any>(null);
@@ -64,12 +65,6 @@ export const PatentDetail = () => {
   const [isNdaSigned, setIsNdaSigned] = useState(false);
   const [ndaSignature, setNdaSignature] = useState<any>(null);
   const [isNdaOpen, setIsNdaOpen] = useState(false);
-  const [ndaLoading, setNdaLoading] = useState(false);
-  const [ndaAadhaar, setNdaAadhaar] = useState('');
-  const [ndaFullName, setNdaFullName] = useState('');
-  const [ndaOtpStep, setNdaOtpStep] = useState(false);
-  const [ndaOtp, setNdaOtp] = useState('');
-  const [ndaOtpLoading, setNdaOtpLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<'meeting' | 'offer' | null>(null);
   const [ndaSuccess, setNdaSuccess] = useState(false);
   const [accessRequestLoading, setAccessRequestLoading] = useState(false);
@@ -102,71 +97,15 @@ export const PatentDetail = () => {
     checkNdaStatus();
   }, [checkNdaStatus]);
 
-  // Request Aadhaar OTP eSign
-  const handleRequestNdaOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ndaFullName || ndaAadhaar.replace(/\s|-/g, '').length !== 12) {
-      alert('Please enter your full name and a valid 12-digit Aadhaar number.');
-      return;
+  const handleNdaAccepted = (signature: any) => {
+    setIsNdaSigned(true); setNdaSignature(signature); setIsNdaOpen(false);
+    if (pendingAction === 'meeting') setIsMeetingOpen(true);
+    if (pendingAction === 'offer') {
+      setOfferForm(previous => ({ ...previous, type: patent?.isForSale ? 'sale' : 'license' }));
+      setIsOfferOpen(true);
     }
-    setNdaLoading(true);
-    setTimeout(() => {
-      setNdaLoading(false);
-      setNdaOtpStep(true);
-      alert('[Aadhaar eSign Simulator] Simulated eSign verification OTP code sent: 123456\n\nPlease enter 123456 in the verification code field to sign the agreement.');
-    }, 1200); // realistic network delay
+    setPendingAction(null);
   };
-
-  // Submit Aadhaar OTP eSign
-  const handleConfirmNdaESign = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (ndaOtp !== '123456') {
-      alert('Invalid eSign verification code. For demo purposes, use code: 123456');
-      return;
-    }
-
-    try {
-      setNdaOtpLoading(true);
-      const res = await apiFetch(`/api/patents/${id}/nda/sign`, {
-        method: 'POST',
-        body: {
-          fullName: ndaFullName,
-          aadhaarNumber: ndaAadhaar
-        }
-      });
-      setIsNdaSigned(true);
-      setNdaSignature(res.signature);
-      setNdaSuccess(true);
-      
-      // Auto transition to the blocked dialog after delay
-      setTimeout(() => {
-        setIsNdaOpen(false);
-        setNdaSuccess(false);
-        // Clear sign forms
-        setNdaAadhaar('');
-        setNdaFullName('');
-        setNdaOtp('');
-        setNdaOtpStep(false);
-        
-        // Open the dialog they wanted to open initially
-        if (pendingAction === 'meeting') {
-          setIsMeetingOpen(true);
-        } else if (pendingAction === 'offer') {
-          setOfferForm(prev => ({
-            ...prev,
-            type: patent?.isForSale ? 'sale' : 'license'
-          }));
-          setIsOfferOpen(true);
-        }
-        setPendingAction(null);
-      }, 2000);
-    } catch (err: any) {
-      alert(err.message || 'Failed to sign NDA.');
-    } finally {
-      setNdaOtpLoading(false);
-    }
-  };
-
   // Download NDA Document
   const downloadNdaDoc = async () => {
     try {
@@ -207,11 +146,12 @@ export const PatentDetail = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, token]);
 
   useEffect(() => {
+    if (!isInitialized) return;
     fetchPatentDetails();
-  }, [fetchPatentDetails]);
+  }, [isInitialized, fetchPatentDetails]);
 
   // Submit Access Request
   const handleSendAccessRequest = async () => {
@@ -370,13 +310,13 @@ export const PatentDetail = () => {
 
   const breakdown = getCommercialBreakdown(patent.analysis);
 
-  const radarData = [
+  const radarData = breakdown ? [
     { subject: 'Feasibility', value: breakdown.technicalFeasibility, fullMark: 100 },
     { subject: 'Market Demand', value: breakdown.marketDemand, fullMark: 100 },
     { subject: 'Implementation', value: breakdown.implementationSpeed, fullMark: 100 },
     { subject: 'Licensing', value: breakdown.licensingValue, fullMark: 100 },
     { subject: 'IP Protection', value: breakdown.ipProtection, fullMark: 100 }
-  ];
+  ] : [];
 
   return (
     <div className="bg-white dark:bg-zinc-950 min-h-[calc(100dvh-4rem)] py-8 sm:py-12 px-4 sm:px-6">
@@ -683,23 +623,22 @@ export const PatentDetail = () => {
       </Dialog>
 
       {/* ========================================== */}
-      {/* Dialog: NDA Signature Verification & Aadhaar eSign */}
+      {/* Dialog: NDA acceptance */}
       {/* ========================================== */}
       <Dialog
         isOpen={isNdaOpen}
         onClose={() => {
           setIsNdaOpen(false);
-          setNdaOtpStep(false);
           setPendingAction(null);
         }}
-        title="Mutual Non-Disclosure Agreement (NDA) eSign Portal"
+        title="Review and accept the NDA"
       >
         {ndaSuccess ? (
           <div className="text-center py-8 space-y-4">
             <CheckCircle2 className="h-14 w-14 text-emerald-500 mx-auto animate-bounce" />
-            <h4 className="font-bold text-base text-zinc-900 dark:text-white">NDA e-Signed Successfully</h4>
+            <h4 className="font-bold text-base text-zinc-900 dark:text-white">NDA acceptance recorded</h4>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 px-6">
-              Your digital signature has been verified and bound to the patent agreement under Section 3 of the Information Technology Act, 2000.
+              Your account and acceptance timestamp have been recorded with this agreement.
             </p>
             <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-4 px-6">
               <Button 
@@ -737,103 +676,11 @@ export const PatentDetail = () => {
                 <strong>3. Duration:</strong> The obligations of confidentiality set forth in this Agreement shall remain in full force for a period of three (3) years from the date of execution.
               </p>
               <p className="mb-3">
-                <strong>4. Aadhaar Digital Signature validation:</strong> By typing your full name and authenticating via the UIDAI OTP interface, the parties agree that this electronic transaction constitutes a legally binding document under Section 3 of the Indian Information Technology Act, 2000.
+                <strong>4. Acceptance record:</strong> Your signed-in account, typed name, and acceptance time will be recorded with this agreement.
               </p>
             </div>
 
-            {!ndaOtpStep ? (
-              <form onSubmit={handleRequestNdaOtp} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3.5">
-                  <Input
-                    label="Full Legal Name"
-                    required
-                    placeholder="Enter your name exactly"
-                    value={ndaFullName}
-                    onChange={e => setNdaFullName(e.target.value)}
-                    className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-zinc-100"
-                  />
-                  <Input
-                    label="12-Digit Aadhaar Card"
-                    required
-                    placeholder="12-digit number"
-                    maxLength={12}
-                    value={ndaAadhaar}
-                    onChange={e => setNdaAadhaar(e.target.value.replace(/\D/g, ''))}
-                    className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-zinc-100"
-                  />
-                </div>
-
-                {ndaFullName && (
-                  <div className="p-3 bg-zinc-100/50 dark:bg-zinc-900/60 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-800 text-center my-1.5">
-                    <span className="block text-[9px] uppercase font-bold text-zinc-400 dark:text-zinc-500 tracking-label">Handwritten e-Signature Preview</span>
-                    <span className="inline-block mt-2 italic text-2xl text-lvx-blue px-6 py-1 border-b border-zinc-400 select-none">
-                      {ndaFullName}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-2.5 pt-1">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    onClick={() => {
-                      setIsNdaOpen(false);
-                      setPendingAction(null);
-                    }}
-                    className="font-bold text-zinc-500 hover:text-zinc-800"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    isLoading={ndaLoading}
-                    className="bg-lvx-blue hover:bg-lvx-blue-hover text-white border-0 font-bold px-5 py-2 shadow-premium-md rounded-lg "
-                  >
-                    Request OTP eSign
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleConfirmNdaESign} className="space-y-4">
-                <div className="bg-zinc-50 dark:bg-zinc-900/40 p-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-1.5 text-center">
-                  <span className="block text-[10px] font-bold text-lvx-charcoal dark:text-lvx-blue uppercase tracking-label">Aadhaar OTP Authentication</span>
-                  <p className="text-zinc-500 dark:text-zinc-400 text-[11px]">
-                    We've simulated a secure eSign verification code to the phone linked with Aadhaar <strong>XXXX-XXXX-{ndaAadhaar.substring(8)}</strong>.
-                  </p>
-                </div>
-
-                <div className="max-w-[200px] mx-auto">
-                  <Input
-                    label="Enter 6-Digit OTP"
-                    required
-                    placeholder="OTP Code"
-                    maxLength={6}
-                    value={ndaOtp}
-                    onChange={e => setNdaOtp(e.target.value.replace(/\D/g, ''))}
-                    className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-zinc-100 text-center tracking-label font-mono text-base font-bold"
-                  />
-                  <span className="block text-[9px] text-zinc-400 text-center mt-1.5">For demo simulation, enter code: <strong>123456</strong></span>
-                </div>
-
-                <div className="flex justify-end gap-2.5 pt-2">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    onClick={() => setNdaOtpStep(false)}
-                    className="font-bold text-zinc-500 hover:text-zinc-800"
-                  >
-                    Back
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    isLoading={ndaOtpLoading}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 font-bold px-5 py-2 shadow-premium-md rounded-lg"
-                  >
-                    Authenticate & Sign NDA
-                  </Button>
-                </div>
-              </form>
-            )}
+            <NdaConsentForm patentId={id!} initialName={user?.name || ''} onAccepted={handleNdaAccepted} />
           </div>
         )}
       </Dialog>

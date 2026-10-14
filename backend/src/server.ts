@@ -7,8 +7,6 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { connectDB } from './config/db';
-import { seedInitialUsers } from './controllers/authController';
-import { seedInitialPatents } from './controllers/patentController';
 import apiRouter from './routes/api';
 
 const app = express();
@@ -59,11 +57,7 @@ async function startServer() {
   // 1. Connect to DB (MongoDB or JSON Fallback)
   await connectDB();
   
-  // 2. Run Seeding
-  await seedInitialUsers();
-  await seedInitialPatents();
-  
-  // 3. Start Listener
+  // Start without creating demo accounts or listings.
   app.listen(PORT, () => {
     console.log(`\n======================================================`);
     console.log(`🚀 PatentBridge API running at http://localhost:${PORT}`);

@@ -6,7 +6,7 @@ import {
 import { 
   getMarketplacePatents, getAIMatchedPatents, registerPatent, getMyPortfolio, 
   getPendingPatents, getPatentById, reviewPatent, 
-  toggleSavePatent, getSavedPatents, reanalyzePatent, reanalyzeAllPatents 
+  toggleSavePatent, getSavedPatents, reanalyzePatent, reanalyzeAllPatents, resubmitPatent
 } from '../controllers/patentController';
 import {
   getFeaturedPatents,
@@ -52,11 +52,13 @@ router.get('/patents', getMarketplacePatents);
 router.get('/patents/featured', getFeaturedPatents);
 router.post('/patents/ai-match', getAIMatchedPatents);
 router.get('/patents/pending', authenticateToken, authorizeRoles('admin'), getPendingPatents);
+router.get('/patents/reviews', authenticateToken, authorizeRoles('admin'), getPendingPatents);
 router.get('/patents/my-portfolio', authenticateToken, authorizeRoles('owner'), getMyPortfolio);
 router.get('/patents/saved', authenticateToken, authorizeRoles('buyer'), getSavedPatents);
 router.get('/patents/:id', getPatentById);
 router.post('/patents', authenticateToken, authorizeRoles('owner'), registerPatent);
 router.put('/patents/:id/review', authenticateToken, authorizeRoles('admin'), reviewPatent);
+router.post('/patents/:id/resubmit', authenticateToken, authorizeRoles('owner'), resubmitPatent);
 router.post('/patents/:id/reanalyze', authenticateToken, authorizeRoles('owner', 'admin'), reanalyzePatent);
 router.post('/patents/reanalyze-all', authenticateToken, authorizeRoles('admin'), reanalyzeAllPatents);
 router.post('/patents/:id/save', authenticateToken, authorizeRoles('buyer'), toggleSavePatent);

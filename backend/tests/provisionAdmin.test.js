@@ -1,0 +1,32 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const bcrypt = require('bcryptjs');
+const { provisionAdmin } = require('../provisionAdmin');
+
+test('admin setup preserves inventor records, verifies password, and reuses an existing account', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ipbridge-admin-'));
+  const jsonPath = path.join(directory, 'db.json');
+  const owner = { _id: 'owner', email: 'owner@example.org', role: 'owner', passwordHash: 'unchanged' };
+  const original = { users: [owner], patents: [{ _id: 'patent', ownerId: owner._id }] };
+  const email = 'admin@example.org';
+  fs.writeFileSync(jsonPath, JSON.stringify(original));
+  await provisionAdmin({ store: 'json', email, apply: false, jsonPath });
+  assert.deepEqual(JSON.parse(fs.readFileSync(jsonPath)), original);
+  await assert.rejects(provisionAdmin({ store: 'json', email, apply: true, password: 'short', jsonPath }), /eight characters/);
+  assert.deepEqual(JSON.parse(fs.readFileSync(jsonPath)), original);
+  await provisionAdmin({ store: 'json', email, apply: true, password: 'AdminTest123', jsonPath });
+  const result = JSON.parse(fs.readFileSync(jsonPath));
+  const admin = result.users.find(user => user.email === email);
+  assert.equal(admin.role, 'admin');
+  assert.equal(await bcrypt.compare('AdminTest123', admin.passwordHash), true);
+  assert.deepEqual(result.users[0], owner);
+  assert.deepEqual(result.patents, original.patents);
+  await provisionAdmin({ store: 'json', email, apply: true, password: 'UpdatedTest123', jsonPath });
+  const updated = JSON.parse(fs.readFileSync(jsonPath));
+  assert.equal(updated.users.length, 2);
+  assert.equal(updated.users[1]._id, admin._id);
+  assert.equal(await bcrypt.compare('UpdatedTest123', updated.users[1].passwordHash), true);
+});

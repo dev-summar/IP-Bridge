@@ -6,7 +6,7 @@ import { apiFetch } from '../hooks/useApi';
 import { PatentCard } from '../components/PatentCard';
 import { ProfilePreferences } from '../components/ProfilePreferences';
 import { StaggerList, StaggerItem } from '../components/motion/StaggerList';
-import { Search, Sparkles, SlidersHorizontal, X, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Sparkles, SlidersHorizontal, X, Compass, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import { IP_CATEGORIES } from '../constants/ip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn } from '../utils/cn';
@@ -29,6 +29,7 @@ export const Marketplace = () => {
   const [query, setQuery] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState(searchParams.get('industry') || '');
   const [showFilters, setShowFilters] = useState(false);
+  const [view, setView] = useState<'grid' | 'list'>('grid');
   const [keyword, setKeyword] = useState('');
 
   const [patents, setPatents] = useState<any[]>([]);
@@ -221,7 +222,7 @@ export const Marketplace = () => {
           'px-4 sm:px-6 transition-all duration-300',
           hasActiveSearch
             ? 'pt-6 pb-4 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl sticky top-16 z-30'
-            : 'pt-16 sm:pt-24 pb-8'
+            : 'pt-8 sm:pt-12 pb-6'
         )}
       >
         <div className="max-w-2xl mx-auto text-center space-y-6">
@@ -368,7 +369,8 @@ export const Marketplace = () => {
         </div>
       </section>
 
-      <section className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="mb-5 flex justify-end gap-1" role="group" aria-label="Listing layout">{([['grid', LayoutGrid], ['list', List]] as const).map(([mode, Icon]) => <button key={mode} type="button" aria-label={`${mode} view`} aria-pressed={view === mode} onClick={() => setView(mode)} className={cn('p-2.5 rounded-lg border', view === mode ? 'text-primary border-primary bg-primary/5' : 'text-zinc-500 border-zinc-200 dark:border-zinc-800')}><Icon className="h-4 w-4" /></button>)}</div>
         {(hasActiveSearch || featuredMode) && (
           <div className="mb-4 pb-2 space-y-3">
             <div className="flex items-center justify-between">
@@ -470,7 +472,7 @@ export const Marketplace = () => {
                     </h2>
                     <p className="text-xs text-zinc-500 mt-0.5">{rail.subtitle}</p>
                   </div>
-                  <StaggerList key={`rail-${rail.key}`} animateOnMount={false}>
+                  <StaggerList key={`rail-${rail.key}`} animateOnMount={false} className={view === 'grid' ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' : 'grid gap-4 max-w-3xl mx-auto'}>
                     {rail.items.map((p) => (
                       <StaggerItem key={`${rail.key}-${p._id}`} as="div">
                         <PatentCard
@@ -489,7 +491,7 @@ export const Marketplace = () => {
           </div>
         ) : (
           <>
-            <StaggerList key={`discover-page-${page}-${featuredMode}`} animateOnMount={false} className="">
+            <StaggerList key={`discover-page-${page}-${featuredMode}`} animateOnMount={false} className={view === 'grid' ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3' : 'grid gap-4 max-w-3xl mx-auto'}>
               {displayList.map((p) => (
                 <StaggerItem key={p._id} as="div">
                   <PatentCard

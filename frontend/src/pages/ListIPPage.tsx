@@ -27,7 +27,7 @@ export const ListIPPage = () => {
         </div>
         <PageHeader
           title="List your intellectual property"
-          description="Patents, software IP, designs, trademarks, and university technologies — reach corporate acquirers and licensees."
+          description="List granted patents or approved registrations with an official PDF document to reach acquirers and licensees."
         />
         <div className="flex flex-wrap justify-center gap-2 my-8">
           {ASSET_TYPES.map((t) => (
@@ -40,7 +40,7 @@ export const ListIPPage = () => {
           ))}
         </div>
         <p className="text-sm text-zinc-500 mb-8 max-w-md mx-auto">
-          AI generates your commercial brief automatically. Admin reviews listings before they go live.
+          Select Utility Patent, Design, or Other and add the official approval PDF. Admin verifies the document before your listing goes live.
         </p>
 
         {isAuthenticated && user?.role === 'buyer' ? (

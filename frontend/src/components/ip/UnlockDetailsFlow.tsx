@@ -1,3 +1,4 @@
+import { NdaConsentForm } from './NdaConsentForm';
 import React, { useState, useEffect } from 'react';
 import { Dialog } from '../ui/Dialog';
 import { Button } from '../ui/Button';
@@ -60,19 +61,12 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const [ndaFullName, setNdaFullName] = useState('');
-  const [ndaAadhaar, setNdaAadhaar] = useState('');
-  const [ndaOtpStep, setNdaOtpStep] = useState(false);
-  const [ndaOtp, setNdaOtp] = useState('');
   const [ndaSigned, setNdaSigned] = useState(false);
-  const [ndaLoading, setNdaLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setStep(0);
       setSuccess(false);
-      setNdaOtpStep(false);
-      setNdaOtp('');
       setForm((prev) => ({
         ...prev,
         name: initialForm?.name || prev.name,
@@ -81,7 +75,6 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
         purpose: initialForm?.purpose || prev.purpose,
         message: initialForm?.message || prev.message,
       }));
-      setNdaFullName(initialForm?.name || '');
       apiFetch(`/api/patents/${patentId}/nda/status`)
         .then((d) => setNdaSigned(!!d.signed))
         .catch(() => setNdaSigned(false));
@@ -94,40 +87,6 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
       return false;
     }
     return true;
-  };
-
-  const handleRequestNdaOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ndaFullName || ndaAadhaar.replace(/\D/g, '').length !== 12) {
-      alert('Enter your full legal name and a valid 12-digit Aadhaar number.');
-      return;
-    }
-    setNdaLoading(true);
-    setTimeout(() => {
-      setNdaLoading(false);
-      setNdaOtpStep(true);
-    }, 800);
-  };
-
-  const handleConfirmNda = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (ndaOtp !== '123456') {
-      alert('Invalid OTP. For demo, use: 123456');
-      return;
-    }
-    try {
-      setNdaLoading(true);
-      await apiFetch(`/api/patents/${patentId}/nda/sign`, {
-        method: 'POST',
-        body: { fullName: ndaFullName, aadhaarNumber: ndaAadhaar },
-      });
-      setNdaSigned(true);
-      setStep(2);
-    } catch (err: any) {
-      alert(err.message || 'NDA signing failed.');
-    } finally {
-      setNdaLoading(false);
-    }
   };
 
   const handleFinalSubmit = async () => {
@@ -175,7 +134,6 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
               onSubmit={(e) => {
                 e.preventDefault();
                 if (validateOrg()) {
-                  setNdaFullName(form.name);
                   setStep(1);
                 }
               }}
@@ -228,31 +186,18 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
                 </div>
               </div>
 
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 space-y-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
+                <p><strong>Purpose:</strong> Confidential information is shared to evaluate licensing, acquisition, or collaboration for this IP asset.</p>
+                <p><strong>Confidentiality:</strong> Keep non-public technical and business information confidential, use it only for this evaluation, and do not share it with third parties without the inventor’s written permission.</p>
+                <p><strong>Duration:</strong> These confidentiality obligations apply for three years from acceptance.</p>
+              </div>
               {ndaSigned ? (
                 <div className="text-center py-6">
                   <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-emerald-700">NDA already signed</p>
+                  <p className="text-sm font-medium text-emerald-700">NDA acceptance recorded</p>
                   <Button className="mt-4" onClick={() => setStep(2)}>Continue</Button>
                 </div>
-              ) : !ndaOtpStep ? (
-                <form onSubmit={handleRequestNdaOtp} className="space-y-4">
-                  <Input label="Legal name (e-sign)" required value={ndaFullName} onChange={(e) => setNdaFullName(e.target.value)} />
-                  <Input label="Aadhaar (12 digits)" required maxLength={12} value={ndaAadhaar} onChange={(e) => setNdaAadhaar(e.target.value.replace(/\D/g, ''))} />
-                  <p className="text-[10px] text-zinc-400">Demo OTP: <strong>123456</strong></p>
-                  <div className="flex justify-between gap-2 pt-2">
-                    <Button type="button" variant="ghost" onClick={() => setStep(0)}>Back</Button>
-                    <Button type="submit" isLoading={ndaLoading}>Request OTP</Button>
-                  </div>
-                </form>
-              ) : (
-                <form onSubmit={handleConfirmNda} className="space-y-4">
-                  <Input label="6-digit OTP" required maxLength={6} value={ndaOtp} onChange={(e) => setNdaOtp(e.target.value.replace(/\D/g, ''))} />
-                  <div className="flex justify-between gap-2 pt-2">
-                    <Button type="button" variant="ghost" onClick={() => setNdaOtpStep(false)}>Back</Button>
-                    <Button type="submit" isLoading={ndaLoading}>Sign NDA</Button>
-                  </div>
-                </form>
-              )}
+              ) : <NdaConsentForm patentId={patentId} initialName={buyerName || form.name} onBack={() => setStep(0)} onAccepted={() => { setNdaSigned(true); setStep(2); }} />}
             </div>
           )}
 

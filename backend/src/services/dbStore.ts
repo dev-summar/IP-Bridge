@@ -8,8 +8,8 @@ import {
 } from '../models/schemas';
 
 // Local storage path for JSON fallback
-const DATA_DIR = path.join(__dirname, '../../data');
-const JSON_DB_PATH = path.join(DATA_DIR, 'db.json');
+const JSON_DB_PATH = path.resolve(process.env.JSON_DB_PATH || path.join(__dirname, '../../data/db.json'));
+const DATA_DIR = path.dirname(JSON_DB_PATH);
 
 // Global connection mode flag
 let useMongo = false;
@@ -219,6 +219,18 @@ export const dbStore = {
       };
       writeJSON(db);
       return db.patents[idx];
+    },
+
+    async updateIfStatus(id: string, expectedStatus: string, updateData: any): Promise<any | null> {
+      if (useMongo) {
+        return await PatentModel.findOneAndUpdate({ _id: id, status: expectedStatus }, updateData, { new: true, runValidators: true }).lean();
+      }
+      const db = readJSON();
+      const index = db.patents.findIndex(p => p._id === id && p.status === expectedStatus);
+      if (index === -1) return null;
+      db.patents[index] = { ...db.patents[index], ...updateData, updatedAt: new Date() };
+      writeJSON(db);
+      return db.patents[index];
     },
 
     async delete(id: string): Promise<boolean> {

@@ -8,11 +8,6 @@ import {
   AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType 
 } from 'docx';
 
-// Helper to generate unique ID
-function generatePaymentId(): string {
-  return 'PAY-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-}
-
 // Helper to format currency
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-IN', {
@@ -51,6 +46,7 @@ export async function getTransactions(req: Request, res: Response) {
         ...t,
         patentTitle: patent ? patent.title : 'Deleted Patent',
         patentNumber: patent ? patent.patentNumber : 'N/A',
+        ipType: patent?.ipType, otherIpType: patent?.otherIpType,
         buyerName: buyer ? buyer.name : 'Unknown Buyer',
         buyerOrg: buyer?.organization || 'Independent Acquirer',
         ownerName: owner ? owner.name : 'Unknown Owner',
@@ -99,48 +95,9 @@ export async function createEscrowTransaction(offer: any) {
   return transaction;
 }
 
-// Fund the Escrow (Buyer checkout checkout simulation)
-export async function fundTransaction(req: Request, res: Response) {
-  try {
-    const authReq = req as IAuthRequest;
-    const { id } = req.params;
-    const buyerId = authReq.user!.id;
-
-    const transaction = await dbStore.transactions.findById(id);
-    if (!transaction) {
-      return res.status(404).json({ message: 'Escrow transaction record not found.' });
-    }
-
-    if (String(transaction.buyerId) !== String(buyerId) && authReq.user!.role !== 'admin') {
-      return res.status(403).json({ message: 'Unauthorized. You are not the buyer in this transaction.' });
-    }
-
-    if (transaction.status !== 'escrow_pending') {
-      return res.status(400).json({ message: `Transaction cannot be funded. Current status: ${transaction.status}` });
-    }
-
-    const paymentId = generatePaymentId();
-    const updated = await dbStore.transactions.update(id, {
-      status: 'escrow_funded',
-      paymentId
-    });
-
-    const patent = await dbStore.patents.findById(transaction.patentId);
-
-    // Log security audits
-    await dbStore.auditLogs.create({
-      userId: buyerId,
-      action: 'ESCROW_FUNDED',
-      details: `Buyer ${authReq.user!.name} funded escrow account for patent ${patent?.patentNumber || 'N/A'} (Offer: ${formatCurrency(transaction.amount)}). Payment Ref: ${paymentId}`
-    });
-
-    return res.json({
-      message: 'Escrow funded successfully via simulated payment gateway.',
-      transaction: updated
-    });
-  } catch (error: any) {
-    return res.status(500).json({ message: 'Failed to process escrow funding.', error: error.message });
-  }
+// Funding requires payment verification from the payment provider.
+export async function fundTransaction(_req: Request, res: Response) {
+  return res.status(410).json({ message: 'Use the payment checkout and verification flow to fund this transaction.' });
 }
 
 // Create Razorpay Order for Escrow Funding

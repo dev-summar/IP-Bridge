@@ -96,6 +96,7 @@ export async function getOffers(req: Request, res: Response) {
         ...o,
         patentTitle: p ? p.title : 'Deleted Patent',
         patentNumber: p ? p.patentNumber : 'N/A',
+        ipType: p?.ipType, otherIpType: p?.otherIpType,
         counterParty
       });
     }

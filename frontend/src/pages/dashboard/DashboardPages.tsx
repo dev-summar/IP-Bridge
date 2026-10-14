@@ -62,7 +62,7 @@ export const ListingsPage = () => (
   <div>
     <PageHeader
       title="IP Listings"
-      description="Review and approve new patent submissions before they go live."
+      description="Review submissions, request changes, and track listing decisions."
     />
     <ReviewsManager embedded />
   </div>

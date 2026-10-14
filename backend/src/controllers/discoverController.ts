@@ -14,15 +14,15 @@ import {
   ratePrototypeReadiness,
 } from '../services/aiParser';
 
-function decodeOptionalUser(req: Request): { userId: string; userRole: string } {
+async function decodeOptionalUser(req: Request): Promise<{ userId: string; userRole: string }> {
   let userId = '';
   let userRole = '';
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
     try {
       const verified = jwt.verify(authHeader.substring(7), JWT_SECRET) as any;
-      userId = verified.id;
-      userRole = verified.role;
+      const user = typeof verified.id === 'string' ? await dbStore.users.findById(verified.id) : null;
+      if (user) { userId = String(user._id); userRole = user.role; }
     } catch {
       /* ignore */
     }
@@ -53,6 +53,12 @@ async function enrichMasked(
     ownerName: owner ? owner.name : 'Unknown Owner',
     ownerOrganization: owner ? owner.organization : 'N/A',
   };
+  base.accessStatus = hasAccess ? 'approved' : 'none';
+  if (userRole !== 'admin' && String(p.ownerId) !== userId) {
+    delete base.reviewHistory;
+    delete base.grantReviewedBy;
+    delete base.grantReviewedPdfUrl;
+  }
 
   if (hasAccess) {
     base.analysis = analysis
@@ -89,7 +95,7 @@ async function enrichMasked(
       useCases: [],
       adoptionOpportunities: [],
     },
-    commercialPotentialScore: analysis?.commercialPotentialScore ?? 50,
+    commercialPotentialScore: analysis?.commercialPotentialScore ?? null,
     commercialBreakdown: analysis?.commercialBreakdown || null,
     pricingGuidance: null,
     readinessAssessment: null,
@@ -104,7 +110,7 @@ async function enrichMasked(
 export async function getFeaturedPatents(req: Request, res: Response) {
   try {
     const limit = Math.min(24, Math.max(1, parseInt(String(req.query.limit || '12'), 10) || 12));
-    const { userId, userRole } = decodeOptionalUser(req);
+    const { userId, userRole } = await decodeOptionalUser(req);
 
     const patents = await dbStore.patents.find({ status: 'approved' });
     const analyses = await dbStore.patentAnalysis.find();

@@ -11,7 +11,6 @@ import { cn } from '../utils/cn';
 import { springSnappy, transition } from '../utils/motion';
 import { IP_CATEGORIES, INTEREST_SUGGESTIONS } from '../constants/ip';
 import {
-  KeyRound,
   ArrowRight,
   ShieldAlert,
   Users,
@@ -190,30 +189,6 @@ export const AuthPage = () => {
     }
   };
 
-  const handleQuickLogin = async (demoRole: 'admin' | 'owner' | 'buyer') => {
-    setError(null);
-    setLoading(true);
-    const demoEmail = `${demoRole}@patentbridge.com`;
-    const demoPassword = 'password123';
-
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setIsRegister(false);
-    setView('form');
-
-    try {
-      const res = await apiFetch('/api/auth/login', {
-        method: 'POST',
-        body: { email: demoEmail, password: demoPassword },
-      });
-      setAuth(res.token, res.user);
-      navigate(getHomePathForRole(res.user.role));
-    } catch (err: any) {
-      setError(err.message || `Quick login as ${demoRole} failed.`);
-      setLoading(false);
-    }
-  };
-
   const formTitle = isRegister ? 'Create your account' : 'Sign in';
   const formSubtitle = isRegister
     ? role === 'buyer'
@@ -360,7 +335,7 @@ export const AuthPage = () => {
                           required
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          placeholder="Dr. Sarah Jenkins"
+                          placeholder="Your full name"
                         />
                         <Input
                           label="Organization"
@@ -571,36 +546,6 @@ export const AuthPage = () => {
                     </button>
                   </p>
 
-                  <details className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 px-4 py-3 group">
-                    <summary className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                      <KeyRound className="h-4 w-4 text-primary" />
-                      Demo accounts
-                      <span className="ml-auto text-xs text-zinc-400 group-open:hidden">Show</span>
-                    </summary>
-                    <div className="mt-4 pt-4 border-t border-zinc-200/80 dark:border-zinc-800 space-y-3">
-                      <p className="text-xs text-zinc-500">
-                        Password for all demo users:{' '}
-                        <code className="font-mono bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
-                          password123
-                        </code>
-                      </p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {(['buyer', 'owner', 'admin'] as const).map((demoRole) => (
-                          <Button
-                            key={demoRole}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuickLogin(demoRole)}
-                            disabled={loading}
-                            className="rounded-lg text-xs capitalize"
-                          >
-                            {demoRole}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </details>
                 </div>
               </div>
             </div>

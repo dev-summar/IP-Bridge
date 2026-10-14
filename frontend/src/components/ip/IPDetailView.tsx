@@ -110,6 +110,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
   const trl = inferTRL(patent, patent.analysis);
   const industryMatch = inferIndustryMatch(patent.analysis);
   const analysis = patent.analysis;
+  const hasScore = typeof analysis?.commercialPotentialScore === 'number' && Number.isFinite(analysis.commercialPotentialScore);
 
   const industries = analysis?.industryClassification?.slice(0, 2) ?? [];
   const metaLine = [
@@ -181,13 +182,13 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-lg font-semibold text-zinc-900 dark:text-white">{score}</span>
+              <span className="text-lg font-semibold text-zinc-900 dark:text-white">{hasScore ? score : '—'}</span>
             </div>
           </div>
           <div>
             <p className="text-sm text-zinc-500">Commercial potential</p>
             <p className="text-sm font-medium text-zinc-900 dark:text-white">
-              {readiness.label} licensing potential
+              {hasScore ? `${readiness.label} licensing potential` : 'Not assessed'}
             </p>
           </div>
         </div>
@@ -195,6 +196,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
 
       <div className="space-y-0">
         <MetaRow label="Asking price" value={formatINR(patent.askingPrice)} />
+        <MetaRow label="IP type" value={assetType} />
         <MetaRow
           label="Deal type"
           value={
@@ -235,7 +237,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
         </div>
       )}
 
-      {isUnlocked && analysis && (
+      {isUnlocked && analysis?.commercialBreakdown && (
         <div className="pt-2">
           <p className="text-sm text-zinc-500 mb-3">AI breakdown</p>
           <div className="h-44 w-full -mx-1">

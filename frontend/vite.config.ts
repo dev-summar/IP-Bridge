@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './',
+  // Dashboard deep links must load assets from the app root on refresh.
+  base: '/',
   plugins: [react()],
   server: {
     port: 3000,

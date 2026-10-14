@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { dbStore, getUseMongo } from '../services/dbStore';
+import { PatentAnalysisModel } from '../models/schemas';
 import { IAuthRequest } from '../middleware/auth';
 import { analyzePatentWithAI, queryGeminiLLM, ratePrototypeReadiness } from '../services/aiParser';
 import {
@@ -7,9 +8,9 @@ import {
   comparePatentsByQualityThenScore,
   isQualityPatentAnalysis,
 } from '../services/analysisQuality';
-import { PatentAnalysisModel, InterestRequestModel, MeetingRequestModel, AccessRequestModel } from '../models/schemas';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../middleware/auth';
+import { validateListingEvidence } from '../services/listingRequirements';
 
 async function checkAccessAndEnrich(
   p: any,
@@ -63,6 +64,12 @@ async function checkAccessAndEnrich(
     hasMeetingDone
   };
 
+  if (userRole !== 'admin' && String(p.ownerId) !== String(userId)) {
+    delete enrichedPatent.reviewHistory;
+    delete enrichedPatent.grantReviewedBy;
+    delete enrichedPatent.grantReviewedPdfUrl;
+  }
+
   if (hasAccess) {
     const cleanAbstract = p.abstract.replace(/\s*\(\d+[-a-zA-Z0-9]*\)/g, '').replace(/\s{2,}/g, ' ').trim();
     enrichedPatent.abstract = cleanAbstract;
@@ -112,7 +119,7 @@ async function checkAccessAndEnrich(
         useCases: [],
         adoptionOpportunities: []
       },
-      commercialPotentialScore: analysis ? analysis.commercialPotentialScore : 50,
+      commercialPotentialScore: analysis ? analysis.commercialPotentialScore : null,
       commercialBreakdown: analysis?.commercialBreakdown || null,
       potentialBuyers: [],
       marketOpportunity: null,
@@ -186,104 +193,6 @@ function scorePatentKeywordMatch(
   return score;
 }
 
-// Seed initial patents if empty
-export async function seedInitialPatents() {
-  try {
-    const existing = await dbStore.patents.find();
-    const hasDummies = existing.some(p => p.patentNumber.startsWith('US-'));
-    
-    if (hasDummies || existing.length === 0) {
-      console.log('[Patent] Resetting patents database to clear dummy patents...');
-      
-      // Clear all existing patents
-      for (const p of existing) {
-        await dbStore.patents.delete(p._id);
-      }
-      
-      // If MongoDB, clean up other collections
-      if (getUseMongo()) {
-        await PatentAnalysisModel.deleteMany({});
-        await InterestRequestModel.deleteMany({});
-        await MeetingRequestModel.deleteMany({});
-        await AccessRequestModel.deleteMany({});
-      }
-
-      console.log('[Patent] Seeding initial Indian patents and analyses...');
-      
-      const owners = await dbStore.users.find({ role: 'owner' });
-      const ownerId = owners.length > 0 ? owners[0]._id : 'system-owner';
-
-      const mockPatents = [
-        {
-          patentNumber: 'IN-202611064342',
-          title: 'SYSTEM AND METHOD FOR BIOMECHANICAL MONITORING AND STRUCTURAL ANALYSIS OF FOOTWEAR',
-          abstract: 'A system (100) and method (200) for biomechanical monitoring and structural analysis in footwear are disclosed. A sole (102) integrates pressure sensors (104) distributed across heel, midfoot, forefoot, and hallux regions to generate plantar force data including vertical ground reaction forces and center of pressure coordinates. An upper member (106) incorporates dorsal sensors (108), strain sensors (110), and shear force sensors (110) to capture impact, friction, ankle strain, and lateral containment data. An inertial measurement unit (112) generates motion data including acceleration, angular velocity, and orientation. A processing unit (116) receives and temporally synchronises multi-source data, correlates the data to generate volumetric biomechanical data, and evaluates biomechanical parameters. The processing unit (116) determines movement events, computes an ankle stability ratio, and identifies instability, drag, impact, or containment degradation events. A wireless communication unit (122) transmits aggregated data to a server (120) for analytical processing and feedback generation.',
-          pdfUrl: 'https://ipindiaservices.gov.in/publicsearch',
-          status: 'approved' as const,
-          askingPrice: 12500000,
-          isForSale: true,
-          isForLicense: true
-        },
-        {
-          patentNumber: 'IN-202611042595',
-          title: 'SYSTEM AND METHOD FOR DATA SOVEREIGNTY AND FUNCTIONAL INTEGRITY ENFORCEMENT IN SMART HOME DEVICES',
-          abstract: 'A system (100) and a method (200) for enforcing data sovereignty and functional integrity within a predefined premises are disclosed. The system (100) includes a privacy gateway apparatus (102) communicatively interposed between devices (104) and an external Wide Area Network (WAN), a network segmentation module configured to isolate the devices (104) within a restricted Local Area Network (LAN) segment, and a Power Line Communication (PLC) controller (106) operatively coupled to electrical supply sockets (108). At least one processor (110), intercepts outbound network traffic, identifies user-contextual data, and selectively blocks transmission to external cloud servers (130) in accordance with a predefined privacy enforcement policy. Electrical power consumption signatures and radio frequency (RF) transmissions are monitored and correlated to detect unauthorized communication attempts. Upon detection, the PLC controller (106) discontinues electrical power supply to a corresponding device (104), thereby maintaining controlled operation and preventing unauthorized data exfiltration within the predefined premises.',
-          pdfUrl: 'https://ipindiaservices.gov.in/publicsearch',
-          status: 'approved' as const,
-          askingPrice: 8500000,
-          isForSale: false,
-          isForLicense: true
-        },
-        {
-          patentNumber: 'IN-202511116646',
-          title: 'INTEGRATED EDGE COMPUTING DEVICE FOR EXPLAINABLE MEDICAL IMAGING ADJUSTMENT',
-          abstract: 'The present disclosure provides an integrated edge computing device (100) for secure and explainable adjustment of medical imaging parameters. The device includes a housing (102) containing a processing unit (104) with graphics processing unit (104-2) and central processing unit (104-4), a security chip (106), encrypted storage (108), and a sensor interface (110) coordinated to receive imaging data from an imaging scanner (122). An inference circuit (112) analyzes imaging data and user information to generate parameter recommendations, while an explainability circuit (114) creates visual justifications including overlay maps (114-2A) for operator verification. A blockchain interface (116) manages secure data transactions with a distributed ledger network (120), and a communication interface (118) transmits adjustments to an operator workstation (128). Unlike conventional imaging systems operating in isolation, this approach enables secure cross-institutional data access while providing transparent recommendations and comprehensive radiation dose monitoring.',
-          pdfUrl: 'https://ipindiaservices.gov.in/publicsearch',
-          status: 'approved' as const,
-          askingPrice: 18000000,
-          isForSale: true,
-          isForLicense: false
-        },
-        {
-          patentNumber: 'IN-202511088594',
-          title: 'HEALTH MONITORING AND EVACUATION COORDINATION SYSTEM AND METHOD THEREOF',
-          abstract: 'The present disclosure relates to a health monitoring and evacuation coordination system (102) and method (200) are disclosed for real-time monitoring of entities in high-risk environments. The system (102) includes a Body Area Network (BAN) device (104) worn by entities to collect biometric and geolocation data and generate zero-knowledge proofs (ZKPs) representing health conditions without transmitting raw biometric data. A secure peer-to-peer (P2P) mesh network (106), with unmanned aerial vehicles (UAVs) (108) and autonomous ground vehicles (110) as super nodes, maintains connectivity and relays information. A processor (112) analyzes ZKPs, determines urgency and type of response, and computes routes using multi-agent reinforcement learning (MARL) models, and assigns roles to UAVs (108) or vehicles (110) for tasks including condition confirmation, medical supply delivery, escort, or extraction. Further, an artificial intelligence (AI) module (132) logs all decisions using verifiable computation with Merkle Tree- based audit trails, provides operational recommendations, and supports human- in-the-loop approval.',
-          pdfUrl: 'https://ipindiaservices.gov.in/publicsearch',
-          status: 'pending' as const,
-          askingPrice: 22000000,
-          isForSale: true,
-          isForLicense: true
-        }
-      ];
-
-      for (const item of mockPatents) {
-        const patent = await dbStore.patents.create({
-          patentNumber: item.patentNumber,
-          title: item.title,
-          abstract: item.abstract,
-          pdfUrl: item.pdfUrl,
-          ownerId: ownerId,
-          status: item.status,
-          askingPrice: item.askingPrice,
-          isForSale: item.isForSale,
-          isForLicense: item.isForLicense
-        });
-
-        // Generate and save AI analysis
-        const analysis = await analyzePatentWithAI(item.title, item.abstract);
-        await dbStore.patentAnalysis.create({
-          patentId: patent._id,
-          ...analysis
-        });
-      }
-
-      console.log(`[Patent] Successfully seeded ${mockPatents.length} patents with analyses.`);
-    }
-  } catch (err) {
-    console.error('[Patent] Error seeding patents:', err);
-  }
-}
-
 // Get approved patents for marketplace (paginated)
 export async function getMarketplacePatents(req: Request, res: Response) {
   try {
@@ -302,14 +211,14 @@ export async function getMarketplacePatents(req: Request, res: Response) {
       const token = authHeader.substring(7);
       try {
         const verified = jwt.verify(token, JWT_SECRET) as any;
-        userId = verified.id;
-        userRole = verified.role;
+        const activeUser = typeof verified.id === 'string' ? await dbStore.users.findById(verified.id) : null;
+        if (activeUser) { userId = String(activeUser._id); userRole = activeUser.role; }
       } catch (err) {}
     }
 
     let filtered = patents.filter((p) => {
-      if (status) return p.status === status;
-      return p.status === 'approved';
+      if (status && userRole === 'admin') return p.status === status;
+      return p.status === 'approved' && (!status || status === 'approved');
     });
 
     const analysisMap = await loadAnalysesByPatentIds(filtered.map((p) => String(p._id)));
@@ -438,8 +347,8 @@ export async function getAIMatchedPatents(req: Request, res: Response) {
       const token = authHeader.substring(7);
       try {
         const verified = jwt.verify(token, JWT_SECRET) as any;
-        userId = verified.id;
-        userRole = verified.role;
+        const activeUser = typeof verified.id === 'string' ? await dbStore.users.findById(verified.id) : null;
+        if (activeUser) { userId = String(activeUser._id); userRole = activeUser.role; }
       } catch (err) {}
     }
 
@@ -663,6 +572,8 @@ export async function registerPatent(req: Request, res: Response) {
     if (!patentNumber || !title || !abstract) {
       return res.status(400).json({ message: 'Patent number, title, and abstract are required.' });
     }
+    const evidence = validateListingEvidence(req.body);
+    if (!evidence.valid) return res.status(400).json({ message: evidence.message });
 
     // Check duplicate patent number
     const existing = await dbStore.patents.find();
@@ -678,7 +589,7 @@ export async function registerPatent(req: Request, res: Response) {
       patentNumber,
       title,
       abstract,
-      pdfUrl,
+      ...evidence.value,
       askingPrice: askingPrice ? Number(askingPrice) : 0,
       isForSale: isForSale !== undefined ? Boolean(isForSale) : true,
       isForLicense: isForLicense !== undefined ? Boolean(isForLicense) : true,
@@ -762,7 +673,12 @@ export async function getMyPortfolio(req: Request, res: Response) {
 // Get Pending Reviews (Admin only)
 export async function getPendingPatents(req: Request, res: Response) {
   try {
-    const patents = await dbStore.patents.find({ status: 'pending' });
+    const status = req.query.status || 'pending';
+    if (!['all', 'pending', 'approved', 'rejected', 'changes_requested'].includes(String(status))) {
+      return res.status(400).json({ message: 'Invalid listing status.' });
+    }
+    const patents = await dbStore.patents.find(status === 'all' ? {} : { status });
+    patents.sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
     
     const patentsWithAnalysis = [];
     for (const p of patents) {
@@ -792,6 +708,7 @@ export async function getPatentById(req: Request, res: Response) {
     const reserved = new Set([
       'featured',
       'pending',
+      'reviews',
       'saved',
       'ai-match',
       'my-portfolio',
@@ -814,11 +731,14 @@ export async function getPatentById(req: Request, res: Response) {
       const token = authHeader.substring(7);
       try {
         const verified = jwt.verify(token, JWT_SECRET) as any;
-        userId = verified.id;
-        userRole = verified.role;
+        const activeUser = typeof verified.id === 'string' ? await dbStore.users.findById(verified.id) : null;
+        if (activeUser) { userId = String(activeUser._id); userRole = activeUser.role; }
       } catch (err) {}
     }
 
+    if (patent.status !== 'approved' && userRole !== 'admin' && String(patent.ownerId) !== userId) {
+      return res.status(404).json({ message: 'This listing is not available.' });
+    }
     const enriched = await checkAccessAndEnrich(patent, userId, userRole);
     return res.json(enriched);
   } catch (error: any) {
@@ -831,10 +751,14 @@ export async function reviewPatent(req: Request, res: Response) {
   try {
     const authReq = req as IAuthRequest;
     const { id } = req.params;
-    const { status } = req.body; // 'approved' | 'rejected'
+    const { status } = req.body;
+    const notes = typeof req.body.notes === 'string' ? req.body.notes.trim() : '';
 
-    if (!['approved', 'rejected'].includes(status)) {
+    if (!['approved', 'rejected', 'changes_requested'].includes(status)) {
       return res.status(400).json({ message: 'Invalid review status.' });
+    }
+    if (notes.length > 2000 || (status !== 'approved' && !notes)) {
+      return res.status(400).json({ message: 'Explain the requested changes or rejection in up to 2,000 characters.' });
     }
 
     const patent = await dbStore.patents.findById(id);
@@ -842,12 +766,28 @@ export async function reviewPatent(req: Request, res: Response) {
       return res.status(404).json({ message: 'Patent not found.' });
     }
 
-    const updated = await dbStore.patents.update(id, { status });
+    if (patent.status !== 'pending') {
+      return res.status(409).json({ message: 'This listing has already been reviewed. Refresh the queue.' });
+    }
+    if (status === 'approved') {
+      const evidence = validateListingEvidence(patent);
+      if (!evidence.valid) return res.status(400).json({ message: `${evidence.message} Request changes from the inventor.` });
+      if (req.body.grantVerified !== true) return res.status(400).json({ message: 'Check the official PDF and confirm the patent grant or design registration before publishing.' });
+      if (req.body.reviewedPdfUrl !== patent.pdfUrl) return res.status(409).json({ message: 'The approval PDF changed. Refresh the listing and verify the current document.' });
+    }
+    const updated = await dbStore.patents.updateIfStatus(id, 'pending', {
+      status,
+      ...(status === 'approved' ? { grantReviewedAt: new Date(), grantReviewedBy: authReq.user!.id, grantReviewedPdfUrl: patent.pdfUrl } : {}),
+      reviewHistory: [...(patent.reviewHistory || []), {
+        status, notes, reviewerId: authReq.user!.id, reviewerName: authReq.user!.name, reviewedAt: new Date(),
+      }],
+    });
+    if (!updated) return res.status(409).json({ message: 'Another reviewer updated this listing. Refresh the queue.' });
 
     await dbStore.auditLogs.create({
       userId: authReq.user!.id,
       action: `PATENT_REVIEW_${status.toUpperCase()}`,
-      details: `Admin reviewed patent ${patent.patentNumber}: status set to ${status}`
+      details: `Admin reviewed patent ${patent.patentNumber}: ${status}${notes ? `. Notes: ${notes}` : ''}`
     });
 
     return res.json({
@@ -857,6 +797,45 @@ export async function reviewPatent(req: Request, res: Response) {
 
   } catch (error: any) {
     return res.status(500).json({ message: 'Patent review failed.', error: error.message });
+  }
+}
+
+export async function resubmitPatent(req: Request, res: Response) {
+  try {
+    const user = (req as IAuthRequest).user!;
+    const patent = await dbStore.patents.findById(req.params.id);
+    if (!patent) return res.status(404).json({ message: 'Patent not found.' });
+    if (String(patent.ownerId) !== user.id) return res.status(403).json({ message: 'Only the inventor can revise this listing.' });
+    if (!['changes_requested', 'rejected'].includes(patent.status)) {
+      return res.status(409).json({ message: 'Only listings returned for changes or rejected can be resubmitted.' });
+    }
+    const evidence = validateListingEvidence(req.body);
+    if (!evidence.valid) return res.status(400).json({ message: evidence.message });
+    const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+    const abstract = typeof req.body.abstract === 'string' ? req.body.abstract.trim() : '';
+    const askingPrice = Number(req.body.askingPrice ?? patent.askingPrice ?? 0);
+    const isForSale = req.body.isForSale === true;
+    const isForLicense = req.body.isForLicense === true;
+    if (!title || !abstract || !Number.isFinite(askingPrice) || askingPrice < 0 || (!isForSale && !isForLicense)) {
+      return res.status(400).json({ message: 'Provide a title, abstract, valid asking price, and sale or licensing option.' });
+    }
+    const analysis = await analyzePatentWithAI(title, abstract);
+    const hasPrototype = req.body.hasPrototype === true;
+    const hasProduct = req.body.hasProduct === true;
+    const prototypeDescription = typeof req.body.prototypeDescription === 'string' ? req.body.prototypeDescription.slice(0, 2000) : '';
+    const readiness = hasPrototype || hasProduct || prototypeDescription ? await ratePrototypeReadiness({ title, abstract, hasPrototype, hasProduct, prototypeDescription, commercialPotentialScore: analysis.commercialPotentialScore }) : null;
+    const updated = await dbStore.patents.updateIfStatus(req.params.id, patent.status, {
+      title, abstract, askingPrice, isForSale, isForLicense, status: 'pending',
+      ...evidence.value,
+      hasPrototype, hasProduct, prototypeDescription,
+      trlLevel: readiness?.trlLevel ?? null, readinessScore: readiness?.readinessScore ?? null, readinessNotes: readiness?.maturityLabel || '',
+    });
+    if (!updated) return res.status(409).json({ message: 'This listing changed while you were editing. Refresh your portfolio.' });
+    await dbStore.patentAnalysis.upsert(req.params.id, { ...analysis, readinessAssessment: readiness });
+    await dbStore.auditLogs.create({ userId: user.id, action: 'PATENT_RESUBMITTED', details: `Inventor resubmitted ${patent.patentNumber} for review.` });
+    return res.json({ message: 'Your revised listing has been sent for review.', patent: updated });
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Failed to resubmit listing.', error: error.message });
   }
 }
 

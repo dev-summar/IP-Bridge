@@ -1,6 +1,6 @@
 export function getCommercialScore(analysis: any): number {
   const score = analysis?.commercialPotentialScore;
-  return typeof score === 'number' && !Number.isNaN(score) ? score : 50;
+  return typeof score === 'number' && Number.isFinite(score) ? score : 0;
 }
 
 export function getMarketReadiness(score: number) {
@@ -39,15 +39,7 @@ export function getCommercialBreakdown(analysis: any) {
   if (analysis?.commercialBreakdown) {
     return analysis.commercialBreakdown;
   }
-  const score = getCommercialScore(analysis);
-  const clamp = (v: number) => Math.min(100, Math.max(0, Math.round(v)));
-  return {
-    technicalFeasibility: clamp(score * 0.95),
-    marketDemand: clamp(score * 1.02),
-    implementationSpeed: clamp(score * 0.88),
-    licensingValue: clamp(score * 0.98),
-    ipProtection: clamp(score * 0.94)
-  };
+  return null;
 }
 
 export function isLockedAnalysisField(value: string | undefined | null): boolean {
