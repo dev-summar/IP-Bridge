@@ -351,124 +351,33 @@ function parseAnalysisJson(rawContent: string): IPatentAIAnalysis {
   return normalizeParsedAnalysis(parsed);
 }
 
-async function runGeminiPatentAnalysis(prompt: string, apiKey: string): Promise<IPatentAIAnalysis> {
-  const parsed = await queryGeminiLLM(prompt, apiKey);
-  if (!parsed?.summary || !parsed?.industryClassification || !parsed?.commercialApplications) {
-    throw new Error('Gemini response is missing required patent analysis fields.');
-  }
-  return normalizeParsedAnalysis(parsed as IPatentAIAnalysis);
-}
-
 // Live LLM query wrapper
 export async function analyzePatentWithAI(title: string, abstract: string): Promise<IPatentAIAnalysis> {
-  const prompt = buildAnalysisPrompt(title, abstract);
-  const provider = (process.env.AI_ANALYSIS_PROVIDER || '').trim().toLowerCase();
-  const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
-  const apiKey = process.env.LLM_API_KEY?.trim();
-  const endpoint = process.env.LLM_API_ENDPOINT || 'https://ai-services.mietjmu.in/gateway/llm/chat';
-  const modelName = process.env.LLM_MODEL || 'qwen3:latest';
-
-  const preferGemini = provider === 'gemini' || (!apiKey && !!geminiApiKey);
-
-  if (preferGemini && geminiApiKey) {
+  const parsed = await queryJsonLLM(buildAnalysisPrompt(title, abstract));
+  if (parsed) {
     try {
-      console.log('[AI] Using Google Gemini as primary analysis provider.');
-      return await runGeminiPatentAnalysis(prompt, geminiApiKey);
-    } catch (geminiErr: any) {
-      console.warn(`[AI] Gemini primary failed (Error: ${geminiErr.message}).`);
-      if (!apiKey) {
-        console.log('[AI] Falling back to local diagnostics.');
-        return getLocalFallback(title, abstract);
-      }
+      return parseAnalysisJson(JSON.stringify(parsed));
+    } catch (err: any) {
+      console.warn(`[AI] Invalid patent analysis response: ${err.message}`);
     }
   }
-
-  if (!apiKey) {
-    if (geminiApiKey) {
-      try {
-        console.log('[AI] LLM_API_KEY missing — trying Google Gemini.');
-        return await runGeminiPatentAnalysis(prompt, geminiApiKey);
-      } catch (geminiErr: any) {
-        console.warn(`[AI] Gemini failed (Error: ${geminiErr.message}).`);
-      }
-    }
-    console.log('[AI] No LLM_API_KEY or working GEMINI_API_KEY. Falling back to local keyword heuristics.');
-    return getLocalFallback(title, abstract);
-  }
-
-  console.log(`[AI] Attempting live patent analysis with model: ${modelName}`);
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.2
-      }),
-      signal: AbortSignal.timeout(25000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gateway returned HTTP status ${response.status}`);
-    }
-
-    const data = await response.json() as any;
-    const rawContent = data.choices?.[0]?.message?.content || data.message?.content || '';
-
-    if (!rawContent) {
-      throw new Error('LLM response returned empty content.');
-    }
-
-    const parsed = parseAnalysisJson(rawContent);
-    console.log('[AI] Successfully generated live analysis from LLM.');
-    return parsed;
-
-  } catch (err: any) {
-    console.warn(`[AI] Live LLM query failed (Error: ${err.message}).`);
-
-    if (geminiApiKey) {
-      try {
-        const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-        console.log(`[AI] Attempting fallback to Google Gemini (${geminiModel})...`);
-        const parsedGemini = await runGeminiPatentAnalysis(prompt, geminiApiKey);
-        console.log('[AI] Successfully generated analysis from Google Gemini.');
-        return parsedGemini;
-      } catch (geminiErr: any) {
-        console.warn(`[AI] Google Gemini fallback failed (Error: ${geminiErr.message}).`);
-      }
-    }
-
-    console.log('[AI] Falling back to local diagnostics.');
-    return getLocalFallback(title, abstract);
-  }
+  console.log('[AI] Falling back to local diagnostics.');
+  return getLocalFallback(title, abstract);
 }
 
-// Google Gemini API direct query utility (Google AI Studio key — starts with AIza...)
+// Google validates the credential; accepted key formats can change over time.
 export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<any> {
   const trimmedKey = apiKey.trim();
-  if (!trimmedKey.startsWith('AIza')) {
-    throw new Error(
-      'Invalid GEMINI_API_KEY format. Use a Google AI Studio API key (starts with AIza...), not a Vertex/OAuth token. Create one at https://aistudio.google.com/apikey'
-    );
-  }
+  if (!trimmedKey) throw new Error('GEMINI_API_KEY is missing.');
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trimmedKey}`;
+  const model = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-goog-api-key': trimmedKey,
     },
     body: JSON.stringify({
       contents: [
@@ -488,17 +397,14 @@ export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<an
   });
 
   if (!response.ok) {
-    const body = await response.text();
-    if (response.status === 401) {
-      throw new Error(
-        'Google Gemini API returned 401 — your key is invalid or wrong type. Use a Google AI Studio API key (AIza...), not a Vertex/OAuth token. See https://aistudio.google.com/apikey'
-      );
-    }
-    throw new Error(`Google Gemini API returned status ${response.status}: ${body.substring(0, 240)}`);
+    // Do not include provider response bodies: they may echo credentials.
+    throw new Error(`Google Gemini API returned HTTP ${response.status}. Check the credential, model access, and quota.`);
   }
 
   const data = await response.json() as any;
-  const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const rawContent = (data.candidates?.[0]?.content?.parts || [])
+    .filter((part: any) => typeof part.text === 'string' && !part.thought)
+    .map((part: any) => part.text).join('');
   if (!rawContent) {
     throw new Error('Google Gemini API returned empty content.');
   }
@@ -515,13 +421,13 @@ export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<an
 // Shared LLM JSON helper (Gemini primary → MIET LLM → local fallback)
 // ---------------------------------------------------------------------------
 
-async function queryJsonLLM(prompt: string): Promise<any | null> {
+export async function queryJsonLLM(prompt: string): Promise<any | null> {
   const provider = (process.env.AI_ANALYSIS_PROVIDER || '').trim().toLowerCase();
   const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
   const apiKey = process.env.LLM_API_KEY?.trim();
   const endpoint = process.env.LLM_API_ENDPOINT || 'https://ai-services.mietjmu.in/gateway/llm/chat';
   const modelName = process.env.LLM_MODEL || 'qwen3:latest';
-  const preferGemini = provider === 'gemini' || (!apiKey && !!geminiApiKey);
+  const preferGemini = !!geminiApiKey && !['miet', 'llm'].includes(provider);
 
   if (preferGemini && geminiApiKey) {
     try {

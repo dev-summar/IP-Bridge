@@ -75,3 +75,9 @@ The IP type appears in marketplace/featured cards, asset portfolios, saved IP, r
 Build with `npm run build`, then run `npm run test:e2e --prefix backend` with Node 22 or newer and local Edge/Chrome. The browser uses the production frontend, actual Express API routes, and a temporary JSON database. It covers registration/login, all three IP types, required evidence, admin feedback and resubmission, publication, marketplace tags, NDA acceptance, inventor access approval, and an approved buyer refreshing the full listing. Permission checks reject public administrator signup and public discovery of pending submissions.
 
 The test leaves the workspace database unchanged and saves its report and screenshots under ignored `artifacts/e2e/`. External AI providers, production MongoDB, real patent-registry verification, and payment checkout are outside this test; analysis uses the actual local fallback. `JSON_DB_PATH` overrides the JSON fallback location for isolated runs and defaults to `backend/data/db.json`.
+
+## Gemini configuration
+
+Patent analysis, marketplace AI matching, pricing guidance, and prototype readiness share the same backend AI provider. Set `AI_ANALYSIS_PROVIDER=gemini`, `GEMINI_API_KEY`, and `GEMINI_MODEL=gemini-2.5-flash` in local `backend/.env` or your backend host's environment settings. A configured Gemini key is preferred by default; `AI_ANALYSIS_PROVIDER=miet` or `llm` explicitly selects the legacy gateway first. Provider failures retain the existing gateway/local fallbacks. Existing stored assessments change when an inventor requests reanalysis, pricing, or readiness assessment.
+
+The credential is sent to Google in the `x-goog-api-key` header, never in URLs or frontend code. Google determines which credential formats are accepted. Local environment files are excluded from Git. Validate provider routing with `npm run build:backend` and `node --test backend/tests/geminiProvider.test.js`.

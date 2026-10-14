@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { dbStore, getUseMongo } from '../services/dbStore';
 import { PatentAnalysisModel } from '../models/schemas';
 import { IAuthRequest } from '../middleware/auth';
-import { analyzePatentWithAI, queryGeminiLLM, ratePrototypeReadiness } from '../services/aiParser';
+import { analyzePatentWithAI, queryJsonLLM, ratePrototypeReadiness } from '../services/aiParser';
 import {
   buildDuplicateDescriptionSet,
   comparePatentsByQualityThenScore,
@@ -331,11 +331,11 @@ export async function getMarketplacePatents(req: Request, res: Response) {
   }
 }
 
-// Semantic AI patent matching using the Qwen LLM from environment variables
+// Semantic matching uses the same configured AI provider as analysis, pricing, and readiness.
 export async function getAIMatchedPatents(req: Request, res: Response) {
   try {
     const { query } = req.body;
-    if (!query) {
+    if (typeof query !== 'string' || !query.trim()) {
       return res.status(400).json({ message: 'Matching query is required.' });
     }
 
@@ -369,10 +369,6 @@ export async function getAIMatchedPatents(req: Request, res: Response) {
     if (patentsWithAnalysis.length === 0) {
       return res.json([]);
     }
-
-    const apiKey = process.env.LLM_API_KEY;
-    const endpoint = process.env.LLM_API_ENDPOINT || 'https://ai-services.mietjmu.in/gateway/llm/chat';
-    const modelName = process.env.LLM_MODEL || 'qwen3:latest';
 
     // Local diagnostic fallback
     const persistAiSearch = async (count: number) => {
@@ -427,13 +423,6 @@ export async function getAIMatchedPatents(req: Request, res: Response) {
       }).filter(p => p.matchPercentage > 0).sort((a, b) => b.matchPercentage - a.matchPercentage);
     };
 
-    if (!apiKey) {
-      console.log('[AI Match] No API key. Using local heuristic matching.');
-      const local = getLocalHeuristicMatches();
-      await persistAiSearch(local.length);
-      return res.json(local);
-    }
-
     // Prepare clean patent summary list for LLM context
     const patentPrompts = patentsWithAnalysis.map(p => ({
       id: p._id,
@@ -459,93 +448,29 @@ Array<{
 
 IMPORTANT: Return ONLY the raw JSON string starting with "[" and ending with "]". Do NOT wrap the JSON inside markdown code blocks. Do NOT include any introductory or wrap-up text.`;
 
-    console.log(`[AI Match] Querying LLM for patent matching...`);
-    
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.1
-        }),
-        signal: AbortSignal.timeout(25000)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gateway returned HTTP status ${response.status}`);
-      }
-
-      const data = await response.json() as any;
-      const rawContent = data.choices?.[0]?.message?.content || data.message?.content || '';
-      
-      if (!rawContent) {
-        throw new Error('LLM response returned empty content.');
-      }
-
-      let cleanJson = rawContent.trim();
-      if (cleanJson.startsWith('```')) {
-        cleanJson = cleanJson.replace(/^```(json)?/, '').replace(/```$/, '').trim();
-      }
-
-      const matchesList = JSON.parse(cleanJson) as Array<{ patentId: string; matchPercentage: number; reason: string }>;
-      
-      // Map back to patents list
+    const matchesList = await queryJsonLLM(prompt);
+    if (Array.isArray(matchesList) && matchesList.every(match =>
+      match && typeof match.patentId === 'string' &&
+      typeof match.matchPercentage === 'number' && Number.isFinite(match.matchPercentage) &&
+      typeof match.reason === 'string'
+    )) {
       const matchedPatents = patentsWithAnalysis.map(p => {
-        const matchInfo = matchesList.find(m => m.patentId === p._id.toString());
+        const match = matchesList.find(m => m.patentId === String(p._id));
         return {
           ...p,
-          matchPercentage: matchInfo ? matchInfo.matchPercentage : 0,
-          matchReason: matchInfo ? matchInfo.reason : 'No matching metrics provided by AI.'
+          matchPercentage: match ? Math.max(0, Math.min(100, Math.round(match.matchPercentage))) : 0,
+          matchReason: match ? match.reason : 'No matching metrics provided by AI.',
         };
-      }).filter(p => p.matchPercentage > 20) // Only keep items with a meaningful match
+      }).filter(p => p.matchPercentage > 20)
         .sort((a, b) => b.matchPercentage - a.matchPercentage);
-
       await persistAiSearch(matchedPatents.length);
       return res.json(matchedPatents);
-
-    } catch (err: any) {
-      console.warn(`[AI Match] Live match query failed (${err.message}).`);
-
-      // Attempt Gemini Fallback
-      const geminiApiKey = process.env.GEMINI_API_KEY;
-      if (geminiApiKey) {
-        try {
-          console.log('[AI Match] Attempting fallback to Google Gemini (gemini-1.5-flash)...');
-          const matchesList = await queryGeminiLLM(prompt, geminiApiKey) as Array<{ patentId: string; matchPercentage: number; reason: string }>;
-          
-          const matchedPatents = patentsWithAnalysis.map(p => {
-            const matchInfo = matchesList.find(m => m.patentId === p._id.toString());
-            return {
-              ...p,
-              matchPercentage: matchInfo ? matchInfo.matchPercentage : 0,
-              matchReason: matchInfo ? matchInfo.reason : 'No matching metrics provided by AI.'
-            };
-          }).filter(p => p.matchPercentage > 20)
-            .sort((a, b) => b.matchPercentage - a.matchPercentage);
-
-          console.log('[AI Match] Successfully generated matches from Google Gemini.');
-          await persistAiSearch(matchedPatents.length);
-          return res.json(matchedPatents);
-        } catch (geminiErr: any) {
-          console.warn(`[AI Match] Google Gemini fallback failed (${geminiErr.message}).`);
-        }
-      }
-
-      console.log('[AI Match] Falling back to local heuristics.');
-      const local = getLocalHeuristicMatches();
-      await persistAiSearch(local.length);
-      return res.json(local);
     }
+
+    console.log('[AI Match] Falling back to local heuristics.');
+    const local = getLocalHeuristicMatches();
+    await persistAiSearch(local.length);
+    return res.json(local);
 
   } catch (error: any) {
     return res.status(500).json({ message: 'Failed to process AI matching.', error: error.message });
