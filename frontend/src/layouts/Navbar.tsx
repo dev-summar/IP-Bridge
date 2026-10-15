@@ -37,7 +37,7 @@ export const Navbar = () => {
           <BrandLogo size="md" linkTo="/" priority className="max-w-[168px]" />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1 relative">
+        <nav className="hidden xl:flex items-center gap-1 relative">
           {PUBLIC_NAV.map((item) => {
             const active = isActive(item.match);
             return (
@@ -66,7 +66,7 @@ export const Navbar = () => {
 
         <div className="flex items-center gap-2">
           <Link to={listIpPath} className="hidden sm:block">
-            <Button variant="outline" size="sm" className="gap-1.5 font-medium border-zinc-200">
+            <Button variant="outline" size="sm" className="gap-1.5 font-medium border-zinc-200 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900">
               <Plus className="h-3.5 w-3.5" />
               List IP
             </Button>
@@ -97,9 +97,11 @@ export const Navbar = () => {
 
           <button
             type="button"
-            className="md:hidden h-9 w-9 flex items-center justify-center rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="xl:hidden h-9 w-9 flex items-center justify-center rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Menu"
+            aria-expanded={mobileOpen}
+            aria-controls="public-mobile-navigation"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -107,7 +109,7 @@ export const Navbar = () => {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-3 space-y-1">
+        <div id="public-mobile-navigation" className="xl:hidden border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-3 space-y-1">
           {PUBLIC_NAV.map((item) => (
             <Link
               key={item.label}
@@ -120,6 +122,12 @@ export const Navbar = () => {
           <Link to={listIpPath} className="block px-3 py-2.5 text-base font-medium rounded-lg hover:bg-zinc-50">
             List IP
           </Link>
+          {isAuthenticated && (
+            <div className="border-t border-zinc-100 pt-2 dark:border-zinc-800">
+              <Link to={dashPath} className="block rounded-lg px-3 py-2.5 text-base font-medium text-primary">Dashboard</Link>
+              <button type="button" onClick={handleLogout} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-zinc-600 dark:text-zinc-300">Sign out</button>
+            </div>
+          )}
           {!isAuthenticated && (
             <Link to="/auth?mode=login" className="block px-3 py-2.5 text-base font-medium text-primary">
               Sign In

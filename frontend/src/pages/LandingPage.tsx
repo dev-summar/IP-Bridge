@@ -14,6 +14,7 @@ import {
   Handshake,
   FileCheck,
   Building2,
+  Trophy,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { PatentCard } from '../components/PatentCard';
@@ -260,6 +261,35 @@ export const LandingPage = () => {
           <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
             <h3 className="text-lg font-semibold mb-4">A closer look at available IP</h3>
             {patents[0] ? <PatentCard patent={patents[0]} isSaved={false} showSave={false} onToggleBookmark={() => {}} onExplore={(id) => navigate(`/marketplace/${id}`)} /> : <p className="text-sm text-zinc-500 leading-relaxed">Published listings include a technology summary and available AI assessments. Browse the marketplace to explore licensing opportunities.</p>}
+          </div>
+        </div>
+      </section>
+
+      {/* India IPR Awards */}
+      <section id="india-ipr-awards" aria-labelledby="ipr-awards-heading" className="py-10 sm:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-lvx-navy p-6 sm:p-10 lg:p-14">
+            <div className="relative grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-14">
+              <div>
+                <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-amber-200/20 bg-amber-100/5 px-3 py-1.5 text-xs font-medium text-amber-200">
+                  <Trophy aria-hidden="true" className="h-3.5 w-3.5" />
+                  Celebrating academic innovation
+                </p>
+                <h2 id="ipr-awards-heading" className="max-w-2xl text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl">
+                  Get recognised at the <span className="text-amber-200">India IPR Awards</span>
+                </h2>
+                <p className="mt-5 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
+                  IPBridge hosts the India IPR Awards, an annual event honouring academic partners for excellence in intellectual property. It is an opportunity to showcase your institution’s innovation culture before industry leaders, policymakers and peers.
+                </p>
+              </div>
+              <div aria-hidden="true" className="hidden items-center justify-center lg:flex">
+                <div className="flex h-48 w-48 items-center justify-center rounded-full border border-amber-200/10 p-4">
+                  <div className="flex h-full w-full items-center justify-center rounded-full border border-amber-200/20 bg-amber-100/5">
+                    <Trophy className="h-16 w-16 text-amber-200" strokeWidth={1.25} />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

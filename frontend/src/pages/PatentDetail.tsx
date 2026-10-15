@@ -9,8 +9,8 @@ import { Dialog } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
 import { 
   ArrowLeft, Calendar, FileText,
-  ShieldAlert, CheckCircle2, Handshake,
-  Lock, AlertCircle, RefreshCw
+  ShieldAlert, CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { getCommercialScore, getMarketReadiness, getCommercialBreakdown } from '../utils/patentAnalysis';
 import { UnlockDetailsFlow } from '../components/ip/UnlockDetailsFlow';
@@ -319,73 +319,15 @@ export const PatentDetail = () => {
   ] : [];
 
   return (
-    <div className="bg-white dark:bg-zinc-950 min-h-[calc(100dvh-4rem)] py-8 sm:py-12 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="bg-slate-50/80 dark:bg-zinc-950 min-h-[calc(100dvh-4rem)] py-6 sm:py-8 px-4 sm:px-6">
+      <div className="max-w-[1180px] mx-auto space-y-6">
         <button
           onClick={() => navigate('/discover')}
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+          className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-blue-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Discover
         </button>
-
-        <motion.header
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={transition}
-          className="space-y-4"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-white leading-snug tracking-tight">
-              {patent.title}
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {patent.accessStatus === 'approved' ? (
-                user?.id === patent.ownerId ? (
-                  <span className="text-sm text-emerald-600 font-medium">Your listing</span>
-                ) : user?.role === 'buyer' || !isAuthenticated ? (
-                  <>
-                    {patent.hasExpressedInterest && (
-                      <span className="text-sm text-emerald-600 inline-flex items-center gap-1">
-                        <CheckCircle2 className="h-4 w-4" /> Interest sent
-                      </span>
-                    )}
-                    {(patent.isForSale || patent.isForLicense) && patent.hasMeetingDone && (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          if (!isAuthenticated) { navigate('/auth'); return; }
-                          if (user?.role === 'buyer' && !isNdaSigned) {
-                            setPendingAction('offer');
-                            setIsNdaOpen(true);
-                            return;
-                          }
-                          setOfferForm(prev => ({ ...prev, type: patent.isForSale ? 'sale' : 'license' }));
-                          setIsOfferOpen(true);
-                        }}
-                        className="rounded-full px-4"
-                      >
-                        <Handshake className="h-4 w-4 mr-1.5" />
-                        Make offer
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-sm text-zinc-500">Logged in as {user?.role}</span>
-                )
-              ) : patent.accessStatus === 'pending' ? (
-                <span className="text-sm text-zinc-500 inline-flex items-center gap-1.5">
-                  <RefreshCw className="h-4 w-4 animate-spin" /> Unlock pending
-                </span>
-              ) : (
-                <Button size="sm" onClick={openUnlockFlow} className="rounded-full px-4 gap-1.5">
-                  <Lock className="h-4 w-4" /> Unlock
-                </Button>
-              )}
-            </div>
-          </div>
-        </motion.header>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -395,6 +337,7 @@ export const PatentDetail = () => {
         <IPDetailView
           patent={patent}
           isUnlocked={patent.accessStatus === 'approved'}
+          viewerLabel={user?.id === patent.ownerId ? 'Your listing' : undefined}
           score={score}
           readiness={readiness}
           breakdown={breakdown}
