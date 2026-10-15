@@ -1,5 +1,5 @@
 import React from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -37,42 +37,35 @@ export const Dialog = ({ isOpen, onClose, title, description, children, classNam
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleEscape);
-      dialogRef.current?.focus();
+      dialogRef.current?.focus({ preventScroll: true });
     }
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
-      previousFocus?.focus();
+      previousFocus?.focus({ preventScroll: true });
     };
   }, [isOpen]);
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
+  if (!isOpen) return null;
+
+  return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             onClick={onClose}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40"
           />
 
           {/* Modal Container */}
-          <motion.div
+          <div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
             aria-describedby={description ? descriptionId : undefined}
             tabIndex={-1}
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ type: 'spring', duration: 0.4 }}
             className={cn(
-              "relative w-full max-w-lg bg-card rounded-2xl shadow-premium-lg border border-border z-10 text-card-foreground flex flex-col max-h-[min(90vh,720px)]",
+              "relative w-full max-w-lg bg-card rounded-2xl shadow-premium-lg border border-border z-10 text-card-foreground flex flex-col overflow-hidden max-h-[min(calc(100dvh-2rem),720px)]",
               className
             )}
           >
@@ -95,10 +88,9 @@ export const Dialog = ({ isOpen, onClose, title, description, children, classNam
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto flex-1 min-h-0 px-6 py-5">{children}</div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+            <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-6 py-5">{children}</div>
+          </div>
+        </div>,
+    document.body
   );
 };
