@@ -16,7 +16,14 @@ async function checkAccessAndEnrich(
   p: any,
   userId: string,
   userRole: string,
-  preload?: { analysis?: any | null; owner?: any | null }
+  preload?: {
+    analysis?: any | null;
+    owner?: any | null;
+    accessRequest?: any | null;
+    hasInterest?: boolean;
+    hasMeeting?: boolean;
+    relationsLoaded?: boolean;
+  }
 ) {
   const analysis =
     preload && 'analysis' in preload
@@ -38,6 +45,14 @@ async function checkAccessAndEnrich(
       accessStatus = 'approved';
       hasExpressedInterest = true;
       hasMeetingDone = true;
+    } else if (preload?.relationsLoaded) {
+      const request = preload.accessRequest;
+      if (request) {
+        accessStatus = request.status;
+        if (request.status === 'approved') hasAccess = true;
+      }
+      hasExpressedInterest = !!preload.hasInterest;
+      hasMeetingDone = !!preload.hasMeeting;
     } else {
       const request = await dbStore.accessRequests.findOne({ patentId: p._id.toString(), buyerId: userId });
       if (request) {
@@ -144,9 +159,10 @@ async function loadAnalysesByPatentIds(patentIds: string[]): Promise<Map<string,
     return map;
   }
 
-  for (const id of patentIds) {
-    const row = await dbStore.patentAnalysis.findOne({ patentId: id });
-    if (row) map.set(String(id), row);
+  const wanted = new Set(patentIds.map(String));
+  const rows = await dbStore.patentAnalysis.find();
+  for (const row of rows) {
+    if (wanted.has(String(row.patentId))) map.set(String(row.patentId), row);
   }
   return map;
 }
@@ -161,6 +177,69 @@ async function loadOwnersByIds(ownerIds: string[]): Promise<Map<string, any>> {
     })
   );
   return map;
+}
+
+const SEARCH_STOP_WORDS = new Set([
+  'the', 'and', 'for', 'with', 'system', 'method', 'device', 'apparatus',
+  'processing', 'about', 'from', 'this', 'that', 'new',
+]);
+const STRONG_KEYWORD_SCORE = 60;
+const AI_MATCH_RESULT_LIMIT = 24;
+const AI_MATCH_CANDIDATE_LIMIT = 16;
+const AI_MATCH_TIMEOUT_MS = 8000;
+
+function tokenizeSearchQuery(query: string): { q: string; queryTokens: string[] } {
+  const q = query.toLowerCase();
+  const queryTokens = q
+    .split(/[\s,.\-/]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2 && !SEARCH_STOP_WORDS.has(token));
+  return { q, queryTokens };
+}
+
+function matchedQueryTokens(p: any, analysis: any, queryTokens: string[], q: string): string[] {
+  const title = String(p.title || '').toLowerCase();
+  const abstract = String(p.abstract || '').toLowerCase();
+  if (queryTokens.length === 0) {
+    return title.includes(q) || abstract.includes(q) ? [q] : [];
+  }
+  return queryTokens.filter((token) => {
+    if (title.includes(token) || abstract.includes(token)) return true;
+    if (analysis?.keywords?.some((kw: string) => kw.toLowerCase().includes(token))) return true;
+    if (analysis?.industryClassification?.some((ind: string) => ind.toLowerCase().includes(token))) return true;
+    return false;
+  });
+}
+
+function rankKeywordMatches(patents: any[], analysisMap: Map<string, any>, query: string) {
+  const { q, queryTokens } = tokenizeSearchQuery(query);
+  return patents
+    .map((patent) => {
+      const analysis = analysisMap.get(String(patent._id)) ?? null;
+      const matchPercentage = scorePatentKeywordMatch(patent, analysis, queryTokens, q);
+      const matchedTokens = matchedQueryTokens(patent, analysis, queryTokens, q);
+      const matchReason =
+        matchPercentage > 0
+          ? `Matched search keywords: [${matchedTokens.join(', ')}] with ${matchPercentage}% relevance to your target technical needs.`
+          : 'No direct keyword overlap found with your query.';
+      return { patent, analysis, matchPercentage, matchReason };
+    })
+    .filter((row) => row.matchPercentage > 0)
+    .sort((a, b) => b.matchPercentage - a.matchPercentage);
+}
+
+function isAiMatchList(value: any): value is Array<{ patentId: string; matchPercentage: number; reason: string }> {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (match) =>
+        match &&
+        typeof match.patentId === 'string' &&
+        typeof match.matchPercentage === 'number' &&
+        Number.isFinite(match.matchPercentage) &&
+        typeof match.reason === 'string'
+    )
+  );
 }
 
 function scorePatentKeywordMatch(
@@ -236,15 +315,7 @@ export async function getMarketplacePatents(req: Request, res: Response) {
     }
 
     if (query) {
-      const q = (query as string).toLowerCase();
-      const stopWords = new Set([
-        'the', 'and', 'for', 'with', 'system', 'method', 'device', 'apparatus',
-        'processing', 'about', 'from', 'this', 'that', 'new',
-      ]);
-      const queryTokens = q
-        .split(/[\s,.\-/]+/)
-        .map((t) => t.trim())
-        .filter((t) => t.length > 2 && !stopWords.has(t));
+      const { q, queryTokens } = tokenizeSearchQuery(String(query));
 
       filtered = filtered
         .map((p) => ({
@@ -352,129 +423,133 @@ export async function getAIMatchedPatents(req: Request, res: Response) {
       } catch (err) {}
     }
 
-    // Fetch all approved patents
     const patents = await dbStore.patents.find({ status: 'approved' });
-    
-    // Attach analysis details to each patent
-    const patentsWithAnalysis: any[] = [];
-    for (const p of patents) {
-      const enriched = await checkAccessAndEnrich(p, userId, userRole);
-      patentsWithAnalysis.push({
-        ...enriched,
-        matchPercentage: 0,
-        matchReason: ''
-      });
+    if (patents.length === 0) return res.json([]);
+
+    const analysisMap = await loadAnalysesByPatentIds(patents.map((patent) => String(patent._id)));
+    const keywordMatches = rankKeywordMatches(patents, analysisMap, query.trim());
+    const keywordHit = keywordMatches[0]?.matchPercentage >= STRONG_KEYWORD_SCORE;
+
+    let ranked = keywordMatches;
+    if (!keywordHit) {
+      const semantic = await semanticMatchPatents(query.trim(), patents, analysisMap);
+      if (semantic) ranked = semantic.length > 0 ? semantic : keywordMatches;
     }
 
-    if (patentsWithAnalysis.length === 0) {
-      return res.json([]);
-    }
-
-    // Local diagnostic fallback
-    const persistAiSearch = async (count: number) => {
-      if (!userId) return;
+    const results = await enrichMatchedPatents(ranked.slice(0, AI_MATCH_RESULT_LIMIT), userId, userRole);
+    if (userId) {
       try {
         await dbStore.searchHistory.create({
           userId,
           query: String(query).trim().slice(0, 500),
           source: 'ai-match',
-          resultCount: count,
+          resultCount: results.length,
         });
       } catch {
         /* non-blocking */
       }
-    };
-
-    const getLocalHeuristicMatches = () => {
-      const q = query.toLowerCase();
-      const stopWords = new Set(['the', 'and', 'for', 'with', 'system', 'method', 'device', 'apparatus', 'processing', 'about', 'from', 'this', 'that', 'new']);
-      const queryTokens = q.split(/[\s,\.\-\/]+/).map((t: string) => t.trim()).filter((t: string) => t.length > 2 && !stopWords.has(t));
-      
-      return patentsWithAnalysis.map(p => {
-        let score = 0;
-        let matchedTokens: string[] = [];
-        
-        if (queryTokens.length === 0) {
-          if (p.title.toLowerCase().includes(q) || p.abstract.toLowerCase().includes(q)) {
-            score = 65;
-            matchedTokens.push(q);
-          }
-        } else {
-          queryTokens.forEach((token: string) => {
-            let hit = false;
-            if (p.title.toLowerCase().includes(token)) { score += 35; hit = true; }
-            if (p.analysis?.keywords.some((kw: string) => kw.toLowerCase().includes(token))) { score += 25; hit = true; }
-            if (p.abstract.toLowerCase().includes(token)) { score += 15; hit = true; }
-            if (p.analysis?.industryClassification.some((ind: string) => ind.toLowerCase().includes(token))) { score += 20; hit = true; }
-            if (hit) matchedTokens.push(token);
-          });
-        }
-        
-        const finalScore = score > 0 ? Math.min(99, Math.round(45 + (score / (Math.max(1, queryTokens.length) * 35)) * 54)) : 0;
-        const reason = finalScore > 0 
-          ? `Matched search keywords: [${matchedTokens.join(', ')}] with ${finalScore}% relevance to your target technical needs.`
-          : `No direct keyword overlap found with your query.`;
-
-        return {
-          ...p,
-          matchPercentage: finalScore,
-          matchReason: reason
-        };
-      }).filter(p => p.matchPercentage > 0).sort((a, b) => b.matchPercentage - a.matchPercentage);
-    };
-
-    // Prepare clean patent summary list for LLM context
-    const patentPrompts = patentsWithAnalysis.map(p => ({
-      id: p._id,
-      title: p.title,
-      abstract: p.abstract,
-      keywords: p.analysis?.keywords || []
-    }));
-
-    const prompt = `You are a state-of-the-art patent matching AI. 
-The user is looking for technologies that fit this need: "${query}".
-
-Here is the list of available patents:
-${JSON.stringify(patentPrompts, null, 2)}
-
-Analyze how well each patent matches the user's need. Compute a match relevance score from 0 to 100 for each patent. Provide a short 1-2 sentence commercial explanation of how this patent matches their need.
-
-You MUST return ONLY a valid JSON array of objects, matching this TypeScript type:
-Array<{
-  patentId: string;
-  matchPercentage: number; // Integer between 0 and 100. Set 0 if it is completely irrelevant.
-  reason: string; // 1-2 sentence explanation of the match or lack thereof.
-}>
-
-IMPORTANT: Return ONLY the raw JSON string starting with "[" and ending with "]". Do NOT wrap the JSON inside markdown code blocks. Do NOT include any introductory or wrap-up text.`;
-
-    const matchesList = await queryJsonLLM(prompt);
-    if (Array.isArray(matchesList) && matchesList.every(match =>
-      match && typeof match.patentId === 'string' &&
-      typeof match.matchPercentage === 'number' && Number.isFinite(match.matchPercentage) &&
-      typeof match.reason === 'string'
-    )) {
-      const matchedPatents = patentsWithAnalysis.map(p => {
-        const match = matchesList.find(m => m.patentId === String(p._id));
-        return {
-          ...p,
-          matchPercentage: match ? Math.max(0, Math.min(100, Math.round(match.matchPercentage))) : 0,
-          matchReason: match ? match.reason : 'No matching metrics provided by AI.',
-        };
-      }).filter(p => p.matchPercentage > 20)
-        .sort((a, b) => b.matchPercentage - a.matchPercentage);
-      await persistAiSearch(matchedPatents.length);
-      return res.json(matchedPatents);
     }
-
-    console.log('[AI Match] Falling back to local heuristics.');
-    const local = getLocalHeuristicMatches();
-    await persistAiSearch(local.length);
-    return res.json(local);
-
+    return res.json(results);
   } catch (error: any) {
     return res.status(500).json({ message: 'Failed to process AI matching.', error: error.message });
   }
+}
+
+async function semanticMatchPatents(query: string, patents: any[], analysisMap: Map<string, any>) {
+  const candidates = [...patents]
+    .sort((a, b) => {
+      const aScore = analysisMap.get(String(a._id))?.commercialPotentialScore || 0;
+      const bScore = analysisMap.get(String(b._id))?.commercialPotentialScore || 0;
+      return bScore - aScore;
+    })
+    .slice(0, AI_MATCH_CANDIDATE_LIMIT)
+    .map((patent) => ({
+      id: String(patent._id),
+      title: patent.title,
+      abstract: String(patent.abstract || '').slice(0, 320),
+      keywords: (analysisMap.get(String(patent._id))?.keywords || []).slice(0, 8),
+      industry: (analysisMap.get(String(patent._id))?.industryClassification || []).slice(0, 3),
+    }));
+
+  const prompt = `You are a patent matching AI.
+The user needs: "${query.replace(/"/g, "'").slice(0, 500)}"
+
+Patents:
+${JSON.stringify(candidates)}
+
+Score every patent from 0 to 100. Use 0 when it is irrelevant.
+Return ONLY a JSON array of {"patentId": string, "matchPercentage": number, "reason": string}.
+Each reason is one sentence and must not copy the title or abstract.`;
+
+  const matchesList = await queryJsonLLM(prompt, {
+    timeoutMs: AI_MATCH_TIMEOUT_MS,
+    thinkingBudget: 0,
+    singleProvider: true,
+  });
+  if (!isAiMatchList(matchesList)) {
+    console.log('[AI Match] Falling back to local heuristics.');
+    return null;
+  }
+
+  const byId = new Map(matchesList.map((match) => [match.patentId, match]));
+  return patents
+    .map((patent) => {
+      const analysis = analysisMap.get(String(patent._id)) ?? null;
+      const match = byId.get(String(patent._id));
+      return {
+        patent,
+        analysis,
+        matchPercentage: match ? Math.max(0, Math.min(100, Math.round(match.matchPercentage))) : 0,
+        matchReason: match ? match.reason : 'No matching metrics provided by AI.',
+      };
+    })
+    .filter((row) => row.matchPercentage > 20)
+    .sort((a, b) => b.matchPercentage - a.matchPercentage);
+}
+
+async function enrichMatchedPatents(
+  rows: Array<{ patent: any; analysis: any; matchPercentage: number; matchReason: string }>,
+  userId: string,
+  userRole: string
+) {
+  const ownerMap = await loadOwnersByIds(rows.map((row) => row.patent.ownerId));
+  const accessByPatent = new Map<string, any>();
+  const interestIds = new Set<string>();
+  const meetingIds = new Set<string>();
+
+  if (userId && userRole !== 'admin') {
+    const [accessRows, interestRows, meetingRows] = await Promise.all([
+      dbStore.accessRequests.find({ buyerId: userId }),
+      dbStore.interestRequests.find({ buyerId: userId }),
+      dbStore.meetingRequests.find({ buyerId: userId }),
+    ]);
+    for (const row of accessRows) accessByPatent.set(String(row.patentId), row);
+    for (const row of interestRows) interestIds.add(String(row.patentId));
+    for (const row of meetingRows) {
+      if (row.status === 'accepted') meetingIds.add(String(row.patentId));
+    }
+  }
+
+  return Promise.all(
+    rows.map(async (row) => {
+      const id = String(row.patent._id);
+      const enriched = await checkAccessAndEnrich(row.patent, userId, userRole, {
+        analysis: row.analysis,
+        owner: ownerMap.get(String(row.patent.ownerId)) ?? null,
+        accessRequest: accessByPatent.get(id) ?? null,
+        hasInterest: interestIds.has(id),
+        hasMeeting: meetingIds.has(id),
+        relationsLoaded: true,
+      });
+      const canSeeDetails = userRole === 'admin' || (userId !== '' && String(row.patent.ownerId) === userId);
+      enriched.matchPercentage = row.matchPercentage;
+      enriched.matchReason =
+        canSeeDetails || row.matchReason.startsWith('Matched search keywords:')
+          ? row.matchReason
+          : 'Relevant to the technology you described.';
+      return enriched;
+    })
+  );
 }
 
 // Register a new patent (Owner only)

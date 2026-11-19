@@ -366,12 +366,29 @@ export async function analyzePatentWithAI(title: string, abstract: string): Prom
 }
 
 // Google validates the credential; accepted key formats can change over time.
-export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<any> {
+export type JsonLlmOptions = {
+  timeoutMs?: number;
+  thinkingBudget?: number;
+  /** Do not try a second provider after the first one fails. */
+  singleProvider?: boolean;
+};
+
+export async function queryGeminiLLM(
+  prompt: string,
+  apiKey: string,
+  options?: Pick<JsonLlmOptions, 'timeoutMs' | 'thinkingBudget'>
+): Promise<any> {
   const trimmedKey = apiKey.trim();
   if (!trimmedKey) throw new Error('GEMINI_API_KEY is missing.');
 
   const model = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const generationConfig: Record<string, unknown> = {
+    responseMimeType: 'application/json',
+  };
+  if (typeof options?.thinkingBudget === 'number') {
+    generationConfig.thinkingConfig = { thinkingBudget: options.thinkingBudget };
+  }
 
   const response = await fetch(url, {
     method: 'POST',
@@ -389,11 +406,9 @@ export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<an
           ]
         }
       ],
-      generationConfig: {
-        responseMimeType: 'application/json'
-      }
+      generationConfig,
     }),
-    signal: AbortSignal.timeout(45000)
+    signal: AbortSignal.timeout(options?.timeoutMs ?? 45000)
   });
 
   if (!response.ok) {
@@ -421,7 +436,7 @@ export async function queryGeminiLLM(prompt: string, apiKey: string): Promise<an
 // Shared LLM JSON helper (Gemini primary → MIET LLM → local fallback)
 // ---------------------------------------------------------------------------
 
-export async function queryJsonLLM(prompt: string): Promise<any | null> {
+export async function queryJsonLLM(prompt: string, options?: JsonLlmOptions): Promise<any | null> {
   const provider = (process.env.AI_ANALYSIS_PROVIDER || '').trim().toLowerCase();
   const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
   const apiKey = process.env.LLM_API_KEY?.trim();
@@ -431,9 +446,10 @@ export async function queryJsonLLM(prompt: string): Promise<any | null> {
 
   if (preferGemini && geminiApiKey) {
     try {
-      return await queryGeminiLLM(prompt, geminiApiKey);
+      return await queryGeminiLLM(prompt, geminiApiKey, options);
     } catch (err: any) {
       console.warn(`[AI] Gemini JSON query failed: ${err.message}`);
+      if (options?.singleProvider) return null;
     }
   }
 
@@ -450,7 +466,7 @@ export async function queryJsonLLM(prompt: string): Promise<any | null> {
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.2,
         }),
-        signal: AbortSignal.timeout(25000),
+        signal: AbortSignal.timeout(options?.timeoutMs ?? 25000),
       });
       if (!response.ok) throw new Error(`Gateway HTTP ${response.status}`);
       const data = (await response.json()) as any;
@@ -463,12 +479,13 @@ export async function queryJsonLLM(prompt: string): Promise<any | null> {
       return JSON.parse(clean);
     } catch (err: any) {
       console.warn(`[AI] LLM JSON query failed: ${err.message}`);
+      if (options?.singleProvider) return null;
     }
   }
 
   if (geminiApiKey && !preferGemini) {
     try {
-      return await queryGeminiLLM(prompt, geminiApiKey);
+      return await queryGeminiLLM(prompt, geminiApiKey, options);
     } catch (err: any) {
       console.warn(`[AI] Gemini fallback JSON failed: ${err.message}`);
     }

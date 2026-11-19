@@ -72,12 +72,16 @@ test('marketplace matching calls Gemini without an LLM_API_KEY and validates mod
   let result;
   const res = { status() { return this; }, json(value) { result = value; return this; } };
   try {
-    await getAIMatchedPatents({ body: { query: 'Factory sensor calibration' }, headers: {} }, res);
+    await getAIMatchedPatents({ body: { query: 'oncology polymer delivery' }, headers: {} }, res);
     assert.equal(calls, 1);
     assert.equal(result[0].matchPercentage, 95);
-    assert.equal(result[0].matchReason, 'Gemini matched reference sensor calibration.');
-    global.fetch = async () => response({ unexpected: true });
+    assert.equal(result[0].matchReason, 'Relevant to the technology you described.');
     await getAIMatchedPatents({ body: { query: 'sensor calibration' }, headers: {} }, res);
+    assert.equal(calls, 1);
     assert.ok(result[0].matchReason.startsWith('Matched search keywords:'));
+    global.fetch = async () => { calls += 1; return response({ unexpected: true }); };
+    await getAIMatchedPatents({ body: { query: 'quantum lattice cooling' }, headers: {} }, res);
+    assert.equal(calls, 2);
+    assert.deepEqual(result, []);
   } finally { restores.reverse().forEach(restore => restore()); }
 }));

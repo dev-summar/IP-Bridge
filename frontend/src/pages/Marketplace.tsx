@@ -149,17 +149,6 @@ export const Marketplace = () => {
         body: { query: q },
       });
       setAiResults(data);
-      // Persist search so featured learns buyer taste
-      if (isAuthenticated) {
-        try {
-          await apiFetch('/api/searches', {
-            method: 'POST',
-            body: { query: q, source: 'ai-match', resultCount: Array.isArray(data) ? data.length : 0 },
-          });
-        } catch {
-          /* non-blocking */
-        }
-      }
     } catch (err: any) {
       setAiError(err.message || 'Search failed. Try again.');
     } finally {
@@ -216,10 +205,12 @@ export const Marketplace = () => {
     : `${total} IP assets`;
 
   return (
-    <div className="min-h-[calc(100dvh-4rem)] bg-zinc-50 dark:bg-zinc-950">
+    <div className="relative min-h-[calc(100dvh-4rem)] bg-zinc-50 dark:bg-zinc-950">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_36%_at_50%_0%,rgba(57,139,232,0.16),transparent_64%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(24,40,60,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(24,40,60,0.04)_1px,transparent_1px)] bg-[size:42px_42px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
       <section
         className={cn(
-          'px-4 sm:px-6 transition-all duration-300',
+          'relative px-4 sm:px-6 transition-all duration-300',
           hasActiveSearch
             ? 'pt-6 pb-4 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl sticky top-16 z-30'
             : 'pt-8 sm:pt-12 pb-6'
@@ -294,7 +285,7 @@ export const Marketplace = () => {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ ...transition, delay: 0.1 + i * 0.05 }}
-                    whileHover={{ scale: 1.04, borderColor: 'rgba(79,70,229,0.35)' }}
+                    whileHover={{ scale: 1.04, borderColor: 'rgba(57,139,232,0.45)' }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => runAiSearch(s.query)}
                     className="px-3.5 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-primary transition-colors"
@@ -369,7 +360,7 @@ export const Marketplace = () => {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <section className="relative mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-5 flex justify-end gap-1" role="group" aria-label="Listing layout">{([['grid', LayoutGrid], ['list', List]] as const).map(([mode, Icon]) => <button key={mode} type="button" aria-label={`${mode} view`} aria-pressed={view === mode} onClick={() => setView(mode)} className={cn('p-2.5 rounded-lg border', view === mode ? 'text-primary border-primary bg-primary/5' : 'text-zinc-500 border-zinc-200 dark:border-zinc-800')}><Icon className="h-4 w-4" /></button>)}</div>
         {(hasActiveSearch || featuredMode) && (
           <div className="mb-4 pb-2 space-y-3">

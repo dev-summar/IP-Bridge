@@ -319,8 +319,9 @@ export const PatentDetail = () => {
   ] : [];
 
   return (
-    <div className="bg-slate-50/80 dark:bg-zinc-950 min-h-[calc(100dvh-4rem)] py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-[1180px] mx-auto space-y-6">
+    <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-zinc-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 sm:py-8">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_32%_at_50%_0%,rgba(57,139,232,0.14),transparent_66%)]" />
+      <div className="relative mx-auto max-w-[1180px] space-y-6">
         <button
           onClick={() => navigate('/discover')}
           className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-blue-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"

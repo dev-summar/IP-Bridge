@@ -4,7 +4,14 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { backup, readPassword } = require('./retireDemoAccounts');
 
-async function provisionAdmin({ store, email, password, apply, jsonPath = path.join(__dirname, 'data', 'db.json') }) {
+function defaultName(email) {
+  const local = String(email || '').split('@')[0] || '';
+  const first = local.split(/[._-]/)[0];
+  if (!first) return 'Summar';
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
+async function provisionAdmin({ store, email, password, name, organization, apply, jsonPath = path.join(__dirname, 'data', 'db.json') }) {
   email = String(email || '').trim().toLowerCase();
   if (!email || !email.includes('@')) throw new Error('Supply the admin email with --email.');
   if (!['mongo', 'json'].includes(store)) throw new Error('Choose --store mongo or --store json explicitly.');
@@ -28,7 +35,7 @@ async function provisionAdmin({ store, email, password, apply, jsonPath = path.j
   if (!apply) return;
   if (!password || password.length < 8) throw new Error('Supply an admin password with at least eight characters.');
   const updates = {
-    email, role: 'admin', name: existing?.name || 'Summar', organization: existing?.organization || 'MIET',
+    email, role: 'admin', name: name || existing?.name || defaultName(email), organization: organization || existing?.organization || 'MIET',
     passwordHash: await bcrypt.hash(password, 10), updatedAt: new Date(),
   };
   backup(data, store);
@@ -53,7 +60,7 @@ async function provisionAdmin({ store, email, password, apply, jsonPath = path.j
   if (user?.role !== 'admin' || !await bcrypt.compare(password, user.passwordHash)) {
     throw new Error('Admin account verification failed.');
   }
-  console.log(JSON.stringify({ email: user.email, role: user.role, passwordVerified: true }));
+  console.log(JSON.stringify({ email: user.email, role: user.role, name: user.name, organization: user.organization, passwordVerified: true }));
 }
 
 async function main() {
@@ -62,11 +69,11 @@ async function main() {
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
     if (['--apply', '--prompt-password'].includes(arg)) options[arg] = true;
-    else if (['--store', '--email'].includes(arg) && args[index + 1] && !args[index + 1].startsWith('--')) options[arg] = args[++index];
+    else if (['--store', '--email', '--password', '--name', '--organization'].includes(arg) && args[index + 1] && !args[index + 1].startsWith('--')) options[arg] = args[++index];
     else throw new Error(`Invalid argument: ${arg}`);
   }
-  const password = options['--prompt-password'] ? await readPassword('Admin password (hidden): ') : process.env.ADMIN_PASSWORD;
-  await provisionAdmin({ store: options['--store'], email: options['--email'], apply: options['--apply'], password });
+  const password = options['--password'] || (options['--prompt-password'] ? await readPassword('Admin password (hidden): ') : process.env.ADMIN_PASSWORD);
+  await provisionAdmin({ store: options['--store'], email: options['--email'], name: options['--name'], organization: options['--organization'], apply: options['--apply'], password });
 }
 
 module.exports = { provisionAdmin };

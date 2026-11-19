@@ -31,7 +31,7 @@ export const Navbar = () => {
   const listIpPath = getListIPPath(user?.role);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl safe-top">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-200/80 bg-white/90 shadow-sm backdrop-blur-xl safe-top dark:border-zinc-800 dark:bg-zinc-950/90">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Link to="/" className="shrink-0">
           <BrandLogo size="md" linkTo="/" priority className="max-w-[168px]" />
@@ -45,10 +45,10 @@ export const Navbar = () => {
                 key={item.label}
                 to={item.to}
                 className={cn(
-                  'relative px-3.5 py-2.5 text-base font-medium rounded-lg transition-colors',
+                  'group relative px-3.5 py-2.5 text-base font-medium rounded-lg transition-colors',
                   active
                     ? 'text-zinc-900 dark:text-white'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                 )}
               >
                 {active && (
@@ -59,6 +59,12 @@ export const Navbar = () => {
                   />
                 )}
                 {item.label}
+                <span
+                  className={cn(
+                    'pointer-events-none absolute bottom-1.5 left-3.5 right-3.5 h-px origin-left bg-primary transition-transform duration-300',
+                    active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                  )}
+                />
               </Link>
             );
           })}

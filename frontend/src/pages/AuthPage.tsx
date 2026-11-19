@@ -59,11 +59,13 @@ function AuthAside({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        'flex flex-col justify-between bg-zinc-100/80 dark:bg-zinc-900/50 border-b lg:border-b-0 lg:border-r border-zinc-200/80 dark:border-zinc-800 px-6 sm:px-10 py-8 lg:py-12',
+        'relative flex flex-col justify-between overflow-hidden border-b border-zinc-200/80 bg-zinc-50 px-6 py-8 dark:border-zinc-800 dark:bg-zinc-900/50 sm:px-10 lg:border-b-0 lg:border-r lg:py-12',
         className
       )}
     >
-      <div className="space-y-8">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_20%_0%,rgba(57,139,232,0.18),transparent_68%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(24,40,60,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(24,40,60,0.04)_1px,transparent_1px)] bg-[size:42px_42px] [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_72%)]" />
+      <div className="relative space-y-8">
         <BrandLogo size="xl" linkTo="/" priority />
         <div className="max-w-sm space-y-4">
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white leading-snug">
@@ -82,7 +84,7 @@ function AuthAside({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => navigate('/discover')}
-        className="hidden lg:inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-primary transition-colors mt-8"
+        className="relative mt-8 hidden items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-primary lg:inline-flex"
       >
         <Compass className="h-4 w-4" />
         Browse IP without signing up
@@ -225,10 +227,10 @@ export const AuthPage = () => {
                       key={card.role}
                       type="button"
                       onClick={() => openRegister(card.role)}
-                      whileHover={{ x: 4, borderColor: 'rgba(79,70,229,0.35)' }}
+                      whileHover={{ y: -3, borderColor: 'rgba(57,139,232,0.45)' }}
                       whileTap={{ scale: 0.995 }}
                       transition={springSnappy}
-                      className="w-full text-left rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 sm:p-6 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/40 transition-colors group"
+                      className="group w-full rounded-2xl border border-white/80 bg-white/80 p-5 text-left shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-sm transition-colors hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:bg-zinc-900 sm:p-6"
                     >
                       <div className="flex items-start gap-4">
                         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">

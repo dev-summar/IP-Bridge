@@ -53,6 +53,9 @@ const AUDIENCE = [
   { icon: Building2, title: 'Startups & R&D labs', desc: 'License building blocks or acquire IP to accelerate product roadmaps.' },
 ];
 
+const glassCard =
+  'rounded-2xl border border-white/80 bg-white/85 shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900';
+
 export const AboutUsPage = () => (
   <PublicPageShell>
     <PageHeader
@@ -60,7 +63,7 @@ export const AboutUsPage = () => (
       description="We are India's intelligent IP trading platform — connecting inventors, institutions, and acquirers to commercialize intellectual property faster and more transparently."
     />
 
-    <FadeIn className="mb-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8">
+    <FadeIn className={`mb-12 p-6 sm:p-8 ${glassCard}`}>
       <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">Our mission</h2>
       <p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-3xl">
         IPBridge bridges the gap between research and revenue. Most valuable IP never leaves the lab because discovery,
@@ -76,7 +79,7 @@ export const AboutUsPage = () => (
         {WHAT_WE_DO.map((item) => (
           <div
             key={item.title}
-            className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6"
+            className={`p-6 ${glassCard}`}
           >
             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
               <item.icon className="h-5 w-5 text-primary" />
@@ -97,7 +100,7 @@ export const AboutUsPage = () => (
         {IP_TYPES.map((item) => (
           <div
             key={item.label}
-            className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 p-5"
+            className={`p-5 ${glassCard}`}
           >
             <item.icon className="h-5 w-5 text-primary mb-3" />
             <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{item.label}</h3>
@@ -113,7 +116,7 @@ export const AboutUsPage = () => (
         {AUDIENCE.map((item) => (
           <div
             key={item.title}
-            className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 text-center sm:text-left"
+            className={`p-6 text-center sm:text-left ${glassCard}`}
           >
             <item.icon className="h-6 w-6 text-primary mx-auto sm:mx-0 mb-3" />
             <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{item.title}</h3>
@@ -124,7 +127,7 @@ export const AboutUsPage = () => (
     </FadeIn>
 
     <FadeIn delay={0.12}>
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-8">
+      <div className={`p-6 sm:p-8 ${glassCard}`}>
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">Industries on the platform</h2>
         <p className="text-sm text-zinc-500 mb-4">Browse technologies across these focus areas on Discover IP.</p>
         <div className="flex flex-wrap gap-2">

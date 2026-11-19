@@ -19,26 +19,26 @@ export const HowItWorksPage = () => (
       title="How IPBridge Works"
       description="A simple path from discovery to IP transfer — built for universities, startups, and corporates."
     />
-    <div className="mb-12 p-5 sm:p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <div className="mb-12 rounded-2xl border border-white/80 bg-white/85 p-5 shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-sm sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
       <ProgressSteps
         variant="timeline"
         steps={DEAL_PROGRESS_STEPS.map((s) => ({ id: s.id, label: s.label }))}
         currentIndex={0}
       />
     </div>
-    <div className="grid sm:grid-cols-2 gap-4">
+    <div className="grid gap-4 sm:grid-cols-2">
       {STEPS.map((step) => (
-        <div key={step.title} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+        <div key={step.title} className="rounded-2xl border border-white/80 bg-white/85 p-6 shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
             <step.icon className="h-5 w-5 text-primary" />
           </div>
           <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{step.title}</h3>
-          <p className="text-sm text-zinc-500 mt-2 leading-relaxed">{step.desc}</p>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-500">{step.desc}</p>
         </div>
       ))}
     </div>
-    <Link to="/discover" className="inline-block mt-10">
-      <Button className="rounded-xl">Start Discovering</Button>
+    <Link to="/discover" className="mt-10 inline-block">
+      <Button size="lg" className="h-12 rounded-xl px-8">Start Discovering</Button>
     </Link>
   </PublicPageShell>
 );
