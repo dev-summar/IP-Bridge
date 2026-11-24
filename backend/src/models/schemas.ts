@@ -58,6 +58,8 @@ export interface IPatent extends Document {
   /** AI readiness score 0–100 */
   readinessScore?: number;
   readinessNotes?: string;
+  /** Three-line public summary. Not the abstract. */
+  publicSummary?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -85,7 +87,8 @@ export const PatentSchema = new Schema<IPatent>({
   prototypeDescription: { type: String },
   trlLevel: { type: Number, min: 1, max: 9 },
   readinessScore: { type: Number, min: 0, max: 100 },
-  readinessNotes: { type: String }
+  readinessNotes: { type: String },
+  publicSummary: { type: [String], default: [] }
 }, { timestamps: true });
 
 export const PatentModel = mongoose.models.Patent || mongoose.model<IPatent>('Patent', PatentSchema);
@@ -129,6 +132,7 @@ export interface IPatentAnalysis extends Document {
     adoptionOpportunities: string[];
   };
   commercialPotentialScore: number;
+  scoreRationale?: string;
   potentialBuyers?: string[];
   marketOpportunity?: string;
   filingYear?: number;
@@ -160,6 +164,7 @@ export const PatentAnalysisSchema = new Schema<IPatentAnalysis>({
     adoptionOpportunities: { type: [String], default: [] }
   },
   commercialPotentialScore: { type: Number, required: true, min: 0, max: 100 },
+  scoreRationale: { type: String },
   potentialBuyers: { type: [String], default: [] },
   marketOpportunity: { type: String },
   filingYear: { type: Number },
@@ -403,3 +408,26 @@ export const TransactionSchema = new Schema<ITransaction>({
 }, { timestamps: true });
 
 export const TransactionModel = mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);
+
+/** Buyer feedback used to improve match ranking. */
+export type MatchFeedbackKind = 'open' | 'save' | 'enquire' | 'ignore';
+
+export interface IMatchEvent extends Document {
+  userId: string;
+  patentId: string;
+  event: MatchFeedbackKind;
+  query?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const MatchEventSchema = new Schema<IMatchEvent>({
+  userId: { type: String, required: true, index: true },
+  patentId: { type: String, required: true, index: true },
+  event: { type: String, enum: ['open', 'save', 'enquire', 'ignore'], required: true, index: true },
+  query: { type: String, maxlength: 500 },
+}, { timestamps: true });
+
+MatchEventSchema.index({ userId: 1, patentId: 1, event: 1, createdAt: -1 });
+
+export const MatchEventModel = mongoose.models.MatchEvent || mongoose.model<IMatchEvent>('MatchEvent', MatchEventSchema);

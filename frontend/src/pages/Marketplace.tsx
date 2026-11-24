@@ -7,13 +7,25 @@ import { PatentCard } from '../components/PatentCard';
 import { ProfilePreferences } from '../components/ProfilePreferences';
 import { StaggerList, StaggerItem } from '../components/motion/StaggerList';
 import { Search, Sparkles, SlidersHorizontal, X, Compass, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
-import { IP_CATEGORIES } from '../constants/ip';
+import { IP_CATEGORIES, IP_TYPE_OPTIONS } from '../constants/ip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn } from '../utils/cn';
 import { springSnappy, transition } from '../utils/motion';
 import { Button } from '../components/ui/Button';
 
 const PAGE_SIZE = 12;
+const TRL_OPTIONS = [
+  { value: '', label: 'Any readiness' },
+  { value: '4', label: 'TRL 4+' },
+  { value: '6', label: 'TRL 6+' },
+  { value: '8', label: 'TRL 8+' },
+];
+const PRICE_OPTIONS = [
+  { value: '', label: 'Any price' },
+  { value: '0-5000000', label: 'Under ₹50 L' },
+  { value: '5000000-20000000', label: '₹50 L – ₹2 Cr' },
+  { value: '20000000-', label: '₹2 Cr+' },
+];
 
 const QUICK_SEARCHES = [
   { label: 'Edge AI', query: 'low power neural architecture edge inference' },
@@ -31,6 +43,10 @@ export const Marketplace = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [keyword, setKeyword] = useState('');
+  const [ipType, setIpType] = useState('');
+  const [dealType, setDealType] = useState('');
+  const [trlMin, setTrlMin] = useState('');
+  const [priceBand, setPriceBand] = useState('');
 
   const [patents, setPatents] = useState<any[]>([]);
   const [page, setPage] = useState(1);
@@ -106,6 +122,14 @@ export const Marketplace = () => {
       params.append('limit', String(PAGE_SIZE));
       if (keyword) params.append('query', keyword);
       if (selectedIndustry) params.append('industry', selectedIndustry);
+      if (ipType) params.append('ipType', ipType);
+      if (dealType) params.append('deal', dealType);
+      if (trlMin) params.append('trlMin', trlMin);
+      if (priceBand) {
+        const [min, max] = priceBand.split('-');
+        if (min) params.append('priceMin', min);
+        if (max) params.append('priceMax', max);
+      }
       const data = await apiFetch(`/api/patents?${params.toString()}`);
       if (Array.isArray(data)) {
         setPatents(data);
@@ -121,9 +145,10 @@ export const Marketplace = () => {
     } finally {
       setLoading(false);
     }
-  }, [keyword, selectedIndustry, page]);
+  }, [keyword, selectedIndustry, page, ipType, dealType, trlMin, priceBand]);
 
-  const browsingDefault = !aiActive && !keyword && !selectedIndustry;
+  const hardFiltersOn = !!(ipType || dealType || trlMin || priceBand);
+  const browsingDefault = !aiActive && !keyword && !selectedIndustry && !hardFiltersOn;
 
   useEffect(() => {
     if (aiActive) return;
@@ -134,7 +159,7 @@ export const Marketplace = () => {
     }
     // Intentionally only re-run on browse/search mode changes, not on every user profile sync
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiActive, browsingDefault, page, keyword, selectedIndustry, isAuthenticated]);
+  }, [aiActive, browsingDefault, page, keyword, selectedIndustry, ipType, dealType, trlMin, priceBand, isAuthenticated]);
 
   const runAiSearch = async (text?: string) => {
     const q = (text ?? query).trim();
@@ -186,11 +211,62 @@ export const Marketplace = () => {
     }
   };
 
+  const handleIgnore = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+    try {
+      await apiFetch('/api/match-events', {
+        method: 'POST',
+        body: JSON.stringify({ patentId: id, event: 'ignore', query: query || undefined }),
+      });
+      const drop = (rows: any[]) => rows.filter((row) => row._id !== id);
+      setPatents((prev) => drop(prev));
+      setAiResults((prev) => drop(prev));
+      setRails((prev) =>
+        prev
+          ? {
+              forYou: drop(prev.forYou || []),
+              fromSearches: drop(prev.fromSearches || []),
+              fromSaves: drop(prev.fromSaves || []),
+              inYourDomains: drop(prev.inYourDomains || []),
+              trending: drop(prev.trending || []),
+            }
+          : prev
+      );
+    } catch (err: any) {
+      alert(err.message || 'Could not hide this listing.');
+    }
+  };
+
   const isBookmarked = (id: string) => user?.savedPatents?.includes(id) ?? false;
 
-  const displayList = aiActive ? aiResults : patents;
+  const applyListingFilters = (rows: any[]) =>
+    rows.filter((row) => {
+      if (ipType && row.ipType && row.ipType !== ipType) return false;
+      if (dealType === 'sale' && row.isForSale === false) return false;
+      if (dealType === 'license' && row.isForLicense === false) return false;
+      if (trlMin) {
+        const trl = row.trlLevel ?? row.analysis?.readinessAssessment?.trlLevel;
+        if (!(Number.isFinite(trl) && Number(trl) >= Number(trlMin))) return false;
+      }
+      if (priceBand) {
+        const [min, max] = priceBand.split('-').map((part) => (part === '' ? NaN : Number(part)));
+        const ask = Number(row.askingPrice) || Number(row.indicativeValue?.saleMin) || 0;
+        if (ask > 0) {
+          if (Number.isFinite(min) && ask < min) return false;
+          if (Number.isFinite(max) && ask > max) return false;
+        }
+      }
+      return true;
+    });
+
+  const displayList = applyListingFilters(aiActive ? aiResults : patents);
   const isLoading = aiActive ? aiLoading : loading;
-  const hasActiveSearch = aiActive || keyword || selectedIndustry;
+  const hasActiveSearch = aiActive || keyword || selectedIndustry || hardFiltersOn;
+  const activeFilterCount = [ipType, dealType, trlMin, priceBand, selectedIndustry].filter(Boolean).length;
 
   const resultLabel = aiActive
     ? `AI matches for “${query.length > 48 ? `${query.slice(0, 48)}…` : query}”`
@@ -201,7 +277,7 @@ export const Marketplace = () => {
     : featuredMode
     ? personalized
       ? `${total} patents matched to your profile`
-      : `${total} featured high-match patents`
+      : `${total} featured listings`
     : `${total} IP assets`;
 
   return (
@@ -308,13 +384,13 @@ export const Marketplace = () => {
               onClick={() => setShowFilters((v) => !v)}
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-                showFilters
-                  ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                showFilters || activeFilterCount
+                  ? 'bg-primary/10 text-primary'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
               )}
             >
               <SlidersHorizontal className="h-4 w-4" />
-              Filters
+              Filters{activeFilterCount ? ` · ${activeFilterCount}` : ''}
             </button>
             {IP_CATEGORIES.map((cat) => (
               <button
@@ -334,27 +410,81 @@ export const Marketplace = () => {
           </div>
 
           {showFilters && (
-            <div className="flex flex-col sm:flex-row gap-2 max-w-xl mx-auto pt-2">
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => {
-                  setKeyword(e.target.value);
-                  setAiActive(false);
-                }}
-                placeholder="Keyword or patent number"
-                className="flex-1 px-4 py-2.5 text-base rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 outline-none focus:border-primary/50"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setAiActive(false);
-                  fetchPatents();
-                }}
-                className="px-5 py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium"
-              >
-                Apply
-              </button>
+            <div className="mx-auto mt-3 max-w-3xl rounded-2xl border border-zinc-200/80 bg-white/90 p-4 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900/90">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-left">
+                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">IP type</span>
+                  <select
+                    value={ipType}
+                    onChange={(e) => { setIpType(e.target.value); setAiActive(false); setPage(1); }}
+                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary/50 dark:border-zinc-700 dark:bg-zinc-950"
+                  >
+                    <option value="">Any type</option>
+                    {IP_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-left">
+                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Deal type</span>
+                  <select
+                    value={dealType}
+                    onChange={(e) => { setDealType(e.target.value); setAiActive(false); setPage(1); }}
+                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary/50 dark:border-zinc-700 dark:bg-zinc-950"
+                  >
+                    <option value="">Sale or licence</option>
+                    <option value="sale">For sale</option>
+                    <option value="license">For licence</option>
+                  </select>
+                </label>
+                <label className="block text-left">
+                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Readiness</span>
+                  <select
+                    value={trlMin}
+                    onChange={(e) => { setTrlMin(e.target.value); setAiActive(false); setPage(1); }}
+                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary/50 dark:border-zinc-700 dark:bg-zinc-950"
+                  >
+                    {TRL_OPTIONS.map((option) => (
+                      <option key={option.value || 'any'} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-left">
+                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Price band</span>
+                  <select
+                    value={priceBand}
+                    onChange={(e) => { setPriceBand(e.target.value); setAiActive(false); setPage(1); }}
+                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary/50 dark:border-zinc-700 dark:bg-zinc-950"
+                  >
+                    {PRICE_OPTIONS.map((option) => (
+                      <option key={option.value || 'any'} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => {
+                    setKeyword(e.target.value);
+                    setAiActive(false);
+                  }}
+                  placeholder="Keyword or patent number"
+                  className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-base outline-none focus:border-primary/50 dark:border-zinc-800 dark:bg-zinc-950"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAiActive(false);
+                    setPage(1);
+                    fetchPatents();
+                  }}
+                  className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-zinc-900"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -366,13 +496,17 @@ export const Marketplace = () => {
           <div className="mb-4 pb-2 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-zinc-500">{isLoading ? 'Searching…' : resultLabel}</p>
-              {(aiActive || keyword || selectedIndustry) && (
+              {(aiActive || keyword || selectedIndustry || hardFiltersOn) && (
                 <button
                   type="button"
                   onClick={() => {
                     clearAi();
                     setKeyword('');
                     setSelectedIndustry('');
+                    setIpType('');
+                    setDealType('');
+                    setTrlMin('');
+                    setPriceBand('');
                     setShowFilters(false);
                     setPage(1);
                   }}
@@ -471,6 +605,7 @@ export const Marketplace = () => {
                           patent={p}
                           isSaved={isBookmarked(p._id)}
                           onToggleBookmark={handleToggleBookmark}
+                          onIgnore={handleIgnore}
                           onExplore={(id) => navigate(`/marketplace/${id}`)}
                           showMatchReason
                         />
@@ -490,10 +625,16 @@ export const Marketplace = () => {
                     patent={p}
                     isSaved={isBookmarked(p._id)}
                     onToggleBookmark={handleToggleBookmark}
+                    onIgnore={
+                      (aiActive && !!p.matchReason) ||
+                      (isAuthenticated && personalized && featuredMode)
+                        ? handleIgnore
+                        : undefined
+                    }
                     onExplore={(id) => navigate(`/marketplace/${id}`)}
                     showMatchReason={
                       (aiActive && !!p.matchReason) ||
-                      (featuredMode && (!!p.matchPercentage || !!p.matchReasons?.length))
+                      (isAuthenticated && personalized && featuredMode && (!!p.matchPercentage || !!p.matchReasons?.length))
                     }
                   />
                 </StaggerItem>

@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { dbStore } from '../services/dbStore';
 import { IAuthRequest } from '../middleware/auth';
+import { disclosedTo, disclosureGrantsFor, listingName } from '../services/disclosure';
+import { recordMatchEvent } from '../services/matchFeedback';
 
 // Create Interest Request (Buyer only)
 export async function createInterestRequest(req: Request, res: Response) {
@@ -9,7 +11,7 @@ export async function createInterestRequest(req: Request, res: Response) {
     const { id: patentId } = req.params;
     const { name, organization, email, purpose, message } = req.body;
 
-    if (!name || !organization || !email || !purpose || !message) {
+    if (!name || !organization || !email || !purpose) {
       return res.status(400).json({ message: 'Missing required interest request details.' });
     }
 
@@ -19,6 +21,10 @@ export async function createInterestRequest(req: Request, res: Response) {
     }
 
     const buyerId = authReq.user!.id;
+    const nda = await dbStore.ndaSignatures.findOne({ patentId, buyerId });
+    if (!nda) {
+      return res.status(403).json({ message: 'Sign the NDA before requesting this listing. The invention stays hidden until then.' });
+    }
 
     const existingInterests = await dbStore.interestRequests.find({ patentId, buyerId });
     let lead = existingInterests[0];
@@ -31,9 +37,14 @@ export async function createInterestRequest(req: Request, res: Response) {
         organization,
         email,
         purpose,
-        message,
+        message: typeof message === 'string' ? message.trim() : '',
         status: 'new'
       });
+    }
+    try {
+      await recordMatchEvent({ userId: buyerId, patentId: String(patentId), event: 'enquire' });
+    } catch {
+      /* non-blocking */
     }
 
     let accessRequest = await dbStore.accessRequests.findOne({ patentId, buyerId });
@@ -79,10 +90,11 @@ export async function createMeetingRequest(req: Request, res: Response) {
       return res.status(404).json({ message: 'Patent not found.' });
     }
 
-    // Ensure access request is approved
+    // Ensure access request is approved and the NDA is signed
     const accessReq = await dbStore.accessRequests.findOne({ patentId, buyerId: authReq.user!.id });
-    if ((!accessReq || accessReq.status !== 'approved') && authReq.user!.role !== 'admin' && patent.ownerId !== authReq.user!.id) {
-      return res.status(403).json({ message: 'You must have approved detailed access to book a meeting.' });
+    const nda = await dbStore.ndaSignatures.findOne({ patentId, buyerId: authReq.user!.id });
+    if ((!accessReq || accessReq.status !== 'approved' || !nda) && authReq.user!.role !== 'admin' && patent.ownerId !== authReq.user!.id) {
+      return res.status(403).json({ message: 'Sign the NDA and wait for inventor approval before booking a meeting.' });
     }
 
     const meeting = await dbStore.meetingRequests.create({
@@ -122,15 +134,18 @@ export async function getLeads(req: Request, res: Response) {
     }
 
     const leads = await dbStore.interestRequests.find(filter);
+    const grants = role === 'buyer' ? await disclosureGrantsFor(userId) : null;
     
     // Enrich with Patent title
     const enriched = [];
     for (const l of leads) {
       const p = await dbStore.patents.findById(l.patentId);
+      const show = !grants || disclosedTo(p, userId, role, grants);
+      const analysis = show ? null : await dbStore.patentAnalysis.findOne({ patentId: String(l.patentId) });
       enriched.push({
         ...l,
-        patentTitle: p ? p.title : 'Deleted Patent',
-        patentNumber: p ? p.patentNumber : 'N/A'
+        patentTitle: show ? (p ? p.title : 'Removed listing') : listingName(p, analysis, false),
+        patentNumber: show && p ? p.patentNumber : undefined
       });
     }
 
@@ -156,25 +171,30 @@ export async function getMeetings(req: Request, res: Response) {
     }
 
     const meetings = await dbStore.meetingRequests.find(filter);
+    const grants = role === 'buyer' ? await disclosureGrantsFor(userId) : null;
 
     // Enrich with Patent title and counter-party information
     const enriched = [];
     for (const m of meetings) {
       const p = await dbStore.patents.findById(m.patentId);
+      const show = !grants || disclosedTo(p, userId, role, grants);
       
       let counterParty = '';
       if (role === 'owner') {
         const buyer = await dbStore.users.findById(m.buyerId);
         counterParty = buyer ? `${buyer.name} (${buyer.organization || 'Independent'})` : 'Buyer';
+      } else if (!show) {
+        counterParty = 'Inventor';
       } else {
         const owner = await dbStore.users.findById(m.ownerId);
         counterParty = owner ? `${owner.name} (${owner.organization || 'Independent'})` : 'Inventor';
       }
 
+      const analysis = show ? null : await dbStore.patentAnalysis.findOne({ patentId: String(m.patentId) });
       enriched.push({
         ...m,
-        patentTitle: p ? p.title : 'Deleted Patent',
-        patentNumber: p ? p.patentNumber : 'N/A',
+        patentTitle: show ? (p ? p.title : 'Removed listing') : listingName(p, analysis, false),
+        patentNumber: show && p ? p.patentNumber : undefined,
         counterParty
       });
     }
@@ -278,6 +298,11 @@ export async function createAccessRequest(req: Request, res: Response) {
     }
 
     // Ensure interest has been expressed (unless admin — interest+access are submitted together)
+    const nda = await dbStore.ndaSignatures.findOne({ patentId, buyerId });
+    if (!nda && authReq.user!.role !== 'admin') {
+      return res.status(403).json({ message: 'Sign the NDA before requesting this listing. The invention stays hidden until then.' });
+    }
+
     const interests = await dbStore.interestRequests.find({ patentId, buyerId });
     if (interests.length === 0 && authReq.user!.role !== 'admin') {
       return res.status(400).json({ message: 'Express interest first to request patent access.' });
@@ -302,6 +327,11 @@ export async function createAccessRequest(req: Request, res: Response) {
       action: 'ACCESS_REQUESTED',
       details: `Buyer ${authReq.user!.name} requested access to patent ${patent.patentNumber} (${patent.title}).`
     });
+    try {
+      await recordMatchEvent({ userId: buyerId, patentId: String(patentId), event: 'enquire' });
+    } catch {
+      /* non-blocking */
+    }
 
     return res.status(201).json({
       message: 'Access request submitted successfully to the inventor.',
@@ -357,16 +387,19 @@ export async function getAccessRequests(req: Request, res: Response) {
     }
 
     const requests = await dbStore.accessRequests.find(filter);
+    const grants = role === 'buyer' ? await disclosureGrantsFor(userId) : null;
 
     // Enrich with Patent and Buyer details
     const enriched = [];
     for (const r of requests) {
       const p = await dbStore.patents.findById(r.patentId);
       const buyer = await dbStore.users.findById(r.buyerId);
+      const show = !grants || disclosedTo(p, userId, role, grants);
+      const analysis = show ? null : await dbStore.patentAnalysis.findOne({ patentId: String(r.patentId) });
       enriched.push({
         ...r,
-        patentTitle: p ? p.title : 'Deleted Patent',
-        patentNumber: p ? p.patentNumber : 'N/A',
+        patentTitle: show ? (p ? p.title : 'Removed listing') : listingName(p, analysis, false),
+        patentNumber: show && p ? p.patentNumber : undefined,
         buyerName: buyer ? buyer.name : 'Unknown Buyer',
         buyerEmail: buyer ? buyer.email : 'N/A',
         buyerOrganization: buyer?.organization || 'Independent'
@@ -398,6 +431,13 @@ export async function updateAccessRequestStatus(req: Request, res: Response) {
     // Security check: Make sure this owner is the recipient
     if (request.ownerId !== authReq.user!.id && authReq.user!.role !== 'admin') {
       return res.status(403).json({ message: 'Unauthorized. You do not own this patent.' });
+    }
+
+    if (status === 'approved') {
+      const nda = await dbStore.ndaSignatures.findOne({ patentId: request.patentId, buyerId: request.buyerId });
+      if (!nda) {
+        return res.status(409).json({ message: 'This buyer has not signed the NDA, so the listing cannot be opened.' });
+      }
     }
 
     const updated = await dbStore.accessRequests.update(id, { status });

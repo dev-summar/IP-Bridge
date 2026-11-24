@@ -4,9 +4,10 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { apiFetch } from '../hooks/useApi';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
-import { Handshake } from 'lucide-react';
-import { formatINR, inferAssetType } from '../constants/ip';
+import { ArrowRight, Handshake } from 'lucide-react';
+import { formatINR, inferAssetType, getDealProgress, DEAL_PROGRESS_STEPS } from '../constants/ip';
 import { Badge } from '../components/ui/Badge';
+import { cn } from '../utils/cn';
 
 interface DealsHubProps {
   completedOnly?: boolean;
@@ -30,7 +31,7 @@ export const DealsHub = ({ completedOnly = false }: DealsHubProps) => {
     .filter((o) => {
       const tx = transactions.find((t) => t.offerId === o._id);
       if (completedOnly) return tx?.status === 'completed' || o.status === 'completed';
-      return o.status === 'accepted' || o.status === 'pending' || tx;
+      return o.status === 'accepted' || o.status === 'pending' || o.status === 'countered' || tx;
     })
     .map((o) => ({
       ...o,
@@ -41,7 +42,7 @@ export const DealsHub = ({ completedOnly = false }: DealsHubProps) => {
     <div>
       <PageHeader
         title={completedOnly ? 'Completed Deals' : 'Active Deals'}
-        description={completedOnly ? 'Successfully closed IP transactions.' : 'Offers, negotiations, and escrow in progress.'}
+        description={completedOnly ? 'Successfully closed IP transactions.' : 'Follow each deal from NDA to transfer.'}
       />
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2">{[1, 2].map((i) => <CardSkeleton key={i} />)}</div>
@@ -55,25 +56,51 @@ export const DealsHub = ({ completedOnly = false }: DealsHubProps) => {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {items.map((deal) => (
-            <Link
-              key={deal._id}
-              to={`/dashboard/deals/${deal._id}`}
-              className="block p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-md hover:border-primary/20 transition-all text-left"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 line-clamp-2">{deal.patentTitle}</h3>
-                <Badge variant={deal.status === 'accepted' ? 'success' : 'warning'} className="shrink-0 text-[10px]">
-                  {deal.status}
-                </Badge>
-              </div>
-              <p className="text-lg font-bold mt-3">{formatINR(deal.price)}</p>
-              <Badge variant="indigo" className="mt-3 text-xs">{inferAssetType(deal)}</Badge>
-              {deal.tx && (
-                <p className="text-xs text-zinc-500 mt-2 capitalize">Escrow: {deal.tx.status.replace('_', ' ')}</p>
-              )}
-            </Link>
-          ))}
+          {items.map((deal) => {
+            const progress = getDealProgress({
+              ndaSigned: deal.ndaSigned,
+              accessStatus: deal.accessStatus,
+              meetingStatus: deal.meetingStatus,
+              offerStatus: deal.status,
+              txStatus: deal.tx?.status,
+            });
+            const stepCount = DEAL_PROGRESS_STEPS.length;
+            const filled = Math.min(stepCount, progress.currentIndex);
+            return (
+              <Link
+                key={deal._id}
+                to={`/dashboard/deals/${deal._id}`}
+                className="group block rounded-3xl border border-white/80 bg-white/90 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.45)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_48px_-24px_rgba(15,23,42,0.5)] dark:border-zinc-800 dark:bg-zinc-900"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="line-clamp-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{deal.patentTitle}</h3>
+                  <Badge variant={deal.status === 'accepted' ? 'success' : 'warning'} className="shrink-0 text-[10px]">
+                    {deal.status}
+                  </Badge>
+                </div>
+                <p className="mt-3 text-lg font-bold text-zinc-950 dark:text-white">{formatINR(deal.price)}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="indigo" className="text-xs">{inferAssetType(deal)}</Badge>
+                  <span className="text-xs font-medium text-primary">{progress.nextLabel}</span>
+                </div>
+                <div className="mt-4 flex items-center gap-1.5" aria-hidden>
+                  {DEAL_PROGRESS_STEPS.map((step, index) => (
+                    <span
+                      key={step.id}
+                      className={cn(
+                        'h-1.5 flex-1 rounded-full',
+                        index < filled ? 'bg-emerald-500' : index === filled && !progress.complete ? 'bg-primary' : 'bg-zinc-200 dark:bg-zinc-700',
+                      )}
+                    />
+                  ))}
+                </div>
+                <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-zinc-500 group-hover:text-primary">
+                  Open deal room
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </p>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

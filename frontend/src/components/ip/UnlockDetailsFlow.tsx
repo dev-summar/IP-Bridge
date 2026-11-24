@@ -82,8 +82,8 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
   }, [isOpen, patentId, initialForm]);
 
   const validateOrg = () => {
-    if (!form.name.trim() || !form.organization.trim() || !form.email.trim() || !form.message.trim()) {
-      alert('Please complete all organization fields.');
+    if (!form.name.trim() || !form.organization.trim() || !form.email.trim()) {
+      alert('Please fill name, organization, and work email.');
       return false;
     }
     return true;
@@ -159,9 +159,10 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1.5">Message</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+                  Message <span className="font-normal text-zinc-400">(optional)</span>
+                </label>
                 <textarea
-                  required
                   rows={3}
                   value={form.message}
                   onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
@@ -181,8 +182,8 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
               <div className="flex items-start gap-3 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
                 <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <div className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  <strong className="text-zinc-900 dark:text-zinc-100">Mutual NDA</strong> for &ldquo;{patentTitle || 'this IP asset'}&rdquo;.
-                  Between {ownerName || 'Inventor'} ({ownerOrganization || 'Institution'}) and {buyerName || form.name} ({buyerOrganization || form.organization}).
+                  <strong className="text-zinc-900 dark:text-zinc-100">NDA</strong> for this listing.
+                  Between the inventor and {buyerName || form.name} ({buyerOrganization || form.organization}). The inventor’s name is shared after access is approved.
                 </div>
               </div>
 
@@ -210,7 +211,7 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
                 </div>
                 <p><span className="text-zinc-500">Organization:</span> {form.organization}</p>
                 <p><span className="text-zinc-500">Purpose:</span> {form.purpose}</p>
-                <p><span className="text-zinc-500">Patent ref:</span> {patentNumber || '—'}</p>
+                {patentNumber && patentNumber !== 'Restricted' ? <p><span className="text-zinc-500">Patent ref:</span> {patentNumber}</p> : null}
                 <p className="text-zinc-500 text-xs leading-relaxed pt-2">
                   Submitting sends your unlock request to the inventor. You&apos;ll get full executive summary, commercial analysis, and documents once approved.
                 </p>

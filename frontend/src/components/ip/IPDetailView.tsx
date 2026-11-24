@@ -27,7 +27,7 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from 'recharts';
-import { inferAssetType, formatINR, getTRLShortLabel, getTRLDescription } from '../../constants/ip';
+import { inferAssetType, formatINR, formatIndicativeBand, getTRLShortLabel, getTRLDescription } from '../../constants/ip';
 import { getCommercialPotentialLabel, getCommercialBreakdown } from '../../utils/patentAnalysis';
 import { cn } from '../../utils/cn';
 import { contentSwap, transition } from '../../utils/motion';
@@ -113,7 +113,15 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
   const industries: string[] = analysis?.industryClassification?.slice(0, 3) ?? [];
   const cardClass = 'rounded-2xl border border-slate-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900';
   const actionClass = 'w-full gap-2 rounded-xl bg-blue-600 px-5 py-3 text-[14px] text-white shadow-none hover:bg-blue-700';
-  const accessState = accessPending ? 'Approval pending' : accessRejected ? 'Access declined' : isUnlocked ? viewerLabel || 'Full access' : 'NDA required';
+  const accessState = accessPending ? 'Approval pending' : accessRejected ? 'Access declined' : isUnlocked ? viewerLabel || 'Full access' : 'Preview';
+  const publicLines: string[] = Array.isArray(patent.publicLines) && patent.publicLines.length
+    ? patent.publicLines.slice(0, 3)
+    : [
+        'This technology is listed for evaluation.',
+        'Commercial score and indicative value are shown here.',
+        'Invention and inventor are shared after an NDA.',
+      ];
+  const licenseOnly = patent.isForLicense && !patent.isForSale;
 
   const unlockCta = accessPending ? (
     <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
@@ -138,8 +146,8 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
     <section className={`${cardClass} overflow-hidden`} aria-labelledby="profile-access-heading">
       <div className="border-b border-blue-100 bg-blue-50/60 px-5 py-6 sm:px-7 dark:border-zinc-800 dark:bg-blue-950/20">
         <span className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-white text-blue-600 dark:border-blue-900 dark:bg-zinc-900 dark:text-blue-400"><Lock className="h-5 w-5" /></span>
-        <h2 id="profile-access-heading" className="text-[20px] font-semibold tracking-tight text-slate-900 dark:text-white">Explore the full opportunity</h2>
-        <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-slate-600 dark:text-zinc-400">Full profile requires NDA approval. Access the information you need to evaluate this IP after inventor review.</p>
+        <h2 id="profile-access-heading" className="text-[20px] font-semibold tracking-tight text-slate-900 dark:text-white">Read the full listing</h2>
+        <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-slate-600 dark:text-zinc-400">Sign an NDA and wait for the inventor to approve access. Until then the invention, inventor, and documents stay hidden.</p>
       </div>
       <div className="px-5 py-6 sm:px-7">
         <div className="grid gap-5 sm:grid-cols-3">
@@ -173,15 +181,16 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
     <aside aria-label="Opportunity details and actions" className="min-w-0 space-y-4 lg:sticky lg:top-24">
       <section className={`${cardClass} p-5 sm:p-6`} aria-labelledby="opportunity-heading">
         <h2 id="opportunity-heading" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-zinc-400">Opportunity at a glance</h2>
-        <p className="mt-5 text-[12px] text-slate-500 dark:text-zinc-400">Asking price</p>
-        <p className={cn('mt-1 break-words font-semibold tracking-tight text-slate-900 dark:text-white', patent.askingPrice ? 'text-[30px] leading-tight' : 'text-[22px]')}>{formatINR(patent.askingPrice)}</p>
+        <p className="mt-5 text-[12px] text-slate-500 dark:text-zinc-400">{isUnlocked ? 'Asking price' : licenseOnly ? 'Indicative license' : 'Indicative value'}</p>
+        <p className={cn('mt-1 break-words font-semibold tracking-tight text-slate-900 dark:text-white', isUnlocked && patent.askingPrice ? 'text-[30px] leading-tight' : 'text-[22px]')}>{isUnlocked ? formatINR(patent.askingPrice) : licenseOnly && patent.indicativeValue?.licenseAnnual ? `${formatINR(patent.indicativeValue.licenseAnnual)} / year` : formatIndicativeBand(patent.indicativeValue)}</p>
+        {!isUnlocked && patent.indicativeValue?.licenseAnnual && !licenseOnly && <p className="mt-2 text-[12px] text-slate-500 dark:text-zinc-400">License about {formatINR(patent.indicativeValue.licenseAnnual)} / year</p>}
         <div className="mt-3 flex flex-wrap gap-2">
           {patent.isForLicense && <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"><Handshake className="h-3.5 w-3.5" />Licensing</span>}
           {patent.isForSale && <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-zinc-800 dark:text-zinc-300"><Layers3 className="h-3.5 w-3.5" />Acquisition</span>}
         </div>
         <div className={cn('mt-6', !isUnlocked && 'fixed inset-x-0 bottom-0 z-30 mt-0 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-900/95 lg:static lg:mt-6 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:lg:bg-transparent')}>
           {!isUnlocked ? unlockCta : (patent.isForSale || patent.isForLicense) ? <Button className={actionClass} onClick={onMakeOffer}>Make offer<ArrowRight className="h-4 w-4" /></Button> : null}
-          {!isUnlocked && !accessPending && !accessRejected && <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400"><Lock className="h-3 w-3" />NDA and inventor approval required</p>}
+          {!isUnlocked && !accessPending && !accessRejected && <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400"><Lock className="h-3 w-3" />Sign an NDA to continue</p>}
         </div>
       </section>
       <section className={`${cardClass} p-5 sm:p-6`} aria-label="AI commercial assessment">
@@ -194,7 +203,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
             </svg>
             <span className="absolute inset-0 flex items-center justify-center text-[20px] font-semibold tabular-nums text-slate-900 dark:text-white">{hasScore ? score : '—'}</span>
           </div>
-          <div><p className="text-[13px] font-semibold leading-snug text-slate-800 dark:text-zinc-100">{hasScore ? getCommercialPotentialLabel(score) : 'Not assessed'}</p><p className="mt-1 text-[11px] text-slate-500 dark:text-zinc-400">{hasScore ? 'AI estimate · scored out of 100' : 'No assessment is available yet'}</p></div>
+          <div><p className="text-[13px] font-semibold leading-snug text-slate-800 dark:text-zinc-100">{hasScore ? getCommercialPotentialLabel(score) : 'Not assessed'}</p><p className="mt-1 text-[11px] text-slate-500 dark:text-zinc-400">{hasScore ? 'Scored from market, readiness, and IP strength' : 'No assessment is available yet'}</p>{analysis?.commercialBreakdown && <p className="mt-2 text-[11px] leading-relaxed text-slate-500 dark:text-zinc-400">Market {Math.round(analysis.commercialBreakdown.marketDemand)} · IP {Math.round(analysis.commercialBreakdown.ipProtection)} · Readiness {Math.round(analysis.commercialBreakdown.implementationSpeed)}</p>}{isUnlocked && analysis?.scoreRationale && <p className="mt-2 text-[12px] leading-relaxed text-slate-600 dark:text-zinc-300">{analysis.scoreRationale}</p>}</div>
         </div>
         {isUnlocked && analysis?.commercialBreakdown && <div className="mt-5 h-44 border-t border-slate-100 pt-4 dark:border-zinc-800"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}><PolarGrid stroke="rgba(113,113,122,0.12)" /><PolarAngleAxis dataKey="subject" tick={{ fill: '#71717a', fontSize: 9 }} /><PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} /><Radar dataKey="value" stroke="#4a90e2" fill="#4a90e2" fillOpacity={0.15} /></RadarChart></ResponsiveContainer></div>}
       </section>
@@ -202,9 +211,9 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-zinc-400">Listing details</h2>
         <dl className="mt-2">
           <MetaRow label="IP type" value={assetType} />
-          <MetaRow label="Inventor" value={patent.ownerName || 'Not provided'} />
-          <MetaRow label="Institution" value={patent.ownerOrganization || 'Independent'} />
-          <MetaRow label="Reference" value={<span className="font-mono text-[11px]">{!isUnlocked ? <span className="inline-flex items-center gap-1 text-slate-400"><Lock className="h-3 w-3" />Private</span> : patent.patentNumber || 'Not provided'}</span>} />
+          {isUnlocked && <MetaRow label="Inventor" value={patent.ownerName || 'Not provided'} />}
+          {isUnlocked && <MetaRow label="Institution" value={patent.ownerOrganization || 'Independent'} />}
+          {isUnlocked && <MetaRow label="Reference" value={<span className="font-mono text-[11px]">{patent.patentNumber || 'Not provided'}</span>} />}
         </dl>
         {isUnlocked && (
           <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 dark:border-zinc-800">
@@ -221,9 +230,11 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
       return (
         <div className="space-y-5">
           <section className={`${cardClass} p-5 sm:p-7`} aria-labelledby="technology-overview-heading">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-zinc-500">Public preview</p>
-            <h2 id="technology-overview-heading" className="text-[18px] font-semibold text-slate-900 dark:text-white">Technology overview</h2>
-            <p className="mt-3 text-[15px] leading-[1.85] text-slate-600 dark:text-zinc-300">{patent.abstract || 'The inventor has not provided a public summary yet.'}</p>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-zinc-500">Overview</p>
+            <h2 id="technology-overview-heading" className="text-[18px] font-semibold text-slate-900 dark:text-white">About this listing</h2>
+            <div className="mt-3 space-y-2">
+              {publicLines.map((line) => <p key={line} className="text-[15px] leading-relaxed text-slate-600 dark:text-zinc-300">{line}</p>)}
+            </div>
           </section>
           {lockedBanner}
         </div>
@@ -411,7 +422,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
           {industries.map(industry => <span key={industry} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] text-slate-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">{industry}</span>)}
           {trl && <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] text-slate-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300" title={getTRLDescription(trl)}>{getTRLShortLabel(trl)}</span>}
         </div>
-        <p className="mt-4 inline-flex items-center gap-2 text-[13px] text-slate-500 dark:text-zinc-400"><Building className="h-4 w-4 text-slate-400" />{patent.ownerOrganization || 'Independent inventor'}</p>
+        {isUnlocked && <p className="mt-4 inline-flex items-center gap-2 text-[13px] text-slate-500 dark:text-zinc-400"><Building className="h-4 w-4 text-slate-400" />{patent.ownerOrganization || 'Independent inventor'}</p>}
       </header>
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-7">
         <div className="min-w-0 space-y-5">

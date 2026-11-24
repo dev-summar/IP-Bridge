@@ -12,6 +12,7 @@ import {
   getFeaturedPatents,
   recordSearch,
   getMySearches,
+  createMatchEvent,
   getPricingGuidance,
   submitReadinessAssessment,
   refreshCommercialPotential,
@@ -71,6 +72,7 @@ router.post('/patents/:id/commercial-potential', authenticateToken, authorizeRol
 // Search history (personalized Discover)
 router.post('/searches', authenticateToken, recordSearch);
 router.get('/searches/mine', authenticateToken, getMySearches);
+router.post('/match-events', authenticateToken, createMatchEvent);
 
 // ==========================================
 // lead / meeting System Routes

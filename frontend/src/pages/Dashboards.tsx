@@ -1707,14 +1707,14 @@ export const BookmarksManager = ({ embedded }: ManagerProps = {}) => {
               <CardContent className="p-5 flex flex-col justify-between h-44">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-mono text-zinc-400">{b.patentNumber}</span>
+                    {b.detailsVisible && b.patentNumber ? <span className="text-[10px] font-mono text-zinc-400">{b.patentNumber}</span> : <span />}
                     <Badge variant="indigo" className="text-[9px] py-0">{b.analysis?.industryClassification?.[0]}</Badge>
                   </div>
                   <h4 className="font-bold text-zinc-950 dark:text-zinc-100 text-xs sm:text-sm line-clamp-2 leading-snug">
                     {b.title}
                   </h4>
                   <p className="mt-1 text-xs text-primary">{inferAssetType(b)}</p>
-                  <p className="text-zinc-400 text-[10px] mt-1">Affiliation: {b.ownerOrganization}</p>
+                  {b.detailsVisible && b.ownerOrganization ? <p className="text-zinc-400 text-[10px] mt-1">Affiliation: {b.ownerOrganization}</p> : null}
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2">
@@ -1865,7 +1865,16 @@ export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
   const { user } = useAuthStore();
   const [meetings, setMeetings] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [activeVideoCallId, setActiveVideoCallId] = React.useState<string | null>(null);
+  const openMeetingCall = (meeting: { _id: string; videoCallLink?: string }) => {
+    const base =
+      meeting.videoCallLink ||
+      `https://meet.jit.si/PatentBridge-Meeting-${meeting._id}`;
+    const displayName = encodeURIComponent(user?.name || 'IPBridge User');
+    const url = base.includes('#')
+      ? base
+      : `${base}#userInfo.displayName="${displayName}"`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const fetchMeetings = React.useCallback(async () => {
     try {
@@ -1937,7 +1946,7 @@ export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
                   </td>
                   <td className="p-4 font-mono font-medium text-zinc-800 dark:text-zinc-300">
                     {m.preferredDate} <br />
-                    <span className="text-[10px] text-zinc-400">{m.preferredTime} UTC</span>
+                    <span className="text-[10px] text-zinc-400">{m.preferredTime}</span>
                   </td>
                   <td className="p-4 max-w-xs truncate font-sans">
                     {m.notes || 'N/A'}
@@ -1951,11 +1960,11 @@ export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
                     {m.status === 'accepted' ? (
                       <Button 
                         size="sm" 
-                        onClick={() => setActiveVideoCallId(m._id)} 
+                        onClick={() => openMeetingCall(m)} 
                         className="text-xs px-2.5 py-1 bg-lvx-blue hover:bg-lvx-blue-hover text-white font-bold rounded flex items-center gap-1.5 ml-auto"
                       >
                         <Activity className="h-3 w-3 animate-pulse text-emerald-400" />
-                        Join Video Call
+                        Join video call
                       </Button>
                     ) : user?.role === 'owner' && m.status === 'pending' ? (
                       <div className="flex items-center justify-end gap-1.5">
@@ -1979,39 +1988,6 @@ export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
         </Card>
       )}
 
-      {/* Video Call Modal */}
-      <Dialog
-        isOpen={!!activeVideoCallId}
-        onClose={() => setActiveVideoCallId(null)}
-        title="IPBridge Secure Video Conference"
-      >
-        <div className="space-y-4 text-xs text-left">
-          <div className="bg-lvx-navy text-white p-3.5 rounded-lg flex items-center justify-between">
-            <div>
-              <h4 className="font-bold text-xs uppercase">Confidential Video Conference Room</h4>
-              <p className="text-[9px] text-white/70 mt-0.5 font-medium">Fully secure and private commercial negotiation channel</p>
-            </div>
-            <Badge variant="success" className="py-0.5 bg-emerald-500 border-0 font-bold uppercase tracking-label text-[9px]">Live</Badge>
-          </div>
-
-          <div className="bg-zinc-950 rounded-lg overflow-hidden border border-zinc-800" style={{ height: '420px' }}>
-            {activeVideoCallId && (
-              <iframe
-                src={`https://meet.jit.si/PatentBridge-Meeting-${activeVideoCallId}#userInfo.displayName="${user?.name || 'User'}"`}
-                style={{ border: 0, width: '100%', height: '100%' }}
-                allow="camera; microphone; fullscreen; display-capture; autoplay"
-                title="Virtual Meeting Space"
-              />
-            )}
-          </div>
-
-          <div className="flex justify-end pt-1">
-            <Button onClick={() => setActiveVideoCallId(null)} className="bg-red-600 hover:bg-red-500 text-white font-bold text-xs border-0 rounded-lg px-4 py-2">
-              Leave Conference
-            </Button>
-          </div>
-        </div>
-      </Dialog>
     </div>
   );
 };

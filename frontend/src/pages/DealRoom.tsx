@@ -2,12 +2,12 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
 import { ProgressSteps } from '../components/ui/ProgressSteps';
-import { DEAL_PROGRESS_STEPS } from '../constants/ip';
+import { DEAL_PROGRESS_STEPS, getDealProgress } from '../constants/ip';
 import { apiFetch } from '../hooks/useApi';
 import { Button } from '../components/ui/Button';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import { cn } from '../utils/cn';
-import { ArrowLeft, FileText, Handshake, Layers, Lock, ScrollText, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileText, Handshake, Layers, Lock, ScrollText, CheckCircle2 } from 'lucide-react';
 import { NegotiationsManager, EscrowManager } from './Dashboards';
 import { formatINR, inferAssetType } from '../constants/ip';
 
@@ -21,6 +21,14 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
+
+function nextTabForProgress(index: number): TabId {
+  if (index <= 1) return 'documents';
+  if (index === 2) return 'overview';
+  if (index === 3) return 'negotiation';
+  if (index >= 4) return 'escrow';
+  return 'overview';
+}
 
 export const DealRoom = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +52,13 @@ export const DealRoom = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const progressIndex = tx?.status === 'completed' ? 6 : tx?.status === 'escrow_funded' ? 4 : offer?.status === 'accepted' ? 3 : 1;
+  const progress = getDealProgress({
+    ndaSigned: offer?.ndaSigned,
+    accessStatus: offer?.accessStatus,
+    meetingStatus: offer?.meetingStatus,
+    offerStatus: offer?.status,
+    txStatus: tx?.status,
+  });
 
   if (loading) {
     return (
@@ -64,12 +78,36 @@ export const DealRoom = () => {
 
       <PageHeader
         title={offer?.patentTitle || 'Deal Room'}
-        description="Central workspace for documents, negotiation, milestones, and escrow."
+        description="One path from NDA to transfer — documents, negotiation, milestones, and escrow."
       />
       {offer && <p className="text-sm font-medium text-primary">IP type: {inferAssetType(offer)}</p>}
 
-      <div className="overflow-x-auto pb-2 -mx-1 px-1">
-        <div className="flex gap-1 min-w-max border-b border-zinc-200 dark:border-zinc-800">
+      <section className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.4)] dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Deal path</p>
+            <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{progress.nextLabel}</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{progress.nextHint}</p>
+          </div>
+          {!progress.complete && (
+            <button
+              type="button"
+              onClick={() => setTab(nextTabForProgress(progress.currentIndex))}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-[#2f6fbf] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25"
+            >
+              Continue
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <ProgressSteps
+          steps={DEAL_PROGRESS_STEPS.map((s) => ({ id: s.id, label: s.label }))}
+          currentIndex={progress.currentIndex}
+        />
+      </section>
+
+      <div className="overflow-x-auto -mx-1 px-1 pb-2">
+        <div className="flex min-w-max gap-1 border-b border-zinc-200 dark:border-zinc-800">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -78,9 +116,9 @@ export const DealRoom = () => {
                 type="button"
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors rounded-t-lg',
+                  'flex items-center gap-2 rounded-t-lg border-b-2 px-4 py-2.5 text-sm font-medium transition-colors -mb-px',
                   tab === t.id
-                    ? 'border-primary text-primary bg-primary/5'
+                    ? 'border-primary bg-primary/5 text-primary'
                     : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                 )}
               >
@@ -93,43 +131,47 @@ export const DealRoom = () => {
       </div>
 
       {tab === 'overview' && (
-        <div className="space-y-8">
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-            <ProgressSteps
-              steps={DEAL_PROGRESS_STEPS.map((s) => ({ id: s.id, label: s.label }))}
-              currentIndex={progressIndex}
-            />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 bg-white dark:bg-zinc-900">
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Offer status</p>
-              <p className="text-lg font-semibold mt-1 capitalize text-zinc-900 dark:text-white">{offer?.status || '—'}</p>
-              {offer?.price != null && (
-                <p className="text-sm text-zinc-500 mt-2">Value: {formatINR(offer.price)}</p>
-              )}
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Offer</p>
+              <p className="mt-1 text-lg font-semibold capitalize text-zinc-900 dark:text-white">{offer?.status || '—'}</p>
+              {offer?.price != null && <p className="mt-2 text-sm text-zinc-500">Value: {formatINR(offer.price)}</p>}
             </div>
-            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 bg-white dark:bg-zinc-900">
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Escrow</p>
-              <p className="text-lg font-semibold mt-1 capitalize text-zinc-900 dark:text-white">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Access</p>
+              <p className="mt-1 text-lg font-semibold capitalize text-zinc-900 dark:text-white">
+                {offer?.accessStatus || (offer?.ndaSigned ? 'NDA signed' : 'NDA pending')}
+              </p>
+              <p className="mt-2 text-sm text-zinc-500 capitalize">Meeting: {offer?.meetingStatus || 'not requested'}</p>
+            </div>
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Escrow</p>
+              <p className="mt-1 text-lg font-semibold capitalize text-zinc-900 dark:text-white">
                 {tx?.status?.replace(/_/g, ' ') || 'Not funded'}
               </p>
             </div>
           </div>
           {tx?.status === 'completed' && (
-            <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/10 p-6 flex items-center gap-3">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500 shrink-0" />
+            <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 dark:border-emerald-900/30 dark:bg-emerald-950/10">
+              <CheckCircle2 className="h-8 w-8 shrink-0 text-emerald-500" />
               <div>
                 <p className="font-semibold text-emerald-800 dark:text-emerald-300">Deal completed</p>
-                <p className="text-sm text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">Download the assignment deed from the Escrow tab.</p>
+                <p className="mt-0.5 text-sm text-emerald-700/80 dark:text-emerald-400/80">Download the assignment deed from the Escrow tab.</p>
               </div>
             </div>
+          )}
+          {offer?.patentId && (
+            <Link to={`/marketplace/${offer.patentId}`} className="inline-flex text-sm font-semibold text-primary hover:underline">
+              Open IP profile
+            </Link>
           )}
         </div>
       )}
 
       {tab === 'documents' && (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center text-sm text-zinc-500">
-          NDA, agreements, and supporting files are managed in the negotiation and IP profile flows.
+        <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+          NDA, agreements, and supporting files live on the IP profile until escrow closes.
           <div className="mt-4">
             {offer?.patentId && (
               <Link to={`/marketplace/${offer.patentId}`}>
@@ -144,9 +186,9 @@ export const DealRoom = () => {
       {tab === 'milestones' && <EscrowManager embedded />}
       {tab === 'escrow' && <EscrowManager embedded />}
       {tab === 'assignment' && (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
           {tx?.status === 'completed' ? (
-            <p className="text-sm text-emerald-600 font-medium">Transfer complete — download the assignment deed from Escrow.</p>
+            <p className="text-sm font-medium text-emerald-600">Transfer complete — download the assignment deed from Escrow.</p>
           ) : (
             <p className="text-sm text-zinc-500">Assignment deed is available after all milestones are released.</p>
           )}

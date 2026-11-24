@@ -24,9 +24,9 @@ export const BUYER_NAV = [
 export const INVENTOR_NAV = [
   { label: 'Dashboard', path: '/dashboard', icon: Home },
   { label: 'My IP Assets', path: '/dashboard/assets', icon: FolderKanban },
+  { label: 'Deals', path: '/dashboard/negotiations', icon: Handshake },
   { label: 'Access Requests', path: '/dashboard/access-requests', icon: Lock },
   { label: 'Meetings', path: '/dashboard/meetings', icon: Calendar },
-  { label: 'Active Negotiations', path: '/dashboard/negotiations', icon: Handshake },
   { label: 'Revenue', path: '/dashboard/revenue', icon: TrendingUp },
   { label: 'Profile', path: '/dashboard/profile', icon: UserCircle },
 ];

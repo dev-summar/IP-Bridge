@@ -13,6 +13,8 @@ import {
   estimateIPPricing,
   ratePrototypeReadiness,
 } from '../services/aiParser';
+import { disclosureGrantsFor, enrichPatentForViewer } from '../services/disclosure';
+import { loadBuyerFeedback, recordMatchEvent } from '../services/matchFeedback';
 
 async function decodeOptionalUser(req: Request): Promise<{ userId: string; userRole: string }> {
   let userId = '';
@@ -34,73 +36,19 @@ async function enrichMasked(
   p: any,
   analysis: any | null,
   userId: string,
-  userRole: string
+  userRole: string,
+  grants?: { signed: Set<string>; accessStatus: Map<string, string> }
 ) {
-  const owner = await dbStore.users.findById(p.ownerId);
-  let hasAccess = false;
-  if (userId && (p.ownerId === userId || userRole === 'admin')) {
-    hasAccess = true;
-  } else if (userId) {
-    const request = await dbStore.accessRequests.findOne({
-      patentId: String(p._id),
-      buyerId: userId,
-    });
-    hasAccess = request?.status === 'approved';
-  }
-
-  const base: any = {
-    ...p,
-    ownerName: owner ? owner.name : 'Unknown Owner',
-    ownerOrganization: owner ? owner.organization : 'N/A',
-  };
-  base.accessStatus = hasAccess ? 'approved' : 'none';
-  if (userRole !== 'admin' && String(p.ownerId) !== userId) {
-    delete base.reviewHistory;
-    delete base.grantReviewedBy;
-    delete base.grantReviewedPdfUrl;
-  }
-
-  if (hasAccess) {
-    base.analysis = analysis
-      ? { ...analysis, patentId: String(p._id) }
-      : null;
-    return base;
-  }
-
-  const domainText = (analysis?.industryClassification?.[0] || 'Technology').trim();
-  base.title = `Confidential ${domainText} Innovation`;
-  base.patentNumber = 'Restricted';
-  const rawDesc = analysis?.summary?.description || p.abstract || '';
-  const cleanDescription = rawDesc
-    .replace(/\s*\(\d+[-a-zA-Z0-9]*\)/g, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-  base.abstract =
-    cleanDescription.length > 150
-      ? cleanDescription.substring(0, 150) + '...'
-      : cleanDescription;
-  base.pdfUrl = undefined;
-  base.analysis = {
-    patentId: String(p._id),
-    summary: {
-      description: cleanDescription,
-      problemSolved: 'Locked. Request access to unlock.',
-      commercialValue: 'Locked. Request access to unlock.',
-      keyInnovation: 'Locked. Request access to unlock.',
-    },
-    industryClassification: analysis?.industryClassification || ['Technology'],
-    keywords: [],
-    commercialApplications: {
-      potentialIndustries: [],
-      useCases: [],
-      adoptionOpportunities: [],
-    },
-    commercialPotentialScore: analysis?.commercialPotentialScore ?? null,
-    commercialBreakdown: analysis?.commercialBreakdown || null,
-    pricingGuidance: null,
-    readinessAssessment: null,
-  };
-  return base;
+  const id = String(p._id);
+  const status = grants?.accessStatus.get(id);
+  return enrichPatentForViewer(p, userId, userRole, {
+    analysis,
+    accessKnown: !!grants,
+    accessRequest: status ? { status } : null,
+    ndaKnown: !!grants,
+    ndaSigned: grants?.signed.has(id) || false,
+    relationsLoaded: !!grants,
+  });
 }
 
 /**
@@ -128,6 +76,8 @@ export async function getFeaturedPatents(req: Request, res: Response) {
     let engagedPatentIds: string[] = [];
     let weightedSearches: WeightedSearch[] = [];
     let learnedInterests: string[] = [];
+    let ignoredPatentIds: string[] = [];
+    let openedWithoutEngageIds: string[] = [];
 
     if (userId) {
       const user = await dbStore.users.findById(userId);
@@ -136,6 +86,9 @@ export async function getFeaturedPatents(req: Request, res: Response) {
         domains = user.domains || [];
         savedPatentIds = (user.savedPatents || []).map(String);
       }
+      const feedback = await loadBuyerFeedback(userId);
+      ignoredPatentIds = feedback.ignoredPatentIds;
+      openedWithoutEngageIds = feedback.openedWithoutEngageIds;
 
       const history = await dbStore.searchHistory.find({ userId }, { limit: 40 });
       pastSearchQueries = history.map((h: any) => h.query).filter(Boolean);
@@ -205,13 +158,25 @@ export async function getFeaturedPatents(req: Request, res: Response) {
       affinityIndustries,
       affinityKeywords,
       engagedPatentIds,
+      ignoredPatentIds,
+      openedWithoutEngageIds,
     };
 
+    const grants = await disclosureGrantsFor(userId);
     const ranked = rankFeaturedPatents(patents, analysisMap, profile, Math.max(limit, 18));
     const rails = buildFeaturedRails(ranked, profile);
+    const personalized = !!(
+      userId &&
+      (interests.length ||
+        domains.length ||
+        pastSearchQueries.length ||
+        savedPatentIds.length ||
+        engagedPatentIds.length)
+    );
 
     const enrichRow = async (row: (typeof ranked)[0]) => {
-      const enriched = await enrichMasked(row.patent, row.analysis, userId, userRole);
+      const enriched = await enrichMasked(row.patent, row.analysis, userId, userRole, grants);
+      if (!personalized) return { ...enriched, featured: true };
       return {
         ...enriched,
         matchPercentage: row.matchPercentage,
@@ -233,15 +198,6 @@ export async function getFeaturedPatents(req: Request, res: Response) {
       for (const row of rows) out.push(await enrichRow(row));
       return out;
     };
-
-    const personalized = !!(
-      userId &&
-      (interests.length ||
-        domains.length ||
-        pastSearchQueries.length ||
-        savedPatentIds.length ||
-        engagedPatentIds.length)
-    );
 
     return res.json({
       personalized,
@@ -317,6 +273,32 @@ export async function getMySearches(req: Request, res: Response) {
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ message: 'Failed to fetch searches.', error: error.message });
+  }
+}
+
+/** POST /api/match-events — open / save / enquire / ignore feedback for ranking */
+export async function createMatchEvent(req: Request, res: Response) {
+  try {
+    const authReq = req as IAuthRequest;
+    const event = String(req.body?.event || '').toLowerCase();
+    const patentId = String(req.body?.patentId || req.params.id || '').trim();
+    const query = typeof req.body?.query === 'string' ? req.body.query : undefined;
+    if (!['open', 'save', 'enquire', 'ignore'].includes(event)) {
+      return res.status(400).json({ message: 'event must be open, save, enquire, or ignore.' });
+    }
+    if (!patentId) return res.status(400).json({ message: 'patentId is required.' });
+    const patent = await dbStore.patents.findById(patentId);
+    if (!patent) return res.status(404).json({ message: 'Patent not found.' });
+
+    await recordMatchEvent({
+      userId: authReq.user!.id,
+      patentId,
+      event: event as 'open' | 'save' | 'enquire' | 'ignore',
+      query,
+    });
+    return res.status(201).json({ ok: true });
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Failed to record match event.', error: error.message });
   }
 }
 

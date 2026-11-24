@@ -153,6 +153,16 @@ export const PatentDetail = () => {
     fetchPatentDetails();
   }, [isInitialized, fetchPatentDetails]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !id || !patent) return;
+    apiFetch('/api/match-events', {
+      method: 'POST',
+      body: JSON.stringify({ patentId: id, event: 'open' }),
+    }).catch(() => {
+      /* non-blocking */
+    });
+  }, [isAuthenticated, id, patent?._id]);
+
   // Submit Access Request
   const handleSendAccessRequest = async () => {
     if (!isAuthenticated) {
@@ -337,7 +347,7 @@ export const PatentDetail = () => {
         >
         <IPDetailView
           patent={patent}
-          isUnlocked={patent.accessStatus === 'approved'}
+          isUnlocked={patent.detailsVisible === true}
           viewerLabel={user?.id === patent.ownerId ? 'Your listing' : undefined}
           score={score}
           readiness={readiness}
@@ -365,6 +375,7 @@ export const PatentDetail = () => {
           }}
           onMakeOffer={() => {
             if (!isAuthenticated) { navigate('/auth'); return; }
+            // Soft gate: suggest a meeting if none booked yet; offer still allowed after unlock.
             if (!patent.hasMeetingDone) {
               setIsMeetingRequiredOpen(true);
               return;
@@ -608,10 +619,10 @@ export const PatentDetail = () => {
             <div className="max-h-56 overflow-y-auto bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-4 text-[11px] leading-relaxed text-zinc-700 dark:text-zinc-300 rounded-lg shadow-inner text-justify select-none">
               <h4 className="text-center font-bold text-xs text-zinc-800 dark:text-zinc-200 mb-4 uppercase">MUTUAL NON-DISCLOSURE AGREEMENT</h4>
               <p className="mb-3">
-                This Mutual Non-Disclosure Agreement (the "Agreement") is made and entered into between the Disclosing Party (Inventor: <strong>{patent?.ownerName}</strong>, affiliated with <strong>{patent?.ownerOrganization || "Independent"}</strong>) and the Receiving Party (Acquirer: <strong>{user?.name}</strong>, representing <strong>{user?.organization || "Independent"}</strong>).
+                This agreement is between the inventor of this listing and <strong>{user?.name}</strong>{user?.organization ? <> ({user.organization})</> : null}. The inventor’s name and the filing reference are shared after you accept and the inventor approves access.
               </p>
               <p className="mb-3">
-                <strong>1. Scope of Disclosure:</strong> The Disclosing Party owns and has registered proprietary technologies, including Patent Number <strong>{patent?.patentNumber}</strong> (titled <em>"{patent?.title}"</em>). For the purpose of exploring potential licensing or assignment deals, the Disclosing Party may share confidential legal claims, research reports, or system metrics.
+                <strong>1. Scope:</strong> The inventor may later share the technical description, documents, and commercial terms for this listing so you can evaluate licensing or acquisition.
               </p>
               <p className="mb-3">
                 <strong>2. Standard of Confidentiality:</strong> The Receiving Party agrees to maintain the strict confidentiality of all proprietary materials. Information disclosed under this agreement shall be protected using no less than a reasonable standard of care, and shall not be shared with outside third-parties without the explicit written signature of the Disclosing Party.
@@ -635,46 +646,40 @@ export const PatentDetail = () => {
       <Dialog
         isOpen={isMeetingRequiredOpen}
         onClose={() => setIsMeetingRequiredOpen(false)}
-        title="Meeting Required"
+        title="Meeting recommended"
       >
         <div className="space-y-5 text-left">
-          <div className="flex items-start gap-3.5 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
-              <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-start gap-3.5 p-4 rounded-xl bg-sky-50 dark:bg-sky-950/20 border border-sky-200/80 dark:border-sky-900/40">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center">
+              <Calendar className="h-5 w-5 text-sky-600 dark:text-sky-400" />
             </div>
             <div className="space-y-1">
               <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                Schedule a meeting before making an offer
+                A quick call helps both sides align
               </p>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                To protect both parties, acquisition and licensing proposals unlock only after an exploratory call with the inventor is accepted.
+                Booking a meeting is recommended before commercial talks, but you can submit an offer now if you already know the terms.
               </p>
             </div>
           </div>
-
-          <ol className="space-y-2.5 text-xs text-zinc-600 dark:text-zinc-400">
-            <li className="flex items-start gap-2.5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lvx-blue/10 text-[10px] font-bold text-lvx-blue">1</span>
-              <span>Book an exploratory meeting with the inventor</span>
-            </li>
-            <li className="flex items-start gap-2.5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lvx-blue/10 text-[10px] font-bold text-lvx-blue">2</span>
-              <span>Wait for the inventor to accept the meeting invite</span>
-            </li>
-            <li className="flex items-start gap-2.5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lvx-blue/10 text-[10px] font-bold text-lvx-blue">3</span>
-              <span>Submit your acquisition or licensing offer</span>
-            </li>
-          </ol>
 
           <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-1">
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setIsMeetingRequiredOpen(false)}
+              onClick={() => {
+                setIsMeetingRequiredOpen(false);
+                if (user?.role === 'buyer' && !isNdaSigned) {
+                  setPendingAction('offer');
+                  setIsNdaOpen(true);
+                  return;
+                }
+                setOfferForm((prev) => ({ ...prev, type: patent.isForSale ? 'sale' : 'license' }));
+                setIsOfferOpen(true);
+              }}
               className="text-zinc-500 hover:text-zinc-800 font-bold"
             >
-              Maybe Later
+              Continue to offer
             </Button>
             <Button
               type="button"
@@ -690,7 +695,7 @@ export const PatentDetail = () => {
               className="bg-lvx-blue hover:bg-lvx-blue-hover text-white border-0 font-bold px-5 py-2 shadow-premium-md rounded-lg"
             >
               <Calendar className="h-4 w-4 mr-1.5" />
-              Book Meeting Now
+              Book meeting
             </Button>
           </div>
         </div>

@@ -31,11 +31,11 @@ export const ASSET_TYPES = ['Utility Patent', 'Design', 'Other'] as const;
 export type AssetType = (typeof ASSET_TYPES)[number];
 
 export function inferAssetType(patent: any): string {
-  if (patent?.ipType === 'other') return patent.otherIpType ? `Other · ${patent.otherIpType}` : 'Other';
+  if (patent?.ipType === 'other') return patent.otherIpType?.trim() || 'Other';
   const type = IP_TYPE_OPTIONS.find(option => option.value === patent?.ipType);
   if (type) return type.label;
-  if (patent?.assetType) return patent.assetType;
-  return 'Type not specified';
+  if (patent?.assetType && patent.assetType !== 'Type not specified') return patent.assetType;
+  return 'Utility Patent';
 }
 
 export function inferTRL(patent: any, analysis: any): number {
@@ -88,11 +88,78 @@ export function formatINR(value?: number): string {
   }).format(value);
 }
 
+export function formatIndicativeBand(value?: { saleMin?: number; saleMax?: number; licenseAnnual?: number } | null): string {
+  if (!value?.saleMin || !value?.saleMax) return 'Value pending';
+  return `${formatINR(value.saleMin)} – ${formatINR(value.saleMax)}`;
+}
+
+/** Short rupee label for cards, so a price band stays on one line. */
+export function formatINRCompact(value?: number): string {
+  if (!value) return 'On request';
+  const compact = (amount: number, unit: string) => {
+    const rounded = amount >= 10 || Number.isInteger(amount) ? String(Math.round(amount)) : amount.toFixed(1).replace(/\.0$/, '');
+    return `₹${rounded} ${unit}`;
+  };
+  if (value >= 10000000) return compact(value / 10000000, 'Cr');
+  if (value >= 100000) return compact(value / 100000, 'L');
+  return formatINR(value);
+}
+
+export function formatIndicativeBandCompact(value?: { saleMin?: number; saleMax?: number; licenseAnnual?: number } | null): string {
+  if (!value?.saleMin || !value?.saleMax) return 'Value pending';
+  return `${formatINRCompact(value.saleMin)} – ${formatINRCompact(value.saleMax)}`;
+}
+
 export const DEAL_PROGRESS_STEPS = [
-  { id: 'nda', label: 'NDA Signed' },
-  { id: 'access', label: 'Access Approved' },
-  { id: 'discussion', label: 'Discussion Complete' },
-  { id: 'offer', label: 'Offer Accepted' },
-  { id: 'escrow', label: 'Escrow Funded' },
-  { id: 'transfer', label: 'Transfer Completed' },
+  { id: 'nda', label: 'NDA signed' },
+  { id: 'access', label: 'Access approved' },
+  { id: 'discussion', label: 'Discussion done' },
+  { id: 'offer', label: 'Offer accepted' },
+  { id: 'escrow', label: 'Escrow funded' },
+  { id: 'transfer', label: 'Transfer complete' },
 ] as const;
+
+export type DealProgressInput = {
+  ndaSigned?: boolean;
+  accessStatus?: string | null;
+  meetingStatus?: string | null;
+  offerStatus?: string | null;
+  txStatus?: string | null;
+};
+
+/** Active step index for ProgressSteps. 6 means every step is complete. */
+export function getDealProgress(input: DealProgressInput): {
+  currentIndex: number;
+  nextLabel: string;
+  nextHint: string;
+  complete: boolean;
+} {
+  const tx = String(input.txStatus || '');
+  const offer = String(input.offerStatus || '');
+  const access = String(input.accessStatus || '');
+  const meeting = String(input.meetingStatus || '');
+  const nda = !!input.ndaSigned;
+
+  if (tx === 'completed') {
+    return { currentIndex: 6, nextLabel: 'Deal complete', nextHint: 'Download the assignment deed from Escrow.', complete: true };
+  }
+  if (tx === 'escrow_funded') {
+    return { currentIndex: 5, nextLabel: 'Finish the transfer', nextHint: 'Release milestones and complete the assignment.', complete: false };
+  }
+  if (offer === 'accepted') {
+    return { currentIndex: 4, nextLabel: 'Fund escrow', nextHint: 'Move the agreed amount into escrow to protect both sides.', complete: false };
+  }
+  if (offer === 'pending' || offer === 'countered') {
+    return { currentIndex: 3, nextLabel: 'Resolve the offer', nextHint: offer === 'countered' ? 'Review the counter-offer and accept or decline.' : 'Accept, decline, or wait for the other party.', complete: false };
+  }
+  if (meeting === 'accepted' || meeting === 'pending') {
+    return { currentIndex: 3, nextLabel: 'Make an offer', nextHint: 'Submit a sale or licence offer when you are ready.', complete: false };
+  }
+  if (access === 'approved') {
+    return { currentIndex: 2, nextLabel: 'Make an offer', nextHint: 'A meeting is recommended, but you can submit an offer after unlock.', complete: false };
+  }
+  if (nda) {
+    return { currentIndex: 1, nextLabel: 'Unlock details', nextHint: 'Request access, or approve the buyer if you are the inventor.', complete: false };
+  }
+  return { currentIndex: 0, nextLabel: 'Sign the NDA', nextHint: 'The invention stays hidden until the NDA is signed.', complete: false };
+}

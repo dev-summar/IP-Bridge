@@ -3,7 +3,7 @@ import path from 'path';
 import { 
   UserModel, PatentModel, PatentAnalysisModel, 
   InterestRequestModel, MeetingRequestModel, AuditLogModel, OfferModel, NDASignatureModel, TransactionModel, AccessRequestModel,
-  SearchHistoryModel,
+  SearchHistoryModel, MatchEventModel,
   IUser, IPatent, IPatentAnalysis, IInterestRequest, IMeetingRequest, IAuditLog, IOffer, INDASignature, ITransaction, IAccessRequest
 } from '../models/schemas';
 
@@ -36,6 +36,7 @@ interface ILocalDB {
   transactions: any[];
   accessRequests: any[];
   searchHistory: any[];
+  matchEvents: any[];
 }
 
 const emptyDB: ILocalDB = {
@@ -49,7 +50,8 @@ const emptyDB: ILocalDB = {
   ndaSignatures: [],
   transactions: [],
   accessRequests: [],
-  searchHistory: []
+  searchHistory: [],
+  matchEvents: []
 };
 
 // Helper functions to read/write JSON file
@@ -818,5 +820,44 @@ export const dbStore = {
       writeJSON(db);
       return newRow;
     }
-  }
+  },
+
+  matchEvents: {
+    async find(filter: any = {}, options: { limit?: number } = {}): Promise<any[]> {
+      const limit = options.limit || 200;
+      if (useMongo) {
+        return await MatchEventModel.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
+      }
+      const db = readJSON();
+      if (!db.matchEvents) db.matchEvents = [];
+      return db.matchEvents
+        .filter((row: any) => {
+          for (const key in filter) {
+            if (String(row[key]) !== String(filter[key])) return false;
+          }
+          return true;
+        })
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, limit);
+    },
+
+    async create(data: any): Promise<any> {
+      if (useMongo) {
+        const row = new MatchEventModel(data);
+        return await row.save();
+      }
+      const db = readJSON();
+      if (!db.matchEvents) db.matchEvents = [];
+      const newRow = {
+        _id: generateId(),
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      db.matchEvents.unshift(newRow);
+      if (db.matchEvents.length > 5000) db.matchEvents = db.matchEvents.slice(0, 5000);
+      writeJSON(db);
+      return newRow;
+    },
+  },
 };

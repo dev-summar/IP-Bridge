@@ -1,20 +1,42 @@
 import { Request, Response } from 'express';
 import { dbStore } from '../services/dbStore';
 import { IAuthRequest } from '../middleware/auth';
+import { assessCommercialPotential } from '../services/commercialModel';
+import { disclosedTo, disclosureGrantsFor, listingName } from '../services/disclosure';
 
 export async function getDashboardAnalytics(req: Request, res: Response) {
   try {
     const authReq = req as IAuthRequest;
     const { role, id: userId } = authReq.user!;
     
-    // Fetch base datasets
-    const users = await dbStore.users.find();
-    const patents = await dbStore.patents.find();
-    const leads = await dbStore.interestRequests.find();
-    const meetings = await dbStore.meetingRequests.find();
-    const logs = await dbStore.auditLogs.find();
-    const offers = await dbStore.offers.find();
-    const transactions = await dbStore.transactions.find();
+    // Fetch base datasets in parallel — avoid serial round-trips.
+    const [users, patents, leads, meetings, logs, offers, transactions, analyses] = await Promise.all([
+      dbStore.users.find(),
+      dbStore.patents.find(),
+      dbStore.interestRequests.find(),
+      dbStore.meetingRequests.find(),
+      dbStore.auditLogs.find(),
+      dbStore.offers.find(),
+      dbStore.transactions.find(),
+      dbStore.patentAnalysis.find(),
+    ]);
+    const analysisByPatent = new Map<string, any>(
+      analyses.map((row: any) => [String(row.patentId), row])
+    );
+    const scoreForPatent = (p: any) => {
+      const analysis = analysisByPatent.get(String(p._id));
+      if (typeof analysis?.commercialPotentialScore === 'number') {
+        return analysis.commercialPotentialScore as number;
+      }
+      return assessCommercialPotential({
+        title: p.title,
+        abstract: p.abstract,
+        industries: analysis?.industryClassification,
+        hasPrototype: p.hasPrototype,
+        hasProduct: p.hasProduct,
+        trlLevel: p.trlLevel ?? analysis?.readinessAssessment?.trlLevel,
+      }).commercialPotentialScore;
+    };
 
     // Monthly counts from stored records; no fabricated views, revenue, or market index.
     const activitySeries = Array.from({ length: 6 }, (_, index) => {
@@ -42,7 +64,7 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
       // Calculate industry breakdown for charts
       const industryMap: Record<string, number> = {};
       for (const p of patents) {
-        const analysis = await dbStore.patentAnalysis.findOne({ patentId: p._id });
+        const analysis = analysisByPatent.get(String(p._id));
         if (analysis && analysis.industryClassification) {
           analysis.industryClassification.forEach((ind: string) => {
             industryMap[ind] = (industryMap[ind] || 0) + 1;
@@ -163,11 +185,10 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
       const myPatentRows: any[] = [];
 
       for (const p of myPatents) {
-        const analysis = await dbStore.patentAnalysis.findOne({ patentId: p._id });
-        if (analysis) {
-          totalScore += analysis.commercialPotentialScore;
-          scoreCount++;
-        }
+        const analysis = analysisByPatent.get(String(p._id));
+        const commercialPotentialScore = scoreForPatent(p);
+        totalScore += commercialPotentialScore;
+        scoreCount++;
         if (typeof p.readinessScore === 'number') {
           totalReadiness += p.readinessScore;
           readinessCount++;
@@ -179,7 +200,7 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
           id: p._id,
           title: p.title,
           status: p.status,
-          commercialPotentialScore: analysis?.commercialPotentialScore ?? null,
+          commercialPotentialScore,
           trlLevel: p.trlLevel ?? analysis?.readinessAssessment?.trlLevel ?? null,
           readinessScore: p.readinessScore ?? null,
           hasPrototype: !!p.hasPrototype,
@@ -210,11 +231,8 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         let oScoreSum = 0;
         let oScoreN = 0;
         for (const p of oPatents) {
-          const a = await dbStore.patentAnalysis.findOne({ patentId: p._id });
-          if (a) {
-            oScoreSum += a.commercialPotentialScore;
-            oScoreN++;
-          }
+          oScoreSum += scoreForPatent(p);
+          oScoreN++;
         }
         const oAvg = oScoreN > 0 ? oScoreSum / oScoreN : 0;
         const oLeads = leads.filter(l => String(l.ownerId) === String(owner._id)).length;
@@ -403,17 +421,21 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
       const mySentMeetings = meetings.filter(m => m.buyerId === userId);
 
       // Latest high scoring patents in market
+      const grants = await disclosureGrantsFor(userId);
       const approvedPatents = patents.filter(p => p.status === 'approved');
       const approvedWithAnalysis = [];
       for (const p of approvedPatents) {
-        const analysis = await dbStore.patentAnalysis.findOne({ patentId: p._id });
+        const analysis = analysisByPatent.get(String(p._id));
+        const show = disclosedTo(p, userId, role, grants);
         approvedWithAnalysis.push({
           ipType: p.ipType, otherIpType: p.otherIpType,
           id: p._id,
-          title: p.title,
-          patentNumber: p.patentNumber,
-          score: analysis ? analysis.commercialPotentialScore : 0,
-          industries: analysis ? analysis.industryClassification : []
+          title: show ? p.title : listingName(p, analysis, false),
+          patentNumber: show ? p.patentNumber : undefined,
+          score: scoreForPatent(p),
+          industries: show
+            ? (analysis?.industryClassification || [])
+            : (analysis?.industryClassification || []).slice(0, 1)
         });
       }
 
@@ -434,9 +456,10 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         .map(o => {
           const p = patents.find(pat => pat._id === o.patentId);
           const tx = transactions.find(t => t.offerId === o._id);
+          const show = disclosedTo(p, userId, role, grants);
           return {
             id: o._id,
-            patentTitle: p ? p.title : 'IP Asset',
+            patentTitle: show ? (p ? p.title : 'IP Asset') : listingName(p, null, false),
             price: o.price,
             status: o.status,
             escrowStatus: tx?.status || null,
@@ -449,9 +472,10 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         .slice(0, 5)
         .map(l => {
           const p = patents.find(pat => pat._id === l.patentId);
+          const show = disclosedTo(p, userId, role, grants);
           return {
             id: l._id,
-            patentTitle: p ? p.title : 'IP Asset',
+            patentTitle: show ? (p ? p.title : 'IP Asset') : listingName(p, null, false),
             status: l.status,
             createdAt: l.createdAt,
           };
@@ -471,9 +495,10 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         recommendedPatents,
         activeSchedules: mySentMeetings.map(m => {
           const p = patents.find(pat => pat._id === m.patentId);
+          const show = disclosedTo(p, userId, role, grants);
           return {
             id: m._id,
-            patentTitle: p ? p.title : 'Patent Opportunity',
+            patentTitle: show ? (p ? p.title : 'Patent opportunity') : listingName(p, null, false),
             date: m.preferredDate,
             time: m.preferredTime,
             status: m.status

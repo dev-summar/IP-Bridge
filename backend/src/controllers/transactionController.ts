@@ -3,6 +3,7 @@ import { dbStore } from '../services/dbStore';
 import { IAuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
 import { createRazorpayOrder as razorpayCreateOrder, getRazorpayKeyId, buildRazorpayReceipt } from '../services/razorpayClient';
+import { disclosedTo, disclosureGrantsFor, listingName } from '../services/disclosure';
 import { 
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, 
   AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType 
@@ -34,6 +35,7 @@ export async function getTransactions(req: Request, res: Response) {
     }
 
     const transactions = await dbStore.transactions.find(filter);
+    const grants = userRole === 'buyer' ? await disclosureGrantsFor(userId) : null;
 
     // Enrich with Patent and User info
     const enriched = [];
@@ -41,16 +43,18 @@ export async function getTransactions(req: Request, res: Response) {
       const patent = await dbStore.patents.findById(t.patentId);
       const buyer = await dbStore.users.findById(t.buyerId);
       const owner = await dbStore.users.findById(t.ownerId);
+      const show = !grants || disclosedTo(patent, userId, userRole, grants);
+      const analysis = show ? null : await dbStore.patentAnalysis.findOne({ patentId: String(t.patentId) });
 
       enriched.push({
         ...t,
-        patentTitle: patent ? patent.title : 'Deleted Patent',
-        patentNumber: patent ? patent.patentNumber : 'N/A',
+        patentTitle: show ? (patent ? patent.title : 'Removed listing') : listingName(patent, analysis, false),
+        patentNumber: show && patent ? patent.patentNumber : undefined,
         ipType: patent?.ipType, otherIpType: patent?.otherIpType,
         buyerName: buyer ? buyer.name : 'Unknown Buyer',
         buyerOrg: buyer?.organization || 'Independent Acquirer',
-        ownerName: owner ? owner.name : 'Unknown Owner',
-        ownerOrg: owner?.organization || 'Independent Inventor'
+        ownerName: show ? (owner ? owner.name : 'Inventor') : 'Inventor',
+        ownerOrg: show ? (owner?.organization || '') : ''
       });
     }
 

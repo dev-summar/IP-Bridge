@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { dbStore } from '../services/dbStore';
 import { IAuthRequest } from '../middleware/auth';
+import { disclosedTo, disclosureGrantsFor, listingName } from '../services/disclosure';
+import { publicTitle } from '../services/commercialModel';
 import { 
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, 
   AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType, 
@@ -116,9 +118,14 @@ export async function downloadNDADocx(req: Request, res: Response) {
 
     const owner = await dbStore.users.findById(patent.ownerId);
     const buyer = await dbStore.users.findById(signature.buyerId);
+    const access = await dbStore.accessRequests.findOne({ patentId, buyerId: signature.buyerId });
+    const disclosed = userRole === 'admin' || userRole === 'owner' || access?.status === 'approved';
+    const analysis = disclosed ? null : await dbStore.patentAnalysis.findOne({ patentId: String(patent._id) });
 
-    const ownerName = owner ? owner.name : 'Patent Owner';
-    const ownerOrg = owner?.organization || 'Independent Inventor';
+    const ownerName = disclosed ? (owner ? owner.name : 'Inventor') : 'The inventor';
+    const ownerOrg = disclosed ? (owner?.organization || 'Independent') : 'identity shared after approval';
+    const subjectNumber = disclosed ? patent.patentNumber : 'withheld until approval';
+    const subjectTitle = disclosed ? patent.title : publicTitle(analysis?.industryClassification, patent.title, patent.abstract);
     const buyerName = signature.fullName;
     const buyerOrg = buyer?.organization || 'Independent Acquirer';
     const dateStr = new Date(signature.signedAt).toLocaleDateString('en-IN', {
@@ -239,7 +246,7 @@ export async function downloadNDADocx(req: Request, res: Response) {
                 size: 24
               }),
               new TextRun({
-                text: patent.patentNumber,
+                text: subjectNumber,
                 bold: true,
                 font: "Times New Roman",
                 size: 24
@@ -250,7 +257,7 @@ export async function downloadNDADocx(req: Request, res: Response) {
                 size: 24
               }),
               new TextRun({
-                text: patent.title,
+                text: subjectTitle,
                 italics: true,
                 bold: true,
                 font: "Times New Roman",
@@ -514,7 +521,8 @@ export async function downloadNDADocx(req: Request, res: Response) {
 
     const buffer = await Packer.toBuffer(doc);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename=NDA_${patent.patentNumber}.docx`);
+    const safeName = disclosed ? String(patent.patentNumber).replace(/[^\w.-]+/g, '_') : 'listing';
+    res.setHeader('Content-Disposition', `attachment; filename=NDA_${safeName}.docx`);
     res.send(buffer);
   } catch (error: any) {
     return res.status(500).json({ message: 'Failed to generate NDA document.', error: error.message });
@@ -543,16 +551,20 @@ export async function getSignedNDAs(req: Request, res: Response) {
       signatures = await dbStore.ndaSignatures.find();
     }
 
+    const grants = userRole === 'buyer' ? await disclosureGrantsFor(userId) : null;
+
     // Enrich with Patent Title and Counter-Party details
     const enriched = [];
     for (const sig of signatures) {
       const p = await dbStore.patents.findById(sig.patentId);
       const buyer = await dbStore.users.findById(sig.buyerId);
+      const show = !grants || disclosedTo(p, userId, userRole, grants);
+      const analysis = show ? null : await dbStore.patentAnalysis.findOne({ patentId: String(sig.patentId) });
       
       enriched.push({
         ...sig,
-        patentTitle: p ? p.title : 'Deleted Patent',
-        patentNumber: p ? p.patentNumber : 'N/A',
+        patentTitle: show ? (p ? p.title : 'Removed listing') : listingName(p, analysis, false),
+        patentNumber: show && p ? p.patentNumber : undefined,
         buyerName: sig.fullName,
         buyerEmail: buyer ? buyer.email : 'N/A',
         buyerOrganization: buyer?.organization || 'Independent'

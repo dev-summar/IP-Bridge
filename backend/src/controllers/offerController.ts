@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { dbStore } from '../services/dbStore';
 import { IAuthRequest } from '../middleware/auth';
 import { createEscrowTransaction } from './transactionController';
+import { disclosedTo, disclosureGrantsFor, listingName } from '../services/disclosure';
 
 // Create Offer (Buyer only)
 export async function createOffer(req: Request, res: Response) {
@@ -27,10 +28,22 @@ export async function createOffer(req: Request, res: Response) {
       return res.status(400).json({ message: 'You cannot make an offer on your own patent.' });
     }
 
-    // Ensure buyer has scheduled and completed (accepted) a meeting
-    const meetings = await dbStore.meetingRequests.find({ patentId, buyerId: authReq.user!.id, status: 'accepted' });
-    if (meetings.length === 0 && authReq.user!.role !== 'admin') {
-      return res.status(400).json({ message: 'You must have an accepted/completed meeting request before you can acquire or license this patent.' });
+    // Soft gate: buyer must have unlocked details (approved access + NDA). Meeting is recommended, not required.
+    if (authReq.user!.role !== 'admin') {
+      const access = await dbStore.accessRequests.findOne({
+        patentId,
+        buyerId: authReq.user!.id,
+        status: 'approved',
+      });
+      const nda = await dbStore.ndaSignatures.findOne({
+        patentId,
+        buyerId: authReq.user!.id,
+      });
+      if (!access || !nda) {
+        return res.status(400).json({
+          message: 'Unlock the IP details (NDA + inventor approval) before making an offer.',
+        });
+      }
     }
 
     const offer = await dbStore.offers.create({
@@ -77,27 +90,47 @@ export async function getOffers(req: Request, res: Response) {
     }
 
     const offers = await dbStore.offers.find(filter);
+    const grants = role === 'buyer' ? await disclosureGrantsFor(userId) : null;
 
     // Enrich offers with patent metadata and counter-party information
     const enriched = [];
     for (const o of offers) {
       const p = await dbStore.patents.findById(o.patentId);
+      const show = !grants || disclosedTo(p, userId, role, grants);
       
       let counterParty = '';
       if (role === 'owner') {
         const buyer = await dbStore.users.findById(o.buyerId);
         counterParty = buyer ? `${buyer.name} (${buyer.organization || 'Independent'})` : 'Buyer';
+      } else if (!show) {
+        counterParty = 'Inventor';
       } else {
         const owner = await dbStore.users.findById(o.ownerId);
         counterParty = owner ? `${owner.name} (${owner.organization || 'Independent'})` : 'Inventor';
       }
 
+      const analysis = show ? null : await dbStore.patentAnalysis.findOne({ patentId: String(o.patentId) });
+      const buyerId = String(o.buyerId);
+      const patentId = String(o.patentId);
+      const [nda, access, meetings] = await Promise.all([
+        dbStore.ndaSignatures.findOne({ patentId, buyerId }),
+        dbStore.accessRequests.findOne({ patentId, buyerId }),
+        dbStore.meetingRequests.find({ patentId, buyerId }),
+      ]);
+      const meetingStatus =
+        meetings.find((row: any) => row.status === 'accepted')?.status ||
+        meetings.find((row: any) => row.status === 'pending')?.status ||
+        meetings[0]?.status ||
+        null;
       enriched.push({
         ...o,
-        patentTitle: p ? p.title : 'Deleted Patent',
-        patentNumber: p ? p.patentNumber : 'N/A',
+        patentTitle: show ? (p ? p.title : 'Removed listing') : listingName(p, analysis, false),
+        patentNumber: show && p ? p.patentNumber : undefined,
         ipType: p?.ipType, otherIpType: p?.otherIpType,
-        counterParty
+        counterParty,
+        ndaSigned: !!nda,
+        accessStatus: access?.status || null,
+        meetingStatus,
       });
     }
 
