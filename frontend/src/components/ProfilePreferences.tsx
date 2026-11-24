@@ -117,7 +117,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
         )}
       </div>
 
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
         Domains
       </p>
       <div className="flex flex-wrap gap-1.5 mb-4">
@@ -138,7 +138,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
         ))}
       </div>
 
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+      <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
         Interests
       </p>
       <div className="flex flex-wrap gap-1.5 mb-3">

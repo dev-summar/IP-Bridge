@@ -32,7 +32,7 @@ export const slideInItem = {
 
 export const LvxSectionLabel = ({ children }: { children: React.ReactNode }) => (
   <motion.div {...fadeUp} className="flex items-center gap-4 mb-5">
-    <span className="text-[11px] font-semibold uppercase tracking-label text-lvx-label shrink-0">
+    <span className="text-xs font-semibold uppercase tracking-label text-lvx-label shrink-0">
       {children}
     </span>
     <span className="lvx-label-line flex-1 max-w-[200px] h-px" aria-hidden />
@@ -51,7 +51,7 @@ export const LvxHeading = ({
   <motion.h2
     {...fadeUp}
     transition={{ ...fadeUp.transition, delay: 0.08 }}
-    className={`text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-lvx-charcoal dark:text-white tracking-display leading-[1.12] ${className}`}
+    className={`type-section-title text-lvx-charcoal dark:text-white ${className}`}
   >
     {line1}
     {line2 && (
@@ -100,7 +100,7 @@ export const EcosystemCard = ({
         <h3 className="text-lg sm:text-xl font-bold text-lvx-charcoal dark:text-white tracking-heading mb-4 leading-snug">
           {title}
         </h3>
-        <p className="text-sm sm:text-[15px] text-lvx-charcoal/75 dark:text-zinc-400 leading-[1.7] font-normal">
+        <p className="text-sm sm:text-base text-lvx-charcoal/75 dark:text-zinc-400 leading-[1.7] font-normal">
           {description}
         </p>
         <LvxExploreButton to={exploreLink} />

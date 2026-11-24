@@ -192,7 +192,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
       {!embedded && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-200/60 dark:border-zinc-800 pb-5">
           <div>
-            <h1 className="text-3xl font-bold text-zinc-950 dark:text-white tracking-tight">
+            <h1 className="type-page-title text-zinc-950 dark:text-white">
               Welcome back, {user?.name.split(' (')[0]}
             </h1>
             <p className="text-sm text-zinc-500 mt-1">Platform dashboard and operations analytics.</p>
@@ -236,7 +236,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
               <Card key={idx} className={`border ${isUrgent ? 'border-red-300 bg-red-50/20 dark:border-red-900/40' : colors.border} ${colors.bg} ${colors.glow} hover:shadow-premium-md premium-transition`}>
                 <CardContent className="p-5 flex flex-col justify-between h-32 relative overflow-hidden">
                   <div className="flex items-start justify-between">
-                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">
+                    <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">
                       {stat.label}
                     </span>
                     <div className="p-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/40 dark:border-zinc-800/80 shadow-premium-sm">
@@ -248,7 +248,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold text-lvx-charcoal dark:text-white leading-none">{stat.value}</span>
                     </div>
-                    <span className={`text-[10px] block font-bold ${isUrgent ? 'text-red-650 dark:text-red-400' : 'text-emerald-650 dark:text-emerald-400'}`}>
+                    <span className={`text-xs block font-bold ${isUrgent ? 'text-red-650 dark:text-red-400' : 'text-emerald-650 dark:text-emerald-400'}`}>
                       {stat.change}
                     </span>
                   </div>
@@ -262,45 +262,45 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
           <Card className="border border-lvx-blue/20 bg-lvx-blue/5 shadow-premium-sm hover:shadow-premium-md premium-transition">
             <CardContent className="p-5 flex flex-col justify-between h-32">
-              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Gross Merchandise Volume (GMV)</span>
+              <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Gross Merchandise Volume (GMV)</span>
               <div>
                 <span className="text-3xl font-bold text-lvx-charcoal dark:text-white block mt-2">
                   {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(data?.treasury?.gmv || 0)}
                 </span>
-                <span className="text-[10px] text-emerald-650 dark:text-emerald-400 font-bold block mt-1 font-sans">Total funded transaction volume</span>
+                <span className="text-xs text-emerald-650 dark:text-emerald-400 font-bold block mt-1 font-sans">Total funded transaction volume</span>
               </div>
             </CardContent>
           </Card>
           <Card className="border border-lvx-blue/20 bg-lvx-blue/5 shadow-premium-sm hover:shadow-premium-md premium-transition">
             <CardContent className="p-5 flex flex-col justify-between h-32">
-              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Realized Success Commission (5%)</span>
+              <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Realized Success Commission (5%)</span>
               <div>
                 <span className="text-3xl font-bold text-lvx-charcoal dark:text-white block mt-2">
                   {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(data?.treasury?.commissions || 0)}
                 </span>
-                <span className="text-[10px] text-emerald-650 dark:text-emerald-400 font-bold block mt-1 font-sans">Platform operations revenue</span>
+                <span className="text-xs text-emerald-650 dark:text-emerald-400 font-bold block mt-1 font-sans">Platform operations revenue</span>
               </div>
             </CardContent>
           </Card>
           <Card className="border border-emerald-150 dark:border-emerald-900/30 bg-emerald-50/10 dark:bg-emerald-950/5 shadow-premium-sm hover:shadow-premium-md premium-transition">
             <CardContent className="p-5 flex flex-col justify-between h-32">
-              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Active Escrow Vault Custody</span>
+              <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Active Escrow Vault Custody</span>
               <div>
                 <span className="text-3xl font-bold text-lvx-charcoal dark:text-white block mt-2">
                   {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(data?.treasury?.activeEscrow || 0)}
                 </span>
-                <span className="text-[10px] text-amber-650 dark:text-amber-400 font-bold block mt-1 font-sans">Held securely in active vaults</span>
+                <span className="text-xs text-amber-650 dark:text-amber-400 font-bold block mt-1 font-sans">Held securely in active vaults</span>
               </div>
             </CardContent>
           </Card>
           <Card className="border border-amber-150 dark:border-amber-900/30 bg-amber-50/10 dark:bg-amber-950/5 shadow-premium-sm hover:shadow-premium-md premium-transition">
             <CardContent className="p-5 flex flex-col justify-between h-32">
-              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Subscription Revenue</span>
+              <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label block">Subscription Revenue</span>
               <div>
                 <span className="text-3xl font-bold text-lvx-charcoal dark:text-white block mt-2">
                   {data?.treasury?.subscriptionRevenue == null ? 'Not tracked' : formatINR(data.treasury.subscriptionRevenue)}
                 </span>
-                <span className="text-[10px] text-lvx-blue font-bold block mt-1 font-sans">Subscription billing not connected</span>
+                <span className="text-xs text-lvx-blue font-bold block mt-1 font-sans">Subscription billing not connected</span>
               </div>
             </CardContent>
           </Card>
@@ -342,12 +342,12 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
             <CardContent className="p-4 space-y-3.5 h-80 overflow-y-auto text-left">
               {data?.recentLogs?.map((log: any) => (
                 <div key={log.id} className="text-xs space-y-0.5 border-b border-zinc-100 dark:border-zinc-800 pb-2.5 last:border-0 last:pb-0">
-                  <div className="flex items-center justify-between font-mono text-[10px]">
+                  <div className="flex items-center justify-between font-mono text-xs">
                     <span className="font-semibold text-zinc-800 dark:text-zinc-300">{log.action}</span>
                     <span className="text-zinc-400 dark:text-zinc-500">{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                   <p className="text-zinc-500 dark:text-zinc-400 leading-normal">{log.details}</p>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block">By {log.userName}</span>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500 block">By {log.userName}</span>
                 </div>
               ))}
             </CardContent>
@@ -409,37 +409,37 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                   <>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-100 dark:border-zinc-800 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Platform rank</p>
+                        <p className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Platform rank</p>
                         <p className="text-xl font-bold text-zinc-900 dark:text-white mt-1">
                           #{data.benchmarking.individual?.platformRank ?? '—'}
                         </p>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-xs text-zinc-500">
                           of {data.benchmarking.individual?.platformInventors ?? 0} inventors
                         </p>
                       </div>
                       <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-100 dark:border-zinc-800 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Percentile</p>
+                        <p className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Percentile</p>
                         <p className="text-xl font-bold text-zinc-900 dark:text-white mt-1">
                           {data.benchmarking.individual?.percentile ?? '—'}%
                         </p>
-                        <p className="text-[10px] text-zinc-500">vs all inventors</p>
+                        <p className="text-xs text-zinc-500">vs all inventors</p>
                       </div>
                       <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-100 dark:border-zinc-800 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Org peer rank</p>
+                        <p className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Org peer rank</p>
                         <p className="text-xl font-bold text-zinc-900 dark:text-white mt-1">
                           #{data.benchmarking.individual?.orgPeerRank ?? '—'}
                         </p>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-xs text-zinc-500">
                           of {data.benchmarking.individual?.orgPeerCount ?? 0} at{' '}
                           {data.benchmarking.organization || 'org'}
                         </p>
                       </div>
                       <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-100 dark:border-zinc-800 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">Institution rank</p>
+                        <p className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Institution rank</p>
                         <p className="text-xl font-bold text-zinc-900 dark:text-white mt-1">
                           #{data.benchmarking.institution?.rank ?? '—'}
                         </p>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-xs text-zinc-500">
                           of {data.benchmarking.institution?.totalInstitutions ?? 0} orgs
                         </p>
                       </div>
@@ -469,7 +469,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
 
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
-                        <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
                           Top inventors
                         </h4>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -488,9 +488,9 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                                   #{row.rank} {row.name.split(' (')[0]}
                                   {row.isYou ? ' (you)' : ''}
                                 </p>
-                                <p className="text-[10px] text-zinc-400 truncate">{row.organization}</p>
+                                <p className="text-xs text-zinc-400 truncate">{row.organization}</p>
                               </div>
-                              <span className="text-[10px] font-bold text-zinc-500 shrink-0">
+                              <span className="text-xs font-bold text-zinc-500 shrink-0">
                                 {row.avgCommercialScore}/100
                               </span>
                             </div>
@@ -498,7 +498,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                         </div>
                       </div>
                       <div>
-                        <h4 className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
                           Institution leaderboard
                         </h4>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -516,11 +516,11 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                                 <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
                                   #{row.rank} {row.organization}
                                 </p>
-                                <p className="text-[10px] text-zinc-400">
+                                <p className="text-xs text-zinc-400">
                                   {row.inventors} inventors · {row.published} published
                                 </p>
                               </div>
-                              <span className="text-[10px] font-bold text-zinc-500 shrink-0">
+                              <span className="text-xs font-bold text-zinc-500 shrink-0">
                                 {row.benchmarkScore}
                               </span>
                             </div>
@@ -590,9 +590,9 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                       <div className="space-y-0.5 max-w-[70%]">
                         <h4 className="font-semibold text-zinc-800 dark:text-zinc-200">{l.buyerName}</h4>
                         <p className="text-zinc-500 dark:text-zinc-400 font-medium truncate">{l.buyerOrg}</p>
-                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">Patent: {l.patentTitle}</p>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate">Patent: {l.patentTitle}</p>
                       </div>
-                      <Badge variant={l.status === 'new' ? 'indigo' : 'neutral'} className="text-[9px] font-bold">
+                      <Badge variant={l.status === 'new' ? 'indigo' : 'neutral'} className="text-xs font-bold">
                         {l.status}
                       </Badge>
                     </div>
@@ -649,16 +649,16 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                         <p className="text-zinc-500 dark:text-zinc-400 font-medium">
                           {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(deal.price || 0)}
                         </p>
-                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
                           {new Date(deal.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <Badge variant={deal.status === 'accepted' ? 'success' : deal.status === 'rejected' ? 'danger' : 'warning'} className="text-[9px] font-bold capitalize">
+                        <Badge variant={deal.status === 'accepted' ? 'success' : deal.status === 'rejected' ? 'danger' : 'warning'} className="text-xs font-bold capitalize">
                           {deal.status}
                         </Badge>
                         {deal.escrowStatus && (
-                          <Badge variant="outline" className="text-[9px] font-bold capitalize">
+                          <Badge variant="outline" className="text-xs font-bold capitalize">
                             {deal.escrowStatus.replace(/_/g, ' ')}
                           </Badge>
                         )}
@@ -706,8 +706,8 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                     <CardContent className="p-5 flex flex-col justify-between h-40">
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">{p.patentNumber}</span>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">{p.patentNumber}</span>
+                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                             p.score >= 85 
                               ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-450 dark:bg-emerald-950/20' 
                               : 'text-lvx-blue bg-lvx-blue/10'
@@ -721,7 +721,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                         <p className="mt-1 text-xs text-primary truncate">{inferAssetType(p)}</p>
                       </div>
 
-                      <Link to={`/marketplace/${p.id}`} className="text-[11px] font-bold text-lvx-blue dark:text-lvx-blue flex items-center gap-0.5 hover:underline pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                      <Link to={`/marketplace/${p.id}`} className="text-xs font-bold text-lvx-blue dark:text-lvx-blue flex items-center gap-0.5 hover:underline pt-3 border-t border-zinc-100 dark:border-zinc-800">
                         Explore Opportunity
                         <ChevronRight className="h-3.5 w-3.5" />
                       </Link>
@@ -749,9 +749,9 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                     <div key={req.id} className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3 last:border-0 last:pb-0 text-xs">
                       <div className="space-y-0.5 max-w-[70%]">
                         <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 line-clamp-2">{req.patentTitle}</h4>
-                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">{new Date(req.createdAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500">{new Date(req.createdAt).toLocaleDateString()}</p>
                       </div>
-                      <Badge variant={req.status === 'new' ? 'indigo' : req.status === 'contacted' ? 'success' : 'neutral'} className="text-[9px] font-bold capitalize">
+                      <Badge variant={req.status === 'new' ? 'indigo' : req.status === 'contacted' ? 'success' : 'neutral'} className="text-xs font-bold capitalize">
                         {req.status}
                       </Badge>
                     </div>
@@ -775,9 +775,9 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                 data?.activeSchedules?.map((m: any) => (
                   <div key={m.id} className="text-xs border-b border-zinc-100 dark:border-zinc-800 pb-3 last:border-0 last:pb-0 space-y-1">
                     <h5 className="font-bold text-zinc-900 dark:text-zinc-200 truncate leading-snug">{m.patentTitle}</h5>
-                    <div className="flex items-center justify-between text-[10px] text-zinc-500">
+                    <div className="flex items-center justify-between text-xs text-zinc-500">
                       <span>{m.date} at {m.time}</span>
-                      <Badge variant={m.status === 'accepted' ? 'success' : m.status === 'declined' ? 'danger' : 'warning'} className="text-[9px] px-1.5 py-0 font-bold">
+                      <Badge variant={m.status === 'accepted' ? 'success' : m.status === 'declined' ? 'danger' : 'warning'} className="text-xs px-1.5 py-0 font-bold">
                         {m.status}
                       </Badge>
                     </div>
@@ -996,7 +996,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
       {!embedded && (
         <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-5">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Patent Portfolio</h1>
+            <h1 className="type-page-title text-zinc-950 dark:text-zinc-100">Patent Portfolio</h1>
             <p className="text-sm text-zinc-500 mt-1">Register new innovation patents or monitor verification status.</p>
           </div>
           <Button onClick={openNewDialog} className="rounded-xl gap-1.5 text-xs font-semibold">
@@ -1029,17 +1029,17 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
             <div key={p._id} className={`${cardClass} p-5 hover:shadow-md hover:border-primary/20 transition-all`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <span className="text-[10px] font-mono text-zinc-400">{p.patentNumber}</span>
+                  <span className="text-xs font-mono text-zinc-400">{p.patentNumber}</span>
                   <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mt-1 line-clamp-2">{p.title}</h3>
                 </div>
-                <Badge variant={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} className="shrink-0 text-[10px] uppercase">
+                <Badge variant={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} className="shrink-0 text-xs uppercase">
                   {p.status === 'changes_requested' ? 'Changes requested' : p.status}
                 </Badge>
               </div>
               <div className="flex flex-wrap gap-1.5 mt-3">
                 <Badge variant="indigo" className="text-xs">{inferAssetType(p)}</Badge>
                 {p.analysis?.industryClassification?.slice(0, 3).map((i: string) => (
-                  <Badge key={i} variant="outline" className="text-[10px]">{i}</Badge>
+                  <Badge key={i} variant="outline" className="text-xs">{i}</Badge>
                 ))}
               </div>
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -1056,7 +1056,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="text-[10px] rounded-lg h-8 px-1"
+                  className="text-xs rounded-lg h-8 px-1"
                   isLoading={aiBusyId === `${p._id}:commercial-potential`}
                   onClick={() => runInventorAi(p._id, 'commercial-potential')}
                 >
@@ -1066,7 +1066,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="text-[10px] rounded-lg h-8 px-1"
+                  className="text-xs rounded-lg h-8 px-1"
                   isLoading={aiBusyId === `${p._id}:pricing-guidance`}
                   onClick={() => runInventorAi(p._id, 'pricing-guidance')}
                 >
@@ -1076,7 +1076,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="text-[10px] rounded-lg h-8 px-1"
+                  className="text-xs rounded-lg h-8 px-1"
                   isLoading={aiBusyId === `${p._id}:readiness`}
                   onClick={() => openReadinessDialog(p)}
                 >
@@ -1087,7 +1087,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
               {['changes_requested', 'rejected'].includes(p.status) && <Button className="mt-3 w-full" variant="outline" onClick={() => openRevision(p)}>Revise and resubmit</Button>}
               {p.analysis?.pricingGuidance && (
                 <div className="mt-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 px-3 py-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-emerald-700/70 dark:text-emerald-400/70">
+                  <p className="text-xs font-medium uppercase tracking-wide text-emerald-700/70 dark:text-emerald-400/70">
                     Suggested sale
                   </p>
                   <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mt-0.5 tabular-nums">
@@ -1467,7 +1467,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
           <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 dark:bg-emerald-950/25 dark:border-emerald-900/50 p-4">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700/80 dark:text-emerald-400/80">
+                <p className="text-xs font-medium uppercase tracking-wide text-emerald-700/80 dark:text-emerald-400/80">
                   Suggested sale
                 </p>
                 <p className="mt-1.5 text-xl sm:text-2xl font-semibold tracking-tight text-emerald-900 dark:text-emerald-100 tabular-nums">
@@ -1477,7 +1477,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                 </p>
               </div>
               <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/60 p-4">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Confidence
                 </p>
                 <div className="mt-2 flex items-end gap-2">
@@ -1496,7 +1496,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
 
             <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 px-4 py-3.5 flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                   Annual license
                 </p>
                 <p className="mt-1 text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">
@@ -1537,7 +1537,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
               </div>
             )}
 
-            <p className="text-[11px] text-zinc-500 leading-relaxed border-t border-zinc-100 dark:border-zinc-800 pt-4">
+            <p className="text-xs text-zinc-500 leading-relaxed border-t border-zinc-100 dark:border-zinc-800 pt-4">
               {aiResult.comparableNote ? `${aiResult.comparableNote} ` : ''}
               AI guidance for negotiation — not a formal valuation certificate.
             </p>
@@ -1554,13 +1554,13 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
           <div className="space-y-5">
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/50 p-4">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Maturity</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Maturity</p>
                 <p className="mt-1.5 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                   {aiResult.maturityLabel}
                 </p>
               </div>
               <div className="rounded-2xl border border-lvx-blue/20 bg-lvx-blue/5 p-4 text-center">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-lvx-blue/80">TRL</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-lvx-blue/80">TRL</p>
                 <p className="mt-1 text-3xl font-semibold text-lvx-blue tabular-nums">{aiResult.trlLevel}</p>
               </div>
             </div>
@@ -1602,7 +1602,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
         {aiResult?.kind === 'commercial' && (
           <div className="space-y-5">
             <div className="rounded-2xl border border-lvx-blue/20 bg-lvx-blue/5 p-5 text-center">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-lvx-blue/80">
+              <p className="text-xs font-medium uppercase tracking-wide text-lvx-blue/80">
                 Commercial potential
               </p>
               <p className="mt-1 text-4xl font-semibold tracking-tight text-lvx-blue tabular-nums">
@@ -1626,7 +1626,7 @@ export const PortfolioManager = ({ embedded }: ManagerProps = {}) => {
                       key={label}
                       className="rounded-xl border border-zinc-200 dark:border-zinc-800 px-3 py-2.5"
                     >
-                      <p className="text-[10px] uppercase tracking-wide text-zinc-500">{label}</p>
+                      <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
                       <p className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                         {v}/100
                       </p>
@@ -1689,7 +1689,7 @@ export const BookmarksManager = ({ embedded }: ManagerProps = {}) => {
     <div className="space-y-6">
       {!embedded && (
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Saved Patents</h1>
+          <h1 className="type-page-title text-zinc-950 dark:text-zinc-100">Saved Patents</h1>
           <p className="text-xs text-zinc-500 mt-1">Bookmark directory listings for tracking licensing feasibility.</p>
         </div>
       )}
@@ -1707,18 +1707,18 @@ export const BookmarksManager = ({ embedded }: ManagerProps = {}) => {
               <CardContent className="p-5 flex flex-col justify-between h-44">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    {b.detailsVisible && b.patentNumber ? <span className="text-[10px] font-mono text-zinc-400">{b.patentNumber}</span> : <span />}
-                    <Badge variant="indigo" className="text-[9px] py-0">{b.analysis?.industryClassification?.[0]}</Badge>
+                    {b.detailsVisible && b.patentNumber ? <span className="text-xs font-mono text-zinc-400">{b.patentNumber}</span> : <span />}
+                    <Badge variant="indigo" className="text-xs py-0">{b.analysis?.industryClassification?.[0]}</Badge>
                   </div>
                   <h4 className="font-bold text-zinc-950 dark:text-zinc-100 text-xs sm:text-sm line-clamp-2 leading-snug">
                     {b.title}
                   </h4>
                   <p className="mt-1 text-xs text-primary">{inferAssetType(b)}</p>
-                  {b.detailsVisible && b.ownerOrganization ? <p className="text-zinc-400 text-[10px] mt-1">Affiliation: {b.ownerOrganization}</p> : null}
+                  {b.detailsVisible && b.ownerOrganization ? <p className="text-zinc-400 text-xs mt-1">Affiliation: {b.ownerOrganization}</p> : null}
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-2">
-                  <span className="text-[10px] text-zinc-400">Commercial Potential: {b.analysis?.commercialPotentialScore}/100</span>
+                  <span className="text-xs text-zinc-400">Commercial Potential: {b.analysis?.commercialPotentialScore}/100</span>
                   <Link to={`/marketplace/${b._id}`} className="text-xs font-semibold text-zinc-900 dark:text-zinc-200 hover:underline">
                     Explore Opportunity →
                   </Link>
@@ -1774,7 +1774,7 @@ export const LeadsManager = ({ embedded }: ManagerProps = {}) => {
     <div className="space-y-6">
       {!embedded && (
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Leads Inbox</h1>
+          <h1 className="type-page-title text-zinc-950 dark:text-zinc-100">Leads Inbox</h1>
           <p className="text-sm text-zinc-500 mt-1">
             {user?.role === 'owner'
               ? 'Monitor commercial expressions of interest from buyers.'
@@ -1795,15 +1795,15 @@ export const LeadsManager = ({ embedded }: ManagerProps = {}) => {
             <div key={l._id} className={`${cardClass} p-5 space-y-4 ${l.status === 'new' && user?.role === 'owner' ? 'ring-1 ring-primary/20' : ''}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div>
-                    <span className="text-[10px] font-mono text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded font-semibold">{l.patentNumber}</span>
+                    <span className="text-xs font-mono text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded font-semibold">{l.patentNumber}</span>
                     <h3 className="font-bold text-zinc-950 dark:text-zinc-100 text-sm mt-1">{l.patentTitle}</h3>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Badge variant={l.status === 'new' ? 'indigo' : l.status === 'reviewed' ? 'neutral' : 'success'} className="uppercase py-0.5 text-[9px] font-bold">
+                    <Badge variant={l.status === 'new' ? 'indigo' : l.status === 'reviewed' ? 'neutral' : 'success'} className="uppercase py-0.5 text-xs font-bold">
                       {l.status}
                     </Badge>
-                    <span className="text-[10px] text-zinc-400">{new Date(l.createdAt).toLocaleDateString()}</span>
+                    <span className="text-xs text-zinc-400">{new Date(l.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
 
@@ -1812,26 +1812,26 @@ export const LeadsManager = ({ embedded }: ManagerProps = {}) => {
                 <div className="grid sm:grid-cols-[200px_1fr] gap-4 text-xs">
                   <div className="space-y-2 border-r border-zinc-100 dark:border-zinc-800 pr-4">
                     <div>
-                      <span className="block text-[9px] text-zinc-400 font-bold uppercase">Proposer</span>
+                      <span className="block text-xs text-zinc-400 font-bold uppercase">Proposer</span>
                       <span className="font-semibold text-zinc-800 dark:text-zinc-300">{l.name}</span>
                     </div>
                     <div>
-                      <span className="block text-[9px] text-zinc-400 font-bold uppercase">Company Affiliation</span>
+                      <span className="block text-xs text-zinc-400 font-bold uppercase">Company Affiliation</span>
                       <span className="font-semibold text-zinc-800 dark:text-zinc-300">{l.organization}</span>
                     </div>
                     <div>
-                      <span className="block text-[9px] text-zinc-400 font-bold uppercase">Target Align Purpose</span>
+                      <span className="block text-xs text-zinc-400 font-bold uppercase">Target Align Purpose</span>
                       <Badge variant="outline" className="mt-1 py-0">{l.purpose}</Badge>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <span className="block text-[9px] text-zinc-400 font-bold uppercase">Message Proposal Details</span>
+                    <span className="block text-xs text-zinc-400 font-bold uppercase">Message Proposal Details</span>
                     <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed font-sans">{l.message}</p>
                     
                     {/* Contact detail display */}
                     <div className="pt-2">
-                      <span className="text-[10px] text-zinc-400">Direct Contact Coordinate: </span>
+                      <span className="text-xs text-zinc-400">Direct Contact Coordinate: </span>
                       <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-300 underline">{l.email}</span>
                     </div>
                   </div>
@@ -1910,7 +1910,7 @@ export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
     <div className="space-y-6">
       {!embedded && (
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-heading">Meetings Calendar</h1>
+          <h1 className="type-page-title text-zinc-950 dark:text-zinc-100">Meetings Calendar</h1>
           <p className="text-xs text-zinc-500 mt-1">Review exploratory conference schedules regarding patent commercialization.</p>
         </div>
       )}
@@ -1939,20 +1939,20 @@ export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
                 <tr key={m._id} className="hover:bg-zinc-50 dark:bg-zinc-900/60/50">
                   <td className="p-4 font-bold text-zinc-950 dark:text-zinc-100">
                     <span className="block">{m.patentTitle}</span>
-                    <span className="text-[10px] text-zinc-400 font-mono mt-0.5 block">{m.patentNumber}</span>
+                    <span className="text-xs text-zinc-400 font-mono mt-0.5 block">{m.patentNumber}</span>
                   </td>
                   <td className="p-4 font-medium text-zinc-700 dark:text-zinc-400">
                     {m.counterParty}
                   </td>
                   <td className="p-4 font-mono font-medium text-zinc-800 dark:text-zinc-300">
                     {m.preferredDate} <br />
-                    <span className="text-[10px] text-zinc-400">{m.preferredTime}</span>
+                    <span className="text-xs text-zinc-400">{m.preferredTime}</span>
                   </td>
                   <td className="p-4 max-w-xs truncate font-sans">
                     {m.notes || 'N/A'}
                   </td>
                   <td className="p-4">
-                    <Badge variant={m.status === 'accepted' ? 'success' : m.status === 'declined' ? 'danger' : 'warning'} className="text-[10px] font-semibold uppercase">
+                    <Badge variant={m.status === 'accepted' ? 'success' : m.status === 'declined' ? 'danger' : 'warning'} className="text-xs font-semibold uppercase">
                       {m.status}
                     </Badge>
                   </td>
@@ -1976,9 +1976,9 @@ export const MeetingsManager = ({ embedded }: ManagerProps = {}) => {
                         </Button>
                       </div>
                     ) : user?.role === 'buyer' && m.status === 'pending' ? (
-                      <span className="text-[10px] text-zinc-400 italic">Pending review</span>
+                      <span className="text-xs text-zinc-400 italic">Pending review</span>
                     ) : (
-                      <span className="text-[10px] text-zinc-400">No actions</span>
+                      <span className="text-xs text-zinc-400">No actions</span>
                     )}
                   </td>
                 </tr>
@@ -2025,7 +2025,7 @@ export const UsersManager = ({ embedded }: ManagerProps = {}) => {
     <div className="space-y-6">
       {!embedded && (
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Users</h1>
+          <h1 className="type-page-title text-zinc-950 dark:text-zinc-100">Users</h1>
           <p className="text-sm text-zinc-500 mt-1">Registered platform accounts.</p>
         </div>
       )}
@@ -2037,14 +2037,14 @@ export const UsersManager = ({ embedded }: ManagerProps = {}) => {
               <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
                 {u.name.charAt(0)}
               </div>
-              <Badge variant={u.role === 'admin' ? 'success' : u.role === 'owner' ? 'indigo' : 'neutral'} className="text-[10px] uppercase">
+              <Badge variant={u.role === 'admin' ? 'success' : u.role === 'owner' ? 'indigo' : 'neutral'} className="text-xs uppercase">
                 {u.role}
               </Badge>
             </div>
             <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mt-3">{u.name}</h3>
             <p className="text-xs text-zinc-500 font-mono mt-0.5 truncate">{u.email}</p>
             <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2">{u.organization || 'Independent'}</p>
-            <p className="text-[10px] text-zinc-400 mt-3">Joined {new Date(u.createdAt).toLocaleDateString()}</p>
+            <p className="text-xs text-zinc-400 mt-3">Joined {new Date(u.createdAt).toLocaleDateString()}</p>
           </div>
         ))}
       </div>
@@ -2080,7 +2080,7 @@ export const AuditsManager = ({ embedded }: ManagerProps = {}) => {
     <div className="space-y-6">
       {!embedded && (
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Audit log</h1>
+          <h1 className="type-page-title text-zinc-950 dark:text-zinc-100">Audit log</h1>
           <p className="text-sm text-zinc-500 mt-1">System activities and administrative actions.</p>
         </div>
       )}
@@ -2201,7 +2201,7 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
     <div className="space-y-6">
       {!embedded && (
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight">Negotiations</h1>
+          <h1 className="type-page-title text-zinc-950 dark:text-zinc-100">Negotiations</h1>
           <p className="text-sm text-zinc-500 mt-1">
             {user?.role === 'owner'
               ? 'Review acquisition and licensing offers from buyers.'
@@ -2226,18 +2226,18 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
               <div key={o._id} className={`${cardClass} p-5 space-y-4`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <span className="text-[10px] font-mono text-zinc-400">{o.patentNumber}</span>
+                    <span className="text-xs font-mono text-zinc-400">{o.patentNumber}</span>
                     <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{o.patentTitle}</h3>
                     <p className="mt-1 text-xs text-primary">{inferAssetType(o)}</p>
                     <p className="text-xs text-zinc-500 mt-1">{o.counterParty}</p>
                   </div>
-                  <Badge variant={o.status === 'accepted' ? 'success' : o.status === 'declined' ? 'danger' : o.status === 'countered' ? 'indigo' : 'warning'} className="text-[10px] uppercase">
+                  <Badge variant={o.status === 'accepted' ? 'success' : o.status === 'declined' ? 'danger' : o.status === 'countered' ? 'indigo' : 'warning'} className="text-xs uppercase">
                     {o.status}
                   </Badge>
                 </div>
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div>
-                    <span className="text-[10px] text-zinc-400 uppercase font-semibold block">Price</span>
+                    <span className="text-xs text-zinc-400 uppercase font-semibold block">Price</span>
                     {isCountered ? (
                       <div>
                         <span className="line-through text-zinc-400 text-xs">{formatPrice(o.price)}</span>
@@ -2248,8 +2248,8 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
                     )}
                   </div>
                   <div>
-                    <span className="text-[10px] text-zinc-400 uppercase font-semibold block">Type</span>
-                    <Badge variant={o.type === 'sale' ? 'success' : 'indigo'} className="mt-0.5 text-[10px]">
+                    <span className="text-xs text-zinc-400 uppercase font-semibold block">Type</span>
+                    <Badge variant={o.type === 'sale' ? 'success' : 'indigo'} className="mt-0.5 text-xs">
                       {o.type === 'sale' ? 'Acquisition' : 'Licensing'}
                     </Badge>
                   </div>
@@ -2332,7 +2332,7 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
             <ShieldCheck className="h-5 w-5 text-lvx-blue" />
             Signed Documents & Agreements
           </h2>
-          <p className="text-[11px] text-zinc-500 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             Review and download recorded NDA acceptances for your listings and requests.
           </p>
         </div>
@@ -2343,7 +2343,7 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 rounded-lg p-10 text-center text-zinc-400 space-y-2">
             <FileText className="h-8 w-8 mx-auto text-zinc-300" />
             <h3 className="font-semibold text-zinc-700 dark:text-zinc-400 text-xs">No Signed Documents Found</h3>
-            <p className="text-[10px] max-w-sm mx-auto">
+            <p className="text-xs max-w-sm mx-auto">
               {user?.role === 'owner'
                 ? 'No buyer NDAs have been signed for your patent listings yet.'
                 : 'You have not e-signed any agreements or NDAs for the listed patent opportunities yet.'}
@@ -2353,7 +2353,7 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
           <Card className="overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-150 dark:border-zinc-800 font-bold text-zinc-450 uppercase tracking-label text-[10px]">
+                <tr className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-150 dark:border-zinc-800 font-bold text-zinc-450 uppercase tracking-label text-xs">
                   <th className="p-4 font-bold">Document Opportunity</th>
                   <th className="p-4 font-bold">Patent Classification</th>
                   <th className="p-4 font-bold">{user?.role === 'owner' ? 'Buyer Signatory' : 'Authorized Signatory'}</th>
@@ -2372,16 +2372,16 @@ export const NegotiationsManager = ({ embedded }: ManagerProps = {}) => {
                     </td>
                     <td className="p-4">
                       <span className="block font-semibold text-zinc-850 dark:text-zinc-200">{nda.patentTitle}</span>
-                      <span className="text-[10px] text-zinc-400 font-mono mt-0.5 block">{nda.patentNumber}</span>
+                      <span className="text-xs text-zinc-400 font-mono mt-0.5 block">{nda.patentNumber}</span>
                     </td>
                     <td className="p-4">
                       <span className="block font-bold text-zinc-800 dark:text-zinc-200">{nda.buyerName}</span>
-                      <span className="text-[10px] text-zinc-400 block">{nda.buyerOrganization || 'Independent'}</span>
+                      <span className="text-xs text-zinc-400 block">{nda.buyerOrganization || 'Independent'}</span>
                       <span className="text-xs text-zinc-500 block mt-1">{nda.acceptanceMethod === 'typed_name' ? 'Account and typed-name acceptance' : 'Legacy platform record'}</span>
                     </td>
                     <td className="p-4 font-mono font-medium text-zinc-800 dark:text-zinc-300">
                       {new Date(nda.signedAt).toLocaleDateString('en-IN')} <br />
-                      <span className="text-[10px] text-zinc-400">{new Date(nda.signedAt).toLocaleTimeString('en-IN')}</span>
+                      <span className="text-xs text-zinc-400">{new Date(nda.signedAt).toLocaleTimeString('en-IN')}</span>
                     </td>
                     <td className="p-4 text-right">
                       <Button
@@ -2589,7 +2589,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
     <div className="space-y-6">
       {!embedded && (
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-white tracking-tight flex items-center gap-2 text-left">
+          <h1 className="type-page-title text-zinc-950 dark:text-white flex items-center gap-2 text-left">
             <FileKey2 className="h-6 w-6 text-primary" />
             Escrow vault
           </h1>
@@ -2623,19 +2623,19 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                   <div>
                     <h3 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">{tx.patentTitle}</h3>
                     <Badge variant="indigo" className="mt-2 text-xs">{inferAssetType(tx)}</Badge>
-                    <p className="text-[10px] text-zinc-400 font-mono mt-0.5">Application/Grant Ref: {tx.patentNumber}</p>
+                    <p className="text-xs text-zinc-400 font-mono mt-0.5">Application/Grant Ref: {tx.patentNumber}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <div>
-                      <span className="text-zinc-400 block text-[9px] uppercase tracking-label font-bold">Transaction Value</span>
+                      <span className="text-zinc-400 block text-xs uppercase tracking-label font-bold">Transaction Value</span>
                       <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200 text-sm">{formatPrice(tx.amount)}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-400 block text-[9px] uppercase tracking-label font-bold">Platform Fee (5%)</span>
+                      <span className="text-zinc-400 block text-xs uppercase tracking-label font-bold">Platform Fee (5%)</span>
                       <span className="font-mono font-medium text-zinc-500 dark:text-zinc-400 text-xs">{formatPrice(tx.commissionAmount)}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-400 block text-[9px] uppercase tracking-label font-bold">Payout Status</span>
+                      <span className="text-zinc-400 block text-xs uppercase tracking-label font-bold">Payout Status</span>
                       <Badge 
                         variant={
                           tx.status === 'completed' 
@@ -2644,7 +2644,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                               ? 'indigo' 
                               : 'warning'
                         }
-                        className="text-[9px] uppercase py-0.5 font-bold"
+                        className="text-xs uppercase py-0.5 font-bold"
                       >
                         {tx.status.replace('_', ' ')}
                       </Badge>
@@ -2656,7 +2656,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                 <div className="p-6 grid md:grid-cols-[1fr_280px] gap-6 text-xs">
                   {/* Milestones list */}
                   <div className="space-y-4 text-left">
-                    <h4 className="font-bold text-zinc-855 dark:text-zinc-300 uppercase tracking-label text-[10px]">Escrow Milestone Schedule</h4>
+                    <h4 className="font-bold text-zinc-855 dark:text-zinc-300 uppercase tracking-label text-xs">Escrow Milestone Schedule</h4>
                     
                     <div className="relative border-l-2 border-zinc-200 dark:border-zinc-800 ml-3.5 pl-6 space-y-5">
                       {tx.milestones.map((m: any, idx: number) => {
@@ -2677,7 +2677,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                                 <span className={`font-semibold text-sm ${isReleased ? 'text-zinc-500 dark:text-zinc-400 line-through' : 'text-zinc-900 dark:text-zinc-250'}`}>
                                   {m.description}
                                 </span>
-                                <div className="flex items-center gap-2 mt-1 text-[10px]">
+                                <div className="flex items-center gap-2 mt-1 text-xs">
                                   <span className="font-mono font-bold text-zinc-650 dark:text-zinc-400">{formatPrice(m.amount)}</span>
                                   <span className="text-zinc-400 font-medium">({m.percentage}%)</span>
                                   {m.releasedAt && (
@@ -2708,7 +2708,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                   {/* Actions & Summary Panel */}
                   <div className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 flex flex-col justify-between space-y-4 text-left">
                     <div className="space-y-4">
-                      <h4 className="font-bold text-zinc-855 dark:text-zinc-300 text-[10px] uppercase">Vault Summary</h4>
+                      <h4 className="font-bold text-zinc-855 dark:text-zinc-300 text-xs uppercase">Vault Summary</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-zinc-405 text-zinc-400">Escrow Account:</span>
@@ -2747,7 +2747,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                       )}
                       
                       {tx.status === 'escrow_pending' && isOwner && (
-                        <div className="text-center text-amber-600 dark:text-amber-400 font-medium py-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-500/10 rounded-lg text-[10px]">
+                        <div className="text-center text-amber-600 dark:text-amber-400 font-medium py-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-500/10 rounded-lg text-xs">
                           Awaiting buyer deposit funding...
                         </div>
                       )}
@@ -2763,7 +2763,7 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                       )}
                       
                       {tx.status === 'escrow_funded' && (
-                        <div className="text-center text-lvx-blue font-medium py-2 bg-lvx-blue/10 border border-lvx-blue/20 rounded-lg text-[10px]">
+                        <div className="text-center text-lvx-blue font-medium py-2 bg-lvx-blue/10 border border-lvx-blue/20 rounded-lg text-xs">
                           {isAdmin
                             ? 'Escrow funded. Release milestones to pay the inventor.'
                             : 'Escrow funded. Awaiting PatentBridge custodian milestone release.'}
@@ -2797,20 +2797,20 @@ export const EscrowManager = ({ embedded }: ManagerProps = {}) => {
                       <span className="text-zinc-400">Total Purchase Price:</span>
                       <span className="font-mono text-zinc-900 dark:text-zinc-100 font-bold">{formatPrice(selectedTx.amount)}</span>
                     </div>
-                    <div className="flex justify-between text-[10px] text-zinc-400">
+                    <div className="flex justify-between text-xs text-zinc-400">
                       <span>Vault Custodian:</span>
                       <span>PatentBridge Escrow Services</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-lvx-blue/10 p-4 rounded-lg border border-lvx-blue/20 text-[11px] text-lvx-blue leading-normal flex items-start gap-2 mb-4">
+                <div className="bg-lvx-blue/10 p-4 rounded-lg border border-lvx-blue/20 text-xs text-lvx-blue leading-normal flex items-start gap-2 mb-4">
                   <ShieldCheck className="h-5 w-5 shrink-0 text-lvx-blue mt-0.5" />
                   <span>This payment is powered by Razorpay Sandbox. Funds are held in the PatentBridge escrow vault until the admin releases milestone payouts to the inventor.</span>
                 </div>
 
                 {paymentError && (
-                  <div className="p-2.5 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 rounded-md border border-red-200/40 text-[10px] font-semibold flex items-center gap-1.5 mb-4">
+                  <div className="p-2.5 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 rounded-md border border-red-200/40 text-xs font-semibold flex items-center gap-1.5 mb-4">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span>{paymentError}</span>
                   </div>
@@ -2895,7 +2895,7 @@ export const AccessRequestsManager = ({ embedded }: ManagerProps = {}) => {
     <div className="space-y-6">
       {!embedded && (
         <div className="border-b border-zinc-200 dark:border-zinc-800 pb-5 text-left">
-          <h1 className="text-2xl font-bold text-zinc-950 dark:text-zinc-100 tracking-tight flex items-center gap-2">
+          <h1 className="type-page-title text-zinc-950 dark:text-zinc-100 flex items-center gap-2">
             <Lock className="h-6 w-6 text-primary" />
             Access Requests
           </h1>
@@ -2917,7 +2917,7 @@ export const AccessRequestsManager = ({ embedded }: ManagerProps = {}) => {
               <div key={r._id} className={`${cardClass} p-5`}>
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div>
-                    <span className="text-[10px] font-mono text-zinc-400">{r.patentNumber}</span>
+                    <span className="text-xs font-mono text-zinc-400">{r.patentNumber}</span>
                     <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 mt-1">{r.patentTitle}</h3>
                     <div className="mt-3 space-y-1 text-xs">
                       <p className="font-medium text-zinc-800 dark:text-zinc-200">{r.buyerName}</p>
@@ -2926,10 +2926,10 @@ export const AccessRequestsManager = ({ embedded }: ManagerProps = {}) => {
                     </div>
                   </div>
                   <div className="text-right space-y-2 shrink-0">
-                    <Badge variant={r.status === 'approved' ? 'success' : r.status === 'rejected' ? 'danger' : 'warning'} className="text-[10px] uppercase">
+                    <Badge variant={r.status === 'approved' ? 'success' : r.status === 'rejected' ? 'danger' : 'warning'} className="text-xs uppercase">
                       {r.status}
                     </Badge>
-                    <p className="text-[10px] text-zinc-400">{new Date(r.createdAt).toLocaleString('en-IN')}</p>
+                    <p className="text-xs text-zinc-400">{new Date(r.createdAt).toLocaleString('en-IN')}</p>
                   </div>
                 </div>
                 {processingId === r._id ? (

@@ -44,7 +44,7 @@ export const DashboardLayout = () => {
           <BrandLogo size="sm" linkTo="/" className="w-full justify-start" />
         </div>
         <div className="px-5 pb-2 pt-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/80">{workspaceName} workspace</p>
+          <p className="type-label text-primary/80">{workspaceName} workspace</p>
         </div>
         <nav aria-label="Workspace navigation" className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
           {menuItems.map((item) => {
@@ -56,7 +56,7 @@ export const DashboardLayout = () => {
                 to={item.path}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all',
+                  'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
                   active
                     ? 'bg-gradient-to-r from-primary to-[#2f6fbf] text-white shadow-md shadow-primary/25'
                     : 'text-slate-500 hover:bg-primary/5 hover:text-slate-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100',
@@ -75,17 +75,17 @@ export const DashboardLayout = () => {
         </nav>
         <div className="border-t border-slate-100/80 p-4 dark:border-zinc-800">
           <div className="mb-3 flex items-center gap-3 rounded-2xl bg-gradient-to-br from-primary/10 via-white to-emerald-50/60 px-3 py-3 dark:from-primary/15 dark:via-zinc-900 dark:to-zinc-900">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white shadow-sm shadow-primary/30">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-sm shadow-primary/30">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-semibold text-slate-800 dark:text-zinc-100">{user.name.split(' (')[0]}</p>
-              <p className="truncate text-[11px] text-slate-500 dark:text-zinc-400">{user.organization || workspaceName}</p>
+              <p className="truncate text-sm font-semibold text-slate-800 dark:text-zinc-100">{user.name.split(' (')[0]}</p>
+              <p className="truncate text-xs text-slate-500 dark:text-zinc-400">{user.organization || workspaceName}</p>
             </div>
           </div>
           <button
             onClick={() => { logout(); navigate('/'); }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-zinc-400 dark:hover:bg-rose-950/20 dark:hover:text-rose-300"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-zinc-400 dark:hover:bg-rose-950/20 dark:hover:text-rose-300"
           >
             <LogOut className="h-3.5 w-3.5" />
             Sign out
@@ -96,7 +96,7 @@ export const DashboardLayout = () => {
       <div className="relative flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-white/70 bg-white/75 px-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/80 sm:px-6 lg:px-8">
           <div className="lg:hidden"><BrandLogo size="sm" linkTo="/" className="max-w-[135px]" /></div>
-          <div className="hidden items-center gap-2 text-[12px] text-slate-400 dark:text-zinc-500 lg:flex">
+          <div className="hidden items-center gap-2 text-xs text-slate-400 dark:text-zinc-500 lg:flex">
             <Link to="/dashboard" className="hover:text-primary">{workspaceName} workspace</Link>
             <ChevronRight className="h-3.5 w-3.5" />
             <span className="font-semibold text-slate-700 dark:text-zinc-200">
@@ -106,7 +106,7 @@ export const DashboardLayout = () => {
           <div className="flex min-w-0 items-center gap-3">
             <Link
               to="/discover"
-              className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-[12px] font-semibold text-primary hover:bg-primary/10 dark:border-primary/25 dark:bg-primary/10"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 dark:border-primary/25 dark:bg-primary/10"
             >
               <Compass className="h-3.5 w-3.5" />
               <span>Marketplace</span>
@@ -114,7 +114,7 @@ export const DashboardLayout = () => {
             <Link
               to="/dashboard/profile"
               aria-label="Open your profile"
-              className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#2f6fbf] text-[11px] font-semibold text-white shadow-sm shadow-primary/30 sm:flex"
+              className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#2f6fbf] text-xs font-semibold text-white shadow-sm shadow-primary/30 sm:flex"
             >
               {initials}
             </Link>
@@ -131,7 +131,7 @@ export const DashboardLayout = () => {
                 to={item.path}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 text-[10px] font-medium',
+                  'flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 text-xs font-medium',
                   active ? 'text-primary' : 'text-slate-500 dark:text-zinc-400',
                 )}
               >
@@ -148,7 +148,7 @@ export const DashboardLayout = () => {
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
             className={cn(
-              'flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 text-[10px] font-medium',
+              'flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5 text-xs font-medium',
               menuItems.slice(3).some((item) => activeItem?.path === item.path) ? 'text-primary' : 'text-slate-500 dark:text-zinc-400',
             )}
           >

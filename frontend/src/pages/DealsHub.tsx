@@ -74,7 +74,7 @@ export const DealsHub = ({ completedOnly = false }: DealsHubProps) => {
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="line-clamp-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{deal.patentTitle}</h3>
-                  <Badge variant={deal.status === 'accepted' ? 'success' : 'warning'} className="shrink-0 text-[10px]">
+                  <Badge variant={deal.status === 'accepted' ? 'success' : 'warning'} className="shrink-0 text-xs">
                     {deal.status}
                   </Badge>
                 </div>

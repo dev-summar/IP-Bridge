@@ -334,7 +334,7 @@ export const PatentDetail = () => {
       <div className="relative mx-auto max-w-[1180px] space-y-6">
         <button
           onClick={() => navigate('/discover')}
-          className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-blue-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Discover
@@ -475,7 +475,7 @@ export const PatentDetail = () => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
+              <label className="block text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
                 Meeting Agenda & Notes
               </label>
               <textarea
@@ -525,7 +525,7 @@ export const PatentDetail = () => {
                 className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-200"
               />
               <div>
-                <label className="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
+                <label className="block text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
                   Proposal Deal Type
                 </label>
                 <select
@@ -540,7 +540,7 @@ export const PatentDetail = () => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
+              <label className="block text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
                 Payment Milestones (One per line)
               </label>
               <textarea
@@ -553,7 +553,7 @@ export const PatentDetail = () => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
+              <label className="block text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-label mb-2">
                 Proposal Terms Notes
               </label>
               <textarea
@@ -610,13 +610,13 @@ export const PatentDetail = () => {
           <div className="space-y-4 text-left text-xs">
             <div className="bg-lvx-blue/10 p-3 rounded-lg border border-lvx-blue/20 flex items-start gap-2.5">
               <ShieldAlert className="h-4.5 w-4.5 text-lvx-blue shrink-0 mt-0.5" />
-              <p className="text-zinc-650 dark:text-zinc-300 leading-normal text-[11px]">
+              <p className="text-zinc-650 dark:text-zinc-300 leading-normal text-xs">
                 <strong>NDA Required:</strong> To protect proprietary technical details and scheduling pathways, you must e-sign a Mutual Non-Disclosure Agreement (NDA) with the inventor. This will immediately unlock the acquisition proposal and booking panels.
               </p>
             </div>
 
             {/* NDA Text Box */}
-            <div className="max-h-56 overflow-y-auto bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-4 text-[11px] leading-relaxed text-zinc-700 dark:text-zinc-300 rounded-lg shadow-inner text-justify select-none">
+            <div className="max-h-56 overflow-y-auto bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-4 text-xs leading-relaxed text-zinc-700 dark:text-zinc-300 rounded-lg shadow-inner text-justify select-none">
               <h4 className="text-center font-bold text-xs text-zinc-800 dark:text-zinc-200 mb-4 uppercase">MUTUAL NON-DISCLOSURE AGREEMENT</h4>
               <p className="mb-3">
                 This agreement is between the inventor of this listing and <strong>{user?.name}</strong>{user?.organization ? <> ({user.organization})</> : null}. The inventor’s name and the filing reference are shared after you accept and the inventor approves access.

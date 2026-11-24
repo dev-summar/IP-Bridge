@@ -85,7 +85,7 @@ export const DealRoom = () => {
       <section className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.4)] dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Deal path</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Deal path</p>
             <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{progress.nextLabel}</h2>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{progress.nextHint}</p>
           </div>

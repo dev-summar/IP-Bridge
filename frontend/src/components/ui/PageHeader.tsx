@@ -12,9 +12,9 @@ export function PageHeader({ title, description, action }: PageHeaderProps) {
       <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2 text-left">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50 sm:text-4xl">{title}</h1>
+          <h1 className="type-page-title text-zinc-950 dark:text-zinc-50 sm:text-2xl">{title}</h1>
           {description && (
-            <p className="max-w-2xl text-base leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</p>
+            <p className="max-w-2xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{description}</p>
           )}
         </div>
         {action && <div className="shrink-0">{action}</div>}

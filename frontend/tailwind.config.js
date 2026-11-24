@@ -13,16 +13,17 @@ export default {
         mono: ['var(--font-mono)'],
       },
       fontSize: {
-        xs: ['0.8125rem', { lineHeight: '1.25rem' }],
-        sm: ['0.9375rem', { lineHeight: '1.375rem' }],
-        base: ['1.0625rem', { lineHeight: '1.625rem' }],
-        lg: ['1.1875rem', { lineHeight: '1.75rem' }],
-        xl: ['1.3125rem', { lineHeight: '1.875rem' }],
-        '2xl': ['1.5625rem', { lineHeight: '2rem' }],
-        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
-        '4xl': ['2.375rem', { lineHeight: '2.625rem' }],
-        '5xl': ['3rem', { lineHeight: '1.1' }],
-        '6xl': ['3.75rem', { lineHeight: '1.05' }],
+        // Product scale (16px root): meta → UI → body → titles
+        xs: ['0.75rem', { lineHeight: '1.125rem', letterSpacing: '0.01em' }],      // 12px meta/badges
+        sm: ['0.875rem', { lineHeight: '1.375rem' }],                             // 14px UI / nav
+        base: ['0.9375rem', { lineHeight: '1.5rem' }],                            // 15px body
+        lg: ['1.0625rem', { lineHeight: '1.625rem' }],                            // 17px
+        xl: ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],     // 20px
+        '2xl': ['1.5rem', { lineHeight: '1.875rem', letterSpacing: '-0.02em' }],  // 24px page
+        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }], // 30px
+        '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.025em' }],  // 36px
+        '5xl': ['3rem', { lineHeight: '1.1', letterSpacing: '-0.03em' }],
+        '6xl': ['3.75rem', { lineHeight: '1.05', letterSpacing: '-0.03em' }],
       },
       letterSpacing: {
         display: 'var(--tracking-display)',

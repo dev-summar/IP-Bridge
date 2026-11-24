@@ -34,7 +34,7 @@ type Metric = { source: string; label: string; path: string; icon: LucideIcon; t
 const surface =
   'min-w-0 rounded-2xl border border-white/80 bg-white/90 shadow-[0_10px_40px_-24px_rgba(15,23,42,0.35)] backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none';
 const primaryBtn =
-  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[#2f6fbf] px-4 py-2.5 text-[13px] font-semibold text-white shadow-md shadow-primary/25 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
+  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[#2f6fbf] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
 
 const roleConfig: Record<
   Role,
@@ -114,7 +114,7 @@ function Status({ value, listing = false }: { value: string; listing?: boolean }
         ? 'bg-amber-50 text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-950/30 dark:text-amber-300 dark:ring-amber-900/50'
         : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200/80 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-700';
   return (
-    <span className={cn('inline-flex max-w-full shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold leading-snug', color)}>
+    <span className={cn('inline-flex max-w-full shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold leading-snug', color)}>
       {labels[value] || value?.replace(/_/g, ' ') || 'Not available'}
     </span>
   );
@@ -145,12 +145,12 @@ function Panel({
                 <Icon className="h-4 w-4" />
               </span>
             )}
-            <h2 className="text-[16px] font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h2>
+            <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h2>
           </div>
-          {description && <p className="mt-1.5 text-[12px] leading-relaxed text-slate-500 dark:text-zinc-400">{description}</p>}
+          {description && <p className="mt-1.5 text-xs leading-relaxed text-slate-500 dark:text-zinc-400">{description}</p>}
         </div>
         {href && (
-          <Link to={href} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/5 px-2.5 py-1 text-[12px] font-semibold text-primary hover:bg-primary/10 dark:text-blue-300">
+          <Link to={href} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 dark:text-blue-300">
             {linkLabel}
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
@@ -179,10 +179,10 @@ function Empty({
       <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-sky-100 text-primary dark:from-primary/20 dark:to-zinc-800">
         <Icon className="h-5 w-5" />
       </span>
-      <h3 className="mt-3 text-[13px] font-semibold text-slate-700 dark:text-zinc-200">{title}</h3>
-      <p className="mx-auto mt-1 max-w-xs text-[12px] leading-relaxed text-slate-500 dark:text-zinc-400">{description}</p>
+      <h3 className="mt-3 text-sm font-semibold text-slate-700 dark:text-zinc-200">{title}</h3>
+      <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-slate-500 dark:text-zinc-400">{description}</p>
       {href && (
-        <Link to={href} className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:underline dark:text-blue-300">
+        <Link to={href} className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline dark:text-blue-300">
           {label}
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
@@ -204,7 +204,7 @@ function Activity({ series, buyer }: { series: any[]; buyer: boolean }) {
         <div className="grid h-[190px] grid-cols-6 gap-3 px-5 pb-5 pt-6 sm:px-6" role="list" aria-label="Monthly activity">
           {series.map((row, index) => (
             <div key={`${row.month}-${index}`} role="listitem" aria-label={`${row.month}: ${Number(row[field]) || 0}`} className="flex min-w-0 flex-col items-center justify-end gap-2">
-              <span className="text-[11px] font-semibold tabular-nums text-slate-600 dark:text-zinc-300">{Number(row[field]) || 0}</span>
+              <span className="text-xs font-semibold tabular-nums text-slate-600 dark:text-zinc-300">{Number(row[field]) || 0}</span>
               <div className="flex h-24 w-full max-w-9 items-end rounded-xl bg-slate-100/80 dark:bg-zinc-800">
                 <motion.div
                   title={`${row.month}: ${Number(row[field]) || 0}`}
@@ -214,12 +214,12 @@ function Activity({ series, buyer }: { series: any[]; buyer: boolean }) {
                   transition={{ duration: 0.55, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
                 />
               </div>
-              <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-400">{String(row.month).split(' ')[0]}</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-zinc-400">{String(row.month).split(' ')[0]}</span>
             </div>
           ))}
         </div>
       ) : (
-        <p className="px-6 py-10 text-[13px] text-slate-500 dark:text-zinc-400">Activity will appear as your workspace is used.</p>
+        <p className="px-6 py-10 text-sm text-slate-500 dark:text-zinc-400">Activity will appear as your workspace is used.</p>
       )}
     </Panel>
   );
@@ -235,8 +235,8 @@ function BenchmarkSummary({ data }: { data: any }) {
     <dl className="grid gap-5 border-t border-slate-100 pt-5 dark:border-zinc-800 sm:grid-cols-3">
       {rows.map((row) => (
         <div key={row.label} className="rounded-xl bg-slate-50/80 p-3 dark:bg-zinc-800/50">
-          <dt className="text-[12px] text-slate-500 dark:text-zinc-400">{row.label}</dt>
-          <dd className="mt-2 text-[18px] font-semibold text-slate-900 dark:text-white">{row.value}</dd>
+          <dt className="text-xs text-slate-500 dark:text-zinc-400">{row.label}</dt>
+          <dd className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{row.value}</dd>
         </div>
       ))}
     </dl>
@@ -364,14 +364,14 @@ export const WorkspaceOverview = () => {
         <div className="pointer-events-none absolute -bottom-16 left-10 h-40 w-40 rounded-full bg-emerald-300/20 blur-3xl" />
         <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div className="min-w-0">
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {config.name} overview
             </p>
-            <h1 className="break-words text-[28px] font-bold leading-tight tracking-[-0.03em] text-slate-900 sm:text-[34px] dark:text-white">
+            <h1 className="type-page-title break-words text-slate-900 sm:text-2xl dark:text-white">
               Welcome back, {user?.name?.split(' (')[0] || 'there'}
             </h1>
-            <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-slate-500 dark:text-zinc-400">{config.description}</p>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500 dark:text-zinc-400">{config.description}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
@@ -392,7 +392,7 @@ export const WorkspaceOverview = () => {
       </motion.header>
 
       {error && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-[13px] text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
           <span>{error}</span>
           <button type="button" onClick={load} className="font-semibold underline">Try again</button>
         </div>
@@ -424,13 +424,13 @@ export const WorkspaceOverview = () => {
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-[12px] font-semibold leading-relaxed opacity-80">{metric.label}</p>
+                        <p className="text-xs font-semibold leading-relaxed opacity-80">{metric.label}</p>
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/70 shadow-sm dark:bg-zinc-900/60">
                           <Icon className="h-4 w-4" />
                         </span>
                       </div>
-                      <p className="mt-4 text-[32px] font-bold leading-none tracking-tight tabular-nums text-slate-900 dark:text-white">{value?.value ?? '—'}</p>
-                      <p className="mt-3 text-[11px] font-medium leading-relaxed opacity-75">{value?.change || 'No data available'}</p>
+                      <p className="mt-4 text-3xl font-bold leading-none tracking-tight tabular-nums text-slate-900 dark:text-white">{value?.value ?? '—'}</p>
+                      <p className="mt-3 text-xs font-medium leading-relaxed opacity-75">{value?.change || 'No data available'}</p>
                     </Link>
                   </motion.div>
                 );
@@ -443,14 +443,14 @@ export const WorkspaceOverview = () => {
                 <div className="pointer-events-none absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-sky-300/20 blur-2xl" />
                 <div className="relative flex h-full flex-col justify-between">
                   <div>
-                    <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-100">
+                    <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-100">
                       <span className={cn('h-1.5 w-1.5 rounded-full', focus.urgent ? 'bg-amber-300' : 'bg-emerald-300')} />
                       {focus.urgent ? 'Needs attention' : 'Your next step'}
                     </p>
-                    <h2 className="mt-4 max-w-lg text-[23px] font-bold leading-tight tracking-tight">{focus.title}</h2>
-                    <p className="mt-3 max-w-lg text-[13px] leading-relaxed text-slate-200/90">{focus.description}</p>
+                    <h2 className="mt-4 max-w-lg text-xl font-bold leading-tight tracking-tight">{focus.title}</h2>
+                    <p className="mt-3 max-w-lg text-sm leading-relaxed text-slate-200/90">{focus.description}</p>
                   </div>
-                  <Link to={focus.path} className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[12px] font-semibold text-slate-900 hover:bg-sky-50">
+                  <Link to={focus.path} className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-semibold text-slate-900 hover:bg-sky-50">
                     {focus.label}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -460,7 +460,7 @@ export const WorkspaceOverview = () => {
             </div>
 
             {extraError && (
-              <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+              <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
                 {role === 'buyer' ? 'Marketplace suggestions' : role === 'owner' ? 'Access requests' : 'The review queue'} could not be refreshed.{' '}
                 <button type="button" onClick={load} className="font-semibold underline">Retry</button>
               </div>
@@ -474,8 +474,8 @@ export const WorkspaceOverview = () => {
                       {portfolio.slice(0, 5).map((ip: any) => (
                         <Link key={ip.id} to={`/marketplace/${ip.id}`} className="group flex items-start justify-between gap-4 px-5 py-4 hover:bg-sky-50/60 dark:hover:bg-zinc-800/50 sm:px-6">
                           <div className="min-w-0">
-                            <h3 className="line-clamp-2 text-[13px] font-medium leading-relaxed text-slate-800 group-hover:text-primary dark:text-zinc-200">{ip.title}</h3>
-                            <p className="mt-1 text-[11px] text-slate-500 dark:text-zinc-400">
+                            <h3 className="line-clamp-2 text-sm font-medium leading-relaxed text-slate-800 group-hover:text-primary dark:text-zinc-200">{ip.title}</h3>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
                               {inferAssetType(ip)}
                               {typeof ip.commercialPotentialScore === 'number' ? ` · AI score ${ip.commercialPotentialScore}/100` : ' · Not assessed'}
                             </p>
@@ -490,7 +490,7 @@ export const WorkspaceOverview = () => {
                 </Panel>
                 <Panel title="Buyer interest" description="Recent requests and enquiries about your IP" href="/dashboard/access-requests" icon={Inbox}>
                   {pendingAccess.length > 0 && (
-                    <div className="border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-3 text-[12px] font-semibold text-amber-900 dark:border-amber-900/40 dark:from-amber-950/30 dark:to-orange-950/20 dark:text-amber-200 sm:px-6">
+                    <div className="border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-3 text-xs font-semibold text-amber-900 dark:border-amber-900/40 dark:from-amber-950/30 dark:to-orange-950/20 dark:text-amber-200 sm:px-6">
                       {pendingAccess.length} unlock {pendingAccess.length === 1 ? 'request' : 'requests'} waiting for your decision
                     </div>
                   )}
@@ -503,11 +503,11 @@ export const WorkspaceOverview = () => {
                           className="block px-5 py-4 hover:bg-amber-50/50 dark:hover:bg-zinc-800/50 sm:px-6"
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <h3 className="min-w-0 break-words text-[13px] font-medium text-slate-800 dark:text-zinc-200">{item.buyerName || 'Buyer'}</h3>
+                            <h3 className="min-w-0 break-words text-sm font-medium text-slate-800 dark:text-zinc-200">{item.buyerName || 'Buyer'}</h3>
                             <Status value={item.status} />
                           </div>
-                          <p className="mt-1 line-clamp-2 text-[12px] text-slate-500 dark:text-zinc-400">{item.patentTitle}</p>
-                          <p className="mt-2 text-[10px] text-slate-400 dark:text-zinc-500">
+                          <p className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-zinc-400">{item.patentTitle}</p>
+                          <p className="mt-2 text-xs text-slate-400 dark:text-zinc-500">
                             {item.buyerOrganization || item.buyerOrg || 'Independent'} · {dateLabel(item.createdAt)}
                           </p>
                         </Link>
@@ -529,8 +529,8 @@ export const WorkspaceOverview = () => {
                         {data.recentDeals.slice(0, 4).map((deal: any) => (
                           <Link key={deal.id} to={`/dashboard/deals/${deal.id}`} className="flex items-start justify-between gap-4 px-5 py-4 hover:bg-sky-50/60 dark:hover:bg-zinc-800/50 sm:px-6">
                             <div className="min-w-0">
-                              <h3 className="line-clamp-2 text-[13px] font-medium text-slate-800 dark:text-zinc-200">{deal.patentTitle}</h3>
-                              <p className="mt-1 text-[12px] text-slate-500 dark:text-zinc-400">
+                              <h3 className="line-clamp-2 text-sm font-medium text-slate-800 dark:text-zinc-200">{deal.patentTitle}</h3>
+                              <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
                                 {money(deal.price)} · {dateLabel(deal.createdAt)}
                               </p>
                             </div>
@@ -551,9 +551,9 @@ export const WorkspaceOverview = () => {
                               <Layers3 className="h-4 w-4" />
                             </span>
                             <div className="min-w-0 flex-1">
-                              <h3 className="line-clamp-2 text-[13px] font-medium text-slate-800 group-hover:text-primary dark:text-zinc-200">{ip.title}</h3>
-                              <p className="mt-1 text-[11px] text-slate-500 dark:text-zinc-400">{inferAssetType(ip)}</p>
-                              <p className="mt-1 text-[11px] font-medium text-primary dark:text-blue-300">
+                              <h3 className="line-clamp-2 text-sm font-medium text-slate-800 group-hover:text-primary dark:text-zinc-200">{ip.title}</h3>
+                              <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">{inferAssetType(ip)}</p>
+                              <p className="mt-1 text-xs font-medium text-primary dark:text-blue-300">
                                 {typeof ip.analysis?.commercialPotentialScore === 'number'
                                   ? getCommercialPotentialLabel(ip.analysis.commercialPotentialScore)
                                   : 'Not assessed'}
@@ -574,9 +574,9 @@ export const WorkspaceOverview = () => {
                       <div className="divide-y divide-slate-100 dark:divide-zinc-800">
                         {data.recentRequests.slice(0, 4).map((request: any) => (
                           <div key={request.id} className="px-5 py-4 sm:px-6">
-                            <h3 className="line-clamp-2 text-[13px] font-medium text-slate-800 dark:text-zinc-200">{request.patentTitle}</h3>
+                            <h3 className="line-clamp-2 text-sm font-medium text-slate-800 dark:text-zinc-200">{request.patentTitle}</h3>
                             <div className="mt-2 flex items-center justify-between gap-2">
-                              <span className="text-[10px] text-slate-400 dark:text-zinc-500">{dateLabel(request.createdAt)}</span>
+                              <span className="text-xs text-slate-400 dark:text-zinc-500">{dateLabel(request.createdAt)}</span>
                               <Status value={request.status} />
                             </div>
                           </div>
@@ -591,9 +591,9 @@ export const WorkspaceOverview = () => {
                       <div className="divide-y divide-slate-100 dark:divide-zinc-800">
                         {data.activeSchedules.slice(0, 3).map((meeting: any) => (
                           <div key={meeting.id} className="px-5 py-4 sm:px-6">
-                            <p className="line-clamp-2 text-[13px] font-medium text-slate-800 dark:text-zinc-200">{meeting.patentTitle}</p>
+                            <p className="line-clamp-2 text-sm font-medium text-slate-800 dark:text-zinc-200">{meeting.patentTitle}</p>
                             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                              <span className="text-xs text-slate-500 dark:text-zinc-400">
                                 {dateLabel(meeting.date)}
                                 {meeting.time ? ` · ${meeting.time}` : ''}
                               </span>
@@ -622,12 +622,12 @@ export const WorkspaceOverview = () => {
                               <FileCheck2 className="h-4 w-4" />
                             </span>
                             <div className="min-w-0 flex-1">
-                              <h3 className="line-clamp-2 text-[13px] font-medium text-slate-800 dark:text-zinc-200">{ip.title}</h3>
-                              <p className="mt-1 text-[11px] text-slate-500 dark:text-zinc-400">
+                              <h3 className="line-clamp-2 text-sm font-medium text-slate-800 dark:text-zinc-200">{ip.title}</h3>
+                              <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
                                 {inferAssetType(ip)} · {ip.ownerOrganization || 'Independent'}
                               </p>
                             </div>
-                            <span className="shrink-0 text-[10px] text-slate-400 dark:text-zinc-500">{dateLabel(ip.createdAt)}</span>
+                            <span className="shrink-0 text-xs text-slate-400 dark:text-zinc-500">{dateLabel(ip.createdAt)}</span>
                           </div>
                         ))}
                       </div>
@@ -648,11 +648,11 @@ export const WorkspaceOverview = () => {
                           <div key={log.id} className="flex gap-3 px-5 py-4 sm:px-6">
                             <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-br from-primary to-sky-400" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-[12px] font-semibold capitalize text-slate-700 dark:text-zinc-200">
+                              <p className="text-xs font-semibold capitalize text-slate-700 dark:text-zinc-200">
                                 {String(log.action).toLowerCase().replace(/_/g, ' ')}
                               </p>
-                              <p className="mt-1 line-clamp-2 break-words text-[12px] leading-relaxed text-slate-500 dark:text-zinc-400">{log.details}</p>
-                              <p className="mt-2 text-[10px] text-slate-400 dark:text-zinc-500">
+                              <p className="mt-1 line-clamp-2 break-words text-xs leading-relaxed text-slate-500 dark:text-zinc-400">{log.details}</p>
+                              <p className="mt-2 text-xs text-slate-400 dark:text-zinc-500">
                                 {log.userName} · {dateLabel(log.createdAt)}
                               </p>
                             </div>
@@ -673,12 +673,12 @@ export const WorkspaceOverview = () => {
                         ['Active escrow', data.treasury?.activeEscrow],
                       ].map(([label, value]) => (
                         <div key={String(label)} className="flex flex-wrap items-center justify-between gap-2 py-4">
-                          <dt className="text-[12px] text-slate-500 dark:text-zinc-400">{label}</dt>
-                          <dd className="text-[15px] font-semibold tabular-nums text-slate-900 dark:text-white">{money(value)}</dd>
+                          <dt className="text-xs text-slate-500 dark:text-zinc-400">{label}</dt>
+                          <dd className="text-base font-semibold tabular-nums text-slate-900 dark:text-white">{money(value)}</dd>
                         </div>
                       ))}
                     </dl>
-                    <p className="border-t border-slate-100 px-5 py-3 text-[11px] text-slate-400 dark:border-zinc-800 dark:text-zinc-500 sm:px-6">
+                    <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400 dark:border-zinc-800 dark:text-zinc-500 sm:px-6">
                       Subscription billing: {data.treasury?.subscriptionRevenue == null ? 'Not tracked' : money(data.treasury.subscriptionRevenue)}
                     </p>
                   </Panel>
@@ -690,7 +690,7 @@ export const WorkspaceOverview = () => {
                           .slice(0, 5)
                           .map((sector: any) => (
                             <div key={sector.name}>
-                              <div className="mb-2 flex items-center justify-between gap-3 text-[12px]">
+                              <div className="mb-2 flex items-center justify-between gap-3 text-xs">
                                 <span className="min-w-0 break-words text-slate-600 dark:text-zinc-300">{sector.name}</span>
                                 <span className="font-semibold tabular-nums text-slate-800 dark:text-zinc-200">{sector.value}</span>
                               </div>
@@ -718,7 +718,7 @@ export const WorkspaceOverview = () => {
 
             {role !== 'admin' && (
               <details className={cn(surface, 'group')}>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-[13px] font-medium text-slate-700 dark:text-zinc-200 sm:px-6">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-medium text-slate-700 dark:text-zinc-200 sm:px-6">
                   <span className="inline-flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
                     {role === 'owner' ? 'Portfolio insights & institution rankings' : 'More workspace insights'}
@@ -731,9 +731,9 @@ export const WorkspaceOverview = () => {
                       ?.filter((item: any) => !config.metrics.some((metric) => metric.source === item.label))
                       .map((item: any) => (
                         <div key={item.label} className="rounded-xl bg-gradient-to-br from-slate-50 to-sky-50/40 p-3 dark:from-zinc-800/60 dark:to-zinc-900">
-                          <dt className="text-[12px] text-slate-500 dark:text-zinc-400">{item.label}</dt>
-                          <dd className="mt-2 text-[20px] font-semibold text-slate-900 dark:text-white">{item.value}</dd>
-                          <p className="mt-1 text-[11px] text-slate-500 dark:text-zinc-400">{item.change}</p>
+                          <dt className="text-xs text-slate-500 dark:text-zinc-400">{item.label}</dt>
+                          <dd className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">{item.value}</dd>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">{item.change}</p>
                         </div>
                       ))}
                   </dl>
@@ -746,10 +746,10 @@ export const WorkspaceOverview = () => {
                           { title: 'Institution rankings', rows: data.benchmarking.institutionLeaderboard || [], name: 'organization', value: 'benchmarkScore' },
                         ].map((group) => (
                           <div key={group.title}>
-                            <h3 className="mb-3 text-[13px] font-semibold text-slate-800 dark:text-zinc-200">{group.title}</h3>
+                            <h3 className="mb-3 text-sm font-semibold text-slate-800 dark:text-zinc-200">{group.title}</h3>
                             <ol className="space-y-3">
                               {group.rows.map((row: any) => (
-                                <li key={row.rank} className="flex items-start gap-3 text-[12px]">
+                                <li key={row.rank} className="flex items-start gap-3 text-xs">
                                   <span className="font-medium tabular-nums text-slate-400">{row.rank}</span>
                                   <span className="min-w-0 flex-1 break-words text-slate-600 dark:text-zinc-300">
                                     {row[group.name]}

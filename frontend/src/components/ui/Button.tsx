@@ -23,10 +23,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             "bg-transparent text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900": variant === 'ghost',
             "bg-red-600 text-white hover:bg-red-700 border border-transparent": variant === 'danger',
             
-            // Sizes
-            "px-3.5 py-2 text-sm": size === 'sm',
-            "px-5 py-2.5 text-base": size === 'md',
-            "px-6 py-3 text-base font-semibold": size === 'lg',
+            // Sizes — product UI stays on sm/base scale
+            "px-3 py-1.5 text-sm": size === 'sm',
+            "px-4 py-2 text-sm": size === 'md',
+            "px-5 py-2.5 text-base font-semibold": size === 'lg',
           },
           className
         )}

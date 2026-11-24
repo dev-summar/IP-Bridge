@@ -300,10 +300,10 @@ export const Marketplace = () => {
               transition={transition}
               className="space-y-2"
             >
-              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+              <h1 className="type-section-title text-zinc-900 dark:text-white">
                 Discover IP
               </h1>
-              <p className="text-base text-zinc-500">
+              <p className="text-sm text-zinc-500">
                 {personalized
                   ? 'Personalized matches from your interests, domains, and past searches.'
                   : 'Search patents and technologies to license or acquire.'}
@@ -413,7 +413,7 @@ export const Marketplace = () => {
             <div className="mx-auto mt-3 max-w-3xl rounded-2xl border border-zinc-200/80 bg-white/90 p-4 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-900/90">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-left">
-                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">IP type</span>
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">IP type</span>
                   <select
                     value={ipType}
                     onChange={(e) => { setIpType(e.target.value); setAiActive(false); setPage(1); }}
@@ -426,7 +426,7 @@ export const Marketplace = () => {
                   </select>
                 </label>
                 <label className="block text-left">
-                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Deal type</span>
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Deal type</span>
                   <select
                     value={dealType}
                     onChange={(e) => { setDealType(e.target.value); setAiActive(false); setPage(1); }}
@@ -438,7 +438,7 @@ export const Marketplace = () => {
                   </select>
                 </label>
                 <label className="block text-left">
-                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Readiness</span>
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Readiness</span>
                   <select
                     value={trlMin}
                     onChange={(e) => { setTrlMin(e.target.value); setAiActive(false); setPage(1); }}
@@ -450,7 +450,7 @@ export const Marketplace = () => {
                   </select>
                 </label>
                 <label className="block text-left">
-                  <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Price band</span>
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Price band</span>
                   <select
                     value={priceBand}
                     onChange={(e) => { setPriceBand(e.target.value); setAiActive(false); setPage(1); }}
@@ -523,7 +523,7 @@ export const Marketplace = () => {
                     key={s}
                     type="button"
                     onClick={() => runAiSearch(s)}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-primary/40 hover:text-primary"
+                    className="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-primary/40 hover:text-primary"
                   >
                     Searched: {s.length > 28 ? `${s.slice(0, 28)}…` : s}
                   </button>
@@ -531,7 +531,7 @@ export const Marketplace = () => {
                 {(profileSignals.interests || []).slice(0, 4).map((i: string) => (
                   <span
                     key={i}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20"
+                    className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
                   >
                     Interest: {i}
                   </span>
@@ -539,7 +539,7 @@ export const Marketplace = () => {
                 {(profileSignals.domains || []).slice(0, 3).map((d: string) => (
                   <span
                     key={d}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-900/5 dark:bg-white/10 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
+                    className="px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-900/5 dark:bg-white/10 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
                   >
                     Domain: {d}
                   </span>

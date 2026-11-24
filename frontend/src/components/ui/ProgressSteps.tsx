@@ -56,7 +56,7 @@ export function ProgressSteps({
                 </span>
                 <span
                   className={cn(
-                    'mt-2.5 text-[11px] sm:text-xs font-medium text-center leading-snug w-full',
+                    'mt-2.5 text-xs sm:text-xs font-medium text-center leading-snug w-full',
                     isTimeline && 'text-zinc-600 dark:text-zinc-400',
                     active && !isTimeline && 'text-zinc-900 dark:text-zinc-100',
                     done && !isTimeline && 'text-emerald-700 dark:text-emerald-400',

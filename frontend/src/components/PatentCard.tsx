@@ -61,7 +61,7 @@ export const PatentCard = ({ patent, isSaved, onToggleBookmark, onExplore, onIgn
         )}
       </div>
 
-      <h3 className="mt-3 text-lg font-semibold leading-6 tracking-tight text-zinc-950 dark:text-white">
+      <h3 className="type-card-title mt-3 text-zinc-950 dark:text-white">
         <button
           type="button"
           onClick={() => onExplore(patent._id)}
@@ -74,13 +74,13 @@ export const PatentCard = ({ patent, isSaved, onToggleBookmark, onExplore, onIgn
       {unlocked && patent.patentNumber && <p className="mt-1 text-xs text-zinc-500">{patent.patentNumber}</p>}
 
       {unlocked ? (
-        <p className="mt-3 text-[15px] leading-6 text-zinc-700 line-clamp-4 dark:text-zinc-300">
+        <p className="mt-3 text-base leading-6 text-zinc-700 line-clamp-4 dark:text-zinc-300">
           {patent.analysis?.summary?.problemSolved || patent.abstract || 'Open the listing for more information.'}
         </p>
       ) : (
         <div className="mt-3 space-y-2">
           {publicLines.map((line: string) => (
-            <p key={line} className="text-[15px] leading-6 text-zinc-700 dark:text-zinc-300">{line}</p>
+            <p key={line} className="text-base leading-6 text-zinc-700 dark:text-zinc-300">{line}</p>
           ))}
         </div>
       )}

@@ -72,7 +72,7 @@ export const Dialog = ({ isOpen, onClose, title, description, children, classNam
             {/* Header */}
             <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border shrink-0">
               <div className="min-w-0">
-                <h3 id={titleId} className="text-lg font-semibold text-foreground tracking-tight">{title}</h3>
+                <h3 id={titleId} className="text-base font-semibold text-foreground tracking-heading">{title}</h3>
                 {description && (
                   <p id={descriptionId} className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
                 )}

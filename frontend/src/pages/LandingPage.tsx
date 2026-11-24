@@ -110,7 +110,7 @@ function FloatCard({
       <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Icon className="h-3.5 w-3.5" />
       </span>
-      <span className="text-[12px] font-semibold tracking-tight text-zinc-800 dark:text-zinc-100">{label}</span>
+      <span className="text-xs font-semibold tracking-tight text-zinc-800 dark:text-zinc-100">{label}</span>
     </motion.div>
   );
 }
@@ -216,7 +216,7 @@ export const LandingPage = () => {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="mt-4 max-w-xl text-[2.6rem] font-bold leading-[1.02] tracking-tight text-zinc-950 dark:text-white sm:text-6xl"
+              className="type-display mt-4 max-w-xl text-zinc-950 dark:text-white"
             >
               From filing to
               <span className="mt-1 block text-primary">commercialisation.</span>
@@ -225,7 +225,7 @@ export const LandingPage = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="mt-4 max-w-md text-[15px] leading-snug text-zinc-500 dark:text-zinc-400 sm:text-base"
+              className="mt-4 max-w-md text-base leading-snug text-zinc-500 dark:text-zinc-400 sm:text-base"
             >
               Connecting innovative ideas, protected intellectual property and industry opportunities. IPBridge creates a direct pathway from invention to commercial success.
             </motion.p>
@@ -433,7 +433,7 @@ export const LandingPage = () => {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <FadeIn>
             <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Membership</p>
-            <h2 id="membership-heading" className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-4xl">
+            <h2 id="membership-heading" className="type-section-title mt-3 max-w-3xl text-zinc-950 dark:text-white">
               Here is what membership offers
             </h2>
           </FadeIn>

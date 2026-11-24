@@ -45,7 +45,7 @@ export const Navbar = () => {
                 key={item.label}
                 to={item.to}
                 className={cn(
-                  'group relative px-3.5 py-2.5 text-base font-medium rounded-lg transition-colors',
+                  'group relative px-3.5 py-2.5 text-sm font-medium rounded-lg transition-colors',
                   active
                     ? 'text-zinc-900 dark:text-white'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -120,22 +120,22 @@ export const Navbar = () => {
             <Link
               key={item.label}
               to={item.to}
-              className="block px-3 py-2.5 text-base font-medium rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900"
+              className="block px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900"
             >
               {item.label}
             </Link>
           ))}
-          <Link to={listIpPath} className="block px-3 py-2.5 text-base font-medium rounded-lg hover:bg-zinc-50">
+          <Link to={listIpPath} className="block px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-zinc-50">
             List IP
           </Link>
           {isAuthenticated && (
             <div className="border-t border-zinc-100 pt-2 dark:border-zinc-800">
-              <Link to={dashPath} className="block rounded-lg px-3 py-2.5 text-base font-medium text-primary">Dashboard</Link>
-              <button type="button" onClick={handleLogout} className="block w-full rounded-lg px-3 py-2.5 text-left text-base font-medium text-zinc-600 dark:text-zinc-300">Sign out</button>
+              <Link to={dashPath} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-primary">Dashboard</Link>
+              <button type="button" onClick={handleLogout} className="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-zinc-600 dark:text-zinc-300">Sign out</button>
             </div>
           )}
           {!isAuthenticated && (
-            <Link to="/auth?mode=login" className="block px-3 py-2.5 text-base font-medium text-primary">
+            <Link to="/auth?mode=login" className="block px-3 py-2.5 text-sm font-medium text-primary">
               Sign In
             </Link>
           )}
