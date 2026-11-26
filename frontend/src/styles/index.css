@@ -22,8 +22,8 @@
     --card: 0 0% 100%; 
     --card-foreground: 224 71.4% 4.1%;
 
-    /* Vibrant Royal Indigo Primary Accent Color (similar to Stripe/Linear) */
-    --primary: 210 72% 55%; /* LVX blue #4a90e2 */
+    /* Deep product blue — darker than the previous light #4a90e2 */
+    --primary: 224 76% 48%; /* #1d4ed8 */
     --primary-foreground: 210 20% 98%;
 
     --secondary: 240 4.8% 95.9%;
@@ -48,7 +48,7 @@
     --card: 240 10% 5.9%; /* Slightly lighter dark gray card */
     --card-foreground: 0 0% 98%;
 
-    --primary: 250 89% 62%; /* Vibrant Royal Indigo */
+    --primary: 217 91% 60%; /* #3b82f6 — readable on dark surfaces */
     --primary-foreground: 210 20% 98%;
 
     --secondary: 240 3.7% 15.9%;
@@ -313,8 +313,8 @@
   --lvx-navy: #0a1628;
   --lvx-navy-light: #122240;
   --lvx-navy-card: #152a4a;
-  --lvx-blue: #4a90e2;
-  --lvx-blue-hover: #3a7bc8;
+  --lvx-blue: #1d4ed8;
+  --lvx-blue-hover: #1e3a8a;
   --lvx-charcoal: #1a2b3c;
   --lvx-label: #8e8ebf;
   --lvx-orange: #f5a623;

@@ -98,7 +98,13 @@ export const UnlockDetailsFlow: React.FC<UnlockDetailsFlowProps> = ({
     try {
       setLoading(true);
       if (!hasExpressedInterest) {
-        await apiFetch(`/api/patents/${patentId}/interest`, { method: 'POST', body: form });
+        await apiFetch(`/api/patents/${patentId}/interest`, {
+          method: 'POST',
+          body: {
+            ...form,
+            message: (form.message || '').trim(),
+          },
+        });
       } else {
         await apiFetch(`/api/patents/${patentId}/access-request`, { method: 'POST' });
       }

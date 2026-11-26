@@ -226,7 +226,7 @@ export interface IInterestRequest extends Document {
   organization: string;
   email: string;
   purpose: string;
-  message: string;
+  message?: string;
   status: 'new' | 'reviewed' | 'contacted';
   createdAt: Date;
 }
@@ -239,11 +239,16 @@ export const InterestRequestSchema = new Schema<IInterestRequest>({
   organization: { type: String, required: true },
   email: { type: String, required: true },
   purpose: { type: String, required: true },
-  message: { type: String, required: true },
+  // Optional note from buyer — empty string must be allowed
+  message: { type: String, default: '', required: false },
   status: { type: String, enum: ['new', 'reviewed', 'contacted'], default: 'new' }
 }, { timestamps: true });
 
-export const InterestRequestModel = mongoose.models.InterestRequest || mongoose.model<IInterestRequest>('InterestRequest', InterestRequestSchema);
+// Hot-reload safe: drop cached model so schema changes apply in ts-node-dev
+if (mongoose.models.InterestRequest) {
+  delete (mongoose.models as any).InterestRequest;
+}
+export const InterestRequestModel = mongoose.model<IInterestRequest>('InterestRequest', InterestRequestSchema);
 
 // Meeting Request Schema
 export interface IMeetingRequest extends Document {

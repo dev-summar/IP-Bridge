@@ -8,6 +8,7 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
   try {
     const authReq = req as IAuthRequest;
     const { role, id: userId } = authReq.user!;
+    const sameId = (a: unknown, b: unknown) => String(a ?? '') === String(b ?? '');
     
     // Fetch base datasets in parallel — avoid serial round-trips.
     const [users, patents, leads, meetings, logs, offers, transactions, analyses] = await Promise.all([
@@ -415,10 +416,10 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
 
     // 3. BUYER EXPLORATION ANALYTICS
     if (role === 'buyer') {
-      const user = users.find(u => u._id === userId);
+      const user = users.find(u => sameId(u._id, userId));
       const savedCount = user ? (user.savedPatents || []).length : 0;
-      const mySentLeads = leads.filter(l => l.buyerId === userId);
-      const mySentMeetings = meetings.filter(m => m.buyerId === userId);
+      const mySentLeads = leads.filter(l => sameId(l.buyerId, userId));
+      const mySentMeetings = meetings.filter(m => sameId(m.buyerId, userId));
 
       // Latest high scoring patents in market
       const grants = await disclosureGrantsFor(userId);
@@ -444,24 +445,31 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         .sort((a, b) => b.score - a.score)
         .slice(0, 4);
 
-      const myOffers = offers.filter(o => o.buyerId === userId);
-      const myTransactions = transactions.filter(t => {
-        const offer = myOffers.find(o => o._id === t.offerId);
-        return !!offer;
+      const myOffers = offers.filter(o => sameId(o.buyerId, userId));
+      const myTransactions = transactions.filter(t =>
+        sameId(t.buyerId, userId) || myOffers.some(o => sameId(o._id, t.offerId))
+      );
+      const completedOfferIds = new Set(
+        myTransactions.filter(t => t.status === 'completed').map(t => String(t.offerId))
+      );
+      const activeOffers = myOffers.filter(o => {
+        if (completedOfferIds.has(String(o._id))) return false;
+        return ['pending', 'countered', 'accepted'].includes(o.status);
       });
+      const completedDeals = myTransactions.filter(t => t.status === 'completed').length;
 
       const recentDeals = myOffers
         .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
         .slice(0, 6)
         .map(o => {
-          const p = patents.find(pat => pat._id === o.patentId);
-          const tx = transactions.find(t => t.offerId === o._id);
+          const p = patents.find(pat => sameId(pat._id, o.patentId));
+          const tx = myTransactions.find(t => sameId(t.offerId, o._id));
           const show = disclosedTo(p, userId, role, grants);
           return {
             id: o._id,
             patentTitle: show ? (p ? p.title : 'IP Asset') : listingName(p, null, false),
             price: o.price,
-            status: o.status,
+            status: completedOfferIds.has(String(o._id)) ? 'completed' : o.status,
             escrowStatus: tx?.status || null,
             createdAt: o.createdAt,
           };
@@ -471,7 +479,7 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
         .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
         .slice(0, 5)
         .map(l => {
-          const p = patents.find(pat => pat._id === l.patentId);
+          const p = patents.find(pat => sameId(pat._id, l.patentId));
           const show = disclosedTo(p, userId, role, grants);
           return {
             id: l._id,
@@ -488,13 +496,13 @@ export async function getDashboardAnalytics(req: Request, res: Response) {
           { label: 'Saved Patents', value: savedCount, change: 'Monitored opportunities', type: 'saved' },
           { label: 'Unlock Requests', value: mySentLeads.length, change: 'Interest & access submissions', type: 'leads' },
           { label: 'Meetings', value: mySentMeetings.length, change: 'Scheduled with inventors', type: 'meetings' },
-          { label: 'Active Offers', value: myOffers.filter(o => ['pending', 'countered', 'accepted'].includes(o.status)).length, change: 'In negotiation or escrow', type: 'deals' },
+          { label: 'Active Offers', value: activeOffers.length, change: 'In negotiation or escrow', type: 'deals' },
           { label: 'In Escrow', value: myTransactions.filter(t => t.status === 'escrow_funded').length, change: 'Funded transactions', type: 'escrow' },
-          { label: 'Completed', value: myTransactions.filter(t => t.status === 'completed').length, change: 'Successfully closed', type: 'completed' },
+          { label: 'Completed', value: completedDeals, change: 'Successfully closed', type: 'completed' },
         ],
         recommendedPatents,
         activeSchedules: mySentMeetings.map(m => {
-          const p = patents.find(pat => pat._id === m.patentId);
+          const p = patents.find(pat => sameId(pat._id, m.patentId));
           const show = disclosedTo(p, userId, role, grants);
           return {
             id: m._id,

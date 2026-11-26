@@ -81,7 +81,7 @@ export const Navbar = () => {
           {isAuthenticated ? (
             <>
               <Link to={dashPath}>
-                <Button size="sm" className="font-medium hidden sm:inline-flex">
+                <Button size="sm" className="hidden sm:inline-flex font-medium bg-primary text-white hover:bg-[#1e3a8a]">
                   Dashboard
                 </Button>
               </Link>

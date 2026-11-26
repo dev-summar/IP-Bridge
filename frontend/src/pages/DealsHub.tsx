@@ -27,16 +27,24 @@ export const DealsHub = ({ completedOnly = false }: DealsHubProps) => {
       .finally(() => setLoading(false));
   }, []);
 
+  const sameId = (a: unknown, b: unknown) => String(a ?? '') === String(b ?? '');
   const items = offers
     .filter((o) => {
-      const tx = transactions.find((t) => t.offerId === o._id);
-      if (completedOnly) return tx?.status === 'completed' || o.status === 'completed';
-      return o.status === 'accepted' || o.status === 'pending' || o.status === 'countered' || tx;
+      const tx = transactions.find((t) => sameId(t.offerId, o._id));
+      const closed = tx?.status === 'completed' || o.status === 'completed';
+      if (completedOnly) return closed;
+      // Active list: open negotiation / escrow only — hide fully closed deals
+      if (closed) return false;
+      return o.status === 'accepted' || o.status === 'pending' || o.status === 'countered' || !!tx;
     })
-    .map((o) => ({
-      ...o,
-      tx: transactions.find((t) => t.offerId === o._id),
-    }));
+    .map((o) => {
+      const tx = transactions.find((t) => sameId(t.offerId, o._id));
+      return {
+        ...o,
+        tx,
+        status: tx?.status === 'completed' ? 'completed' : o.status,
+      };
+    });
 
   return (
     <div>

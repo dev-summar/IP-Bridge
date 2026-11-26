@@ -14,10 +14,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          "inline-flex items-center justify-center font-sans font-semibold rounded-md premium-transition focus:outline-none focus:ring-2 focus:ring-lvx-blue focus:ring-offset-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 disabled:hover:scale-100",
+          "inline-flex items-center justify-center font-sans font-semibold rounded-md premium-transition focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 disabled:hover:scale-100",
           {
-            // Variants
-            "bg-lvx-blue text-white hover:bg-lvx-blue-hover border border-transparent shadow-premium-sm": variant === 'primary',
+            // Variants — primary tracks CSS --primary (dark product blue)
+            "bg-primary text-primary-foreground hover:bg-[#1e3a8a] border border-transparent shadow-premium-sm": variant === 'primary',
             "bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50": variant === 'secondary',
             "bg-transparent text-zinc-700 border border-zinc-200 hover:bg-zinc-50": variant === 'outline',
             "bg-transparent text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900": variant === 'ghost',
