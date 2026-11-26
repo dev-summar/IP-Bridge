@@ -23,7 +23,13 @@ export const PatentCard = ({ patent, isSaved, onToggleBookmark, onExplore, onIgn
   const industry = patent.analysis?.industryClassification;
   const domain = (Array.isArray(industry) ? industry[0] : typeof industry === 'string' ? industry : '') || 'Technology';
   const matchReason = patent.matchReason || patent.matchReasons?.[0];
-  const publicLines = Array.isArray(patent.publicLines) ? patent.publicLines.filter(Boolean).slice(0, 3) : [];
+  const publicLines = (
+    Array.isArray(patent.publicLines) && patent.publicLines.length
+      ? patent.publicLines
+      : Array.isArray(patent.publicSummary)
+        ? patent.publicSummary
+        : []
+  ).filter(Boolean).slice(0, 3);
   const assetLabel = inferAssetType(patent);
   const hasTrl = Number.isFinite(trl) && trl >= 1 && trl <= 9;
   const licenseOnly = patent.isForLicense && !patent.isForSale;

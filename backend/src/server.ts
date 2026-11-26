@@ -26,7 +26,8 @@ app.get('/api/health', (_req, res) => {
   res.json({
     status: 'online',
     message: 'PatentBridge AI Engine & REST API is fully operational.',
-    version: '1.0.0',
+    version: '1.1.0',
+    release: 'plain-titles',
     documentation: '/api'
   });
 });
