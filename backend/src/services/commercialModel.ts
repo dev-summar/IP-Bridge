@@ -363,6 +363,16 @@ export function publicLines(input: {
   return lines.slice(0, 3);
 }
 
+/** Stable 0–1 fingerprint from title+abstract so similar patents do not collapse to one score. */
+function contentFingerprint(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return ((hash >>> 0) % 10_000) / 10_000;
+}
+
 export function assessCommercialPotential(input: {
   title?: string;
   abstract?: string;
@@ -382,44 +392,107 @@ export function assessCommercialPotential(input: {
   const words = tokens(body);
   const unique = new Set(words).size;
   const sentences = abstract.split(/[.!?]+/).map((part) => part.trim()).filter((part) => part.length > 25);
+  const absLen = abstract.trim().length;
+  const fingerprint = contentFingerprint(`${title}\n${abstract}`.toLowerCase());
 
-  const quantified = hits(lower, /\d+\s?%|\d+\s?x|\d+\s?(cr|lakh|million|seconds|hours|days)|\b\d{2,}\b/g);
-  const pain = hits(lower, /problem|challenge|limitation|inefficien|fail|cost|risk|delay|manual|shortage|drift|exposure/g);
-  const setting = hits(lower, /hospital|factory|clinic|grid|farm|warehouse|patient|manufacturer|operator|field|industrial/g);
-  const contrast = hits(lower, /existing|traditional|conventional|current|unlike|instead of|without/g);
-  const novelty = hits(lower, /novel|unique|first|proprietary|improvement|reduces|improves|enables/g);
-  const proof = hits(lower, /tested|prototype|pilot|clinical|validated|demonstrated|deployed|trial|benchmark/g);
-  const claimStyle = hits(lower, /comprising|configured|wherein|embodiment|apparatus|circuit|sensor|algorithm/g);
+  // Problem the invention claims to solve
+  const pain = hits(
+    lower,
+    /problem|challenge|limitation|bottleneck|inefficien|fail(?:ure)?|cost|risk|delay|manual|shortage|drift|exposure|error|unsafe|breach|outage|downtime|false (?:positive|negative)|privacy leak|latency|congestion/g
+  );
+  const outcome = hits(
+    lower,
+    /reduces?|improves?|enables?|prevents?|detects?|protects?|accelerat|automat|optimiz|mitigat|eliminat|increases?|decreases?/g
+  );
+  const setting = hits(
+    lower,
+    /hospital|factory|clinic|grid|farm|warehouse|patient|manufacturer|operator|field|industrial|battlefield|disaster|campus|plant|utility|airport|vehicle|smart home|enterprise|defence|defense/g
+  );
+  const buyer = hits(
+    lower,
+    /buyer|licensee|operator|clinician|oem|enterprise|municipality|utility|hospital|manufacturer|farmer|responder|developer|integrator/g
+  );
 
-  let market = 34 + pain * 7 + setting * 6 + Math.min(quantified, 3) * 8 + (input.industries?.length ? 6 : 0);
-  if (sentences.length < 2) market -= 8;
-  if (domain === 'Healthcare') market += 4;
-  market = clamp(market, 22, 94);
+  // Tech depth / differentiation
+  const techDepth = hits(
+    lower,
+    /\bai\b|\bml\b|neural|tinyml|llm|edge comput|zero[- ]knowledge|cryptograph|blockchain|sensor fusion|computer vision|nlp|reinforcement|federated|digital twin|fpga|asic|rtos|mesh network|uav|drone|robot|biometric|rfid|gnss|lidar|radar|plc|scada|ontology|knowledge graph/g
+  );
+  const contrast = hits(lower, /existing|traditional|conventional|prior art|current(?:ly)?|unlike|instead of|without|overcomes?/g);
+  const novelty = hits(lower, /novel|unique|first|proprietary|inventive|non-obvious|improvement|embodiment/g);
+  const quantified = hits(lower, /\d+\s?%|\d+\s?x|\b\d+(?:\.\d+)?\s?(?:cr|lakh|million|ms|seconds?|hours?|days?|ghz|mhz|kbps|mbps)\b|\b\d{2,}\b/g);
+  const claimStyle = hits(lower, /comprising|configured to|wherein|apparatus|circuit|sensor|algorithm|module|processor|memory/g);
 
-  let differentiation = 30 + Math.min(unique, 14) * 2.2 + contrast * 6 + novelty * 5 + (themes.length >= 4 ? 8 : 0);
-  if (abstract.trim().length < 180) differentiation -= 12;
-  if (abstract.trim().length > 700) differentiation += 6;
-  differentiation = clamp(differentiation, 20, 95);
+  // Trend / future demand signals (India + global licensing appetite)
+  const trend = hits(
+    lower,
+    /edge ai|generative|sovereign|privacy[- ]preserv|climate|net[- ]zero|renewable|ev\b|battery|telemedic|precision agri|industry 4\.0|iot\b|cyber|zero trust|deepfake|synthetic data|digital public|upi|fintech|space|defence|defense|semiconductor|make in india|atmanirbhar/g
+  );
+  const futureUse = hits(
+    lower,
+    /scalable|real[- ]time|autonomous|predictive|continuous monitoring|always[- ]on|multi[- ]tenant|cloud[- ]native|offline|low[- ]power|battery[- ]powered/g
+  );
+
+  const proof = hits(lower, /tested|prototype|pilot|clinical|validated|demonstrated|deployed|trial|benchmark|simulation|field test/g);
+
+  // --- Dimension scores (wide dynamic range) ---
+  let market =
+    18 +
+    Math.min(pain, 4) * 9 +
+    Math.min(outcome, 4) * 5 +
+    Math.min(setting, 3) * 7 +
+    Math.min(buyer, 2) * 6 +
+    Math.min(trend, 4) * 8 +
+    Math.min(futureUse, 3) * 4 +
+    Math.min(quantified, 3) * 5 +
+    (input.industries?.length ? 4 : 0);
+  if (sentences.length < 2) market -= 10;
+  if (pain === 0 && outcome === 0) market -= 12;
+  if (domain === 'Healthcare' || domain === 'Security' || domain === 'Energy') market += 3;
+  if (domain === 'Education' || domain === 'Sports') market -= 4;
+  market = clamp(market + Math.round((fingerprint - 0.5) * 8), 18, 96);
+
+  let differentiation =
+    16 +
+    Math.min(unique, 18) * 1.8 +
+    Math.min(techDepth, 5) * 7 +
+    Math.min(contrast, 3) * 6 +
+    Math.min(novelty, 3) * 5 +
+    Math.min(themes.length, 6) * 3 +
+    (absLen > 500 ? 8 : absLen > 280 ? 4 : absLen < 160 ? -14 : 0);
+  if (techDepth === 0 && themes.length < 3) differentiation -= 10;
+  differentiation = clamp(differentiation + Math.round((fingerprint - 0.5) * 10), 16, 97);
 
   const declaredTrl = input.trlLevel && input.trlLevel >= 1 && input.trlLevel <= 9 ? input.trlLevel : 0;
-  let readiness = declaredTrl ? declaredTrl * 9 : 28;
-  if (input.hasProduct) readiness += 18;
+  let readiness = declaredTrl ? 12 + declaredTrl * 8 : 22;
+  if (input.hasProduct) readiness += 20;
   else if (input.hasPrototype) readiness += 12;
-  readiness += Math.min(proof, 4) * 6;
-  if (notes.trim().length > 80) readiness += 6;
-  if (!declaredTrl && !input.hasPrototype && !input.hasProduct && proof === 0) readiness = Math.min(readiness, 40);
-  readiness = clamp(readiness, 18, 96);
+  readiness += Math.min(proof, 4) * 7;
+  if (notes.trim().length > 80) readiness += 7;
+  if (!declaredTrl && !input.hasPrototype && !input.hasProduct && proof === 0) readiness = Math.min(readiness, 38);
+  readiness = clamp(readiness + Math.round((fingerprint - 0.5) * 6), 14, 96);
 
-  let protection = 32 + Math.min(claimStyle, 5) * 7 + Math.min(sentences.length, 6) * 4 + (unique > 10 ? 8 : 0);
-  if (abstract.trim().length < 140) protection -= 10;
-  if (quantified > 0) protection += 5;
-  protection = clamp(protection, 20, 94);
+  let protection =
+    20 +
+    Math.min(claimStyle, 6) * 7 +
+    Math.min(sentences.length, 7) * 4 +
+    (unique > 12 ? 10 : unique > 7 ? 5 : 0) +
+    (quantified > 0 ? 6 : 0) +
+    (absLen > 400 ? 6 : absLen < 140 ? -12 : 0);
+  protection = clamp(protection + Math.round((1 - fingerprint) * 6), 14, 95);
 
-  let licensing = 36 + (setting > 0 ? 10 : 0) + (input.industries?.length ? 8 : 0) + Math.min(pain, 3) * 5;
-  if (domain === 'Healthcare' || domain === 'Energy' || domain === 'AI') licensing += 6;
-  if (input.hasProduct) licensing += 8;
-  else if (!input.hasPrototype && !declaredTrl) licensing -= 6;
-  licensing = clamp(licensing, 24, 93);
+  let licensing =
+    20 +
+    (setting > 0 ? 12 : 0) +
+    Math.min(buyer, 2) * 7 +
+    Math.min(pain, 3) * 5 +
+    Math.min(trend, 3) * 6 +
+    (input.industries?.length ? 6 : 0);
+  if (domain === 'Healthcare' || domain === 'Energy' || domain === 'AI' || domain === 'Security') licensing += 7;
+  if (domain === 'Education' || domain === 'Sports') licensing -= 5;
+  if (input.hasProduct) licensing += 10;
+  else if (!input.hasPrototype && !declaredTrl) licensing -= 8;
+  licensing = clamp(licensing + Math.round((fingerprint - 0.5) * 7), 16, 94);
 
   const breakdown: CommercialBreakdown = {
     technicalFeasibility: differentiation,
@@ -429,22 +502,67 @@ export function assessCommercialPotential(input: {
     ipProtection: protection,
   };
 
-  const commercialPotentialScore = clamp(
-    breakdown.marketDemand * 0.24 +
-      breakdown.technicalFeasibility * 0.22 +
-      breakdown.implementationSpeed * 0.2 +
-      breakdown.ipProtection * 0.18 +
-      breakdown.licensingValue * 0.16,
-    28,
-    96
-  );
+  // Weight market + tech + trend-linked licensing more than boilerplate readiness
+  let commercialPotentialScore =
+    breakdown.marketDemand * 0.28 +
+    breakdown.technicalFeasibility * 0.26 +
+    breakdown.licensingValue * 0.18 +
+    breakdown.ipProtection * 0.16 +
+    breakdown.implementationSpeed * 0.12;
+
+  // Extra tilt from clear problem→tech→trend stack
+  const stackBoost =
+    (pain > 0 && techDepth > 0 ? 4 : 0) +
+    (trend > 0 && outcome > 0 ? 3 : 0) +
+    (setting > 0 && buyer > 0 ? 2 : 0) -
+    (pain === 0 && techDepth === 0 ? 6 : 0);
+  commercialPotentialScore = clamp(commercialPotentialScore + stackBoost + (fingerprint - 0.5) * 5, 22, 97);
 
   const ranked = [
-    { dimension: 'Market demand', score: breakdown.marketDemand, note: pain > 0 ? 'The write-up names a concrete operating problem.' : 'Buyer pain is only lightly described.' },
-    { dimension: 'Technical differentiation', score: breakdown.technicalFeasibility, note: themes.length ? `Distinct technical themes include ${themes.slice(0, 3).join(', ')}.` : 'The technical description is still broad.' },
-    { dimension: 'Implementation speed', score: breakdown.implementationSpeed, note: input.hasProduct ? 'A product is already declared.' : input.hasPrototype ? 'A prototype is declared.' : proof > 0 ? 'The text mentions testing or validation.' : 'No prototype or validation is declared.' },
-    { dimension: 'IP strength', score: breakdown.ipProtection, note: sentences.length > 3 ? 'The disclosure has enough structure to support a narrower claim set.' : 'The disclosure is short, so claim scope is harder to judge.' },
-    { dimension: 'Licensing path', score: breakdown.licensingValue, note: setting > 0 ? `A ${domain.toLowerCase()} buyer setting is identifiable.` : `The ${domain.toLowerCase()} adoption path is still general.` },
+    {
+      dimension: 'Market demand',
+      score: breakdown.marketDemand,
+      note:
+        pain > 0
+          ? `Names a concrete problem${trend > 0 ? ' in a trending demand area' : ''}.`
+          : trend > 0
+            ? 'Touches a trending space, but buyer pain is weakly stated.'
+            : 'Buyer pain and demand signals are only lightly described.',
+    },
+    {
+      dimension: 'Technical differentiation',
+      score: breakdown.technicalFeasibility,
+      note: themes.length
+        ? `Distinct themes: ${themes.slice(0, 3).join(', ')}${techDepth > 0 ? ' with modern technical depth' : ''}.`
+        : 'The technical description is still broad.',
+    },
+    {
+      dimension: 'Implementation speed',
+      score: breakdown.implementationSpeed,
+      note: input.hasProduct
+        ? 'A product is already declared.'
+        : input.hasPrototype
+          ? 'A prototype is declared.'
+          : proof > 0
+            ? 'The text mentions testing or validation.'
+            : 'No prototype or validation is declared.',
+    },
+    {
+      dimension: 'IP strength',
+      score: breakdown.ipProtection,
+      note:
+        sentences.length > 3
+          ? 'The disclosure has enough structure to support a narrower claim set.'
+          : 'The disclosure is short, so claim scope is harder to judge.',
+    },
+    {
+      dimension: 'Licensing path',
+      score: breakdown.licensingValue,
+      note:
+        setting > 0
+          ? `A ${domain.toLowerCase()} buyer setting is identifiable${buyer > 0 ? ' with a clear licensee type' : ''}.`
+          : `The ${domain.toLowerCase()} adoption path is still general.`,
+    },
   ].sort((a, b) => b.score - a.score);
 
   const strongest = ranked[0];
