@@ -330,11 +330,11 @@ export const PatentDetail = () => {
 
   return (
     <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-zinc-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 sm:py-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_32%_at_50%_0%,rgba(57,139,232,0.14),transparent_66%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_32%_at_50%_0%,rgba(29,78,216,0.14),transparent_66%)]" />
       <div className="relative mx-auto max-w-[1180px] space-y-6">
         <button
           onClick={() => navigate('/discover')}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Discover
@@ -651,7 +651,7 @@ export const PatentDetail = () => {
         <div className="space-y-5 text-left">
           <div className="flex items-start gap-3.5 p-4 rounded-xl bg-sky-50 dark:bg-sky-950/20 border border-sky-200/80 dark:border-sky-900/40">
             <div className="h-10 w-10 shrink-0 rounded-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center">
-              <Calendar className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+              <Calendar className="h-5 w-5 text-primary" />
             </div>
             <div className="space-y-1">
               <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">

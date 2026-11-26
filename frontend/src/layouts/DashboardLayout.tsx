@@ -37,7 +37,7 @@ export const DashboardLayout = () => {
 
   return (
     <div className="relative flex min-h-[100dvh] bg-[#f4f7fb] dark:bg-zinc-950">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_0%_0%,rgba(57,139,232,0.18),transparent_55%),radial-gradient(ellipse_50%_40%_at_100%_0%,rgba(16,185,129,0.08),transparent_50%)] dark:bg-[radial-gradient(ellipse_70%_45%_at_0%_0%,rgba(57,139,232,0.16),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_0%_0%,rgba(29,78,216,0.18),transparent_55%),radial-gradient(ellipse_50%_40%_at_100%_0%,rgba(16,185,129,0.08),transparent_50%)] dark:bg-[radial-gradient(ellipse_70%_45%_at_0%_0%,rgba(29,78,216,0.16),transparent_55%)]" />
 
       <aside className="relative sticky top-0 z-20 hidden h-[100dvh] w-[248px] shrink-0 flex-col border-r border-white/70 bg-white/80 shadow-[0_0_0_1px_rgba(15,23,42,0.03)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/90 lg:flex">
         <div className="border-b border-slate-100/80 px-5 py-5 dark:border-zinc-800">
@@ -58,7 +58,7 @@ export const DashboardLayout = () => {
                 className={cn(
                   'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
                   active
-                    ? 'bg-gradient-to-r from-primary to-[#2f6fbf] text-white shadow-md shadow-primary/25'
+                    ? 'bg-gradient-to-r from-primary to-[#1e3a8a] text-white shadow-md shadow-primary/25'
                     : 'text-slate-500 hover:bg-primary/5 hover:text-slate-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100',
                 )}
               >
@@ -114,7 +114,7 @@ export const DashboardLayout = () => {
             <Link
               to="/dashboard/profile"
               aria-label="Open your profile"
-              className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#2f6fbf] text-xs font-semibold text-white shadow-sm shadow-primary/30 sm:flex"
+              className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#1e3a8a] text-xs font-semibold text-white shadow-sm shadow-primary/30 sm:flex"
             >
               {initials}
             </Link>

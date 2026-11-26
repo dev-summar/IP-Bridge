@@ -46,15 +46,15 @@ function BridgeMark({ className, gradientId }: { className?: string; gradientId:
       <rect x="28.5" y="19" width="4.5" height="7" rx="1" fill="#1d4ed8" />
       <path
         d="M6 27.5C10 25.5 14 27 20 27C26 27 30 25.5 34 27.5"
-        stroke="#60a5fa"
+        stroke="#93c5fd"
         strokeWidth="1.25"
         strokeLinecap="round"
-        opacity="0.85"
+        opacity="0.7"
       />
       <defs>
         <linearGradient id={gradientId} x1="20" y1="9" x2="20" y2="26" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#3b82f6" />
-          <stop offset="0.55" stopColor="#1d4ed8" />
+          <stop stopColor="#1d4ed8" />
+          <stop offset="0.55" stopColor="#1e40af" />
           <stop offset="1" stopColor="#1e3a8a" />
         </linearGradient>
       </defs>

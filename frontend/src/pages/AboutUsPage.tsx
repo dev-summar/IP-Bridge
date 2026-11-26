@@ -54,7 +54,7 @@ const AUDIENCE = [
 ];
 
 const glassCard =
-  'rounded-2xl border border-white/80 bg-white/85 shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900';
+  'rounded-2xl border border-white/80 bg-white/85 shadow-[0_12px_32px_rgba(29,78,216,0.08)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900';
 
 export const AboutUsPage = () => (
   <PublicPageShell>

@@ -27,9 +27,9 @@ export const PricingPage = () => (
       {PLANS.map((plan) => (
         <div
           key={plan.name}
-          className={`rounded-2xl border bg-white/85 p-8 shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 dark:bg-zinc-900 ${
+          className={`rounded-2xl border bg-white/85 p-8 shadow-[0_12px_32px_rgba(29,78,216,0.08)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 dark:bg-zinc-900 ${
             plan.highlight
-              ? 'border-primary/40 bg-[radial-gradient(ellipse_at_top,rgba(57,139,232,0.12),transparent_62%)] ring-1 ring-primary/20'
+              ? 'border-primary/40 bg-[radial-gradient(ellipse_at_top,rgba(29,78,216,0.12),transparent_62%)] ring-1 ring-primary/20'
               : 'border-white/80 dark:border-zinc-800'
           }`}
         >

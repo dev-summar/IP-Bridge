@@ -303,9 +303,9 @@ export function blendVectors(
 /** Convert cosine (0–1) into a buyer-facing fit percentage. */
 export function fitPercentFromCosine(similarity: number): number {
   if (similarity < 0.08) return 0;
-  // Stretch mid-range so useful overlaps land in 45–90, not a flat 10–20.
-  const stretched = Math.pow(similarity, 0.72);
-  return clamp(18 + stretched * 82);
+  // Stronger curve so weak/general overlap stays mid, true topical hits climb higher.
+  const stretched = Math.pow(similarity, 0.85);
+  return clamp(12 + stretched * 86);
 }
 
 export function patentToSemanticDoc(patent: any, analysis: any | null = null): SemanticDoc {
@@ -412,6 +412,29 @@ export function scoreDocsForBuyer(
   const buyerVector = buildBuyerVector(profile);
   if (!buyerVector) return [];
 
+  // Score against each preference separately — a blended vector of many domains
+  // flattens every patent into the same high %. Best single signal stays discriminative.
+  const preferenceSignals: Array<{ label: string; kind: 'interest' | 'domain' | 'search'; vector: Float32Array; weight: number }> = [
+    ...(profile.interests || []).map((label) => ({
+      label,
+      kind: 'interest' as const,
+      vector: embedText(label),
+      weight: 1.35,
+    })),
+    ...(profile.domains || []).map((label) => ({
+      label,
+      kind: 'domain' as const,
+      vector: embedText(label),
+      weight: 1.2,
+    })),
+    ...(profile.searches || []).map((row) => ({
+      label: row.query,
+      kind: 'search' as const,
+      vector: embedText(row.query),
+      weight: Math.max(0.35, row.weight) * 1.5,
+    })),
+  ];
+
   const ignored = new Set((profile.ignoredPatentIds || []).map(String));
   const softIgnored = new Set((profile.openedWithoutEngageIds || []).map(String));
   const buyerTopics = dominantTopics(
@@ -420,7 +443,7 @@ export function scoreDocsForBuyer(
       ...(profile.domains || []),
       ...(profile.searches || []).map((row) => row.query),
     ].join(' '),
-    4
+    6
   );
 
   const results: FitResult[] = [];
@@ -429,30 +452,59 @@ export function scoreDocsForBuyer(
     if (ignored.has(id)) continue;
 
     const doc = patentToSemanticDoc(row.patent, row.analysis || null);
-    const similarity = cosineSimilarity(buyerVector, embedText(doc));
+    const patentVector = embedText(doc);
+    const blendSim = cosineSimilarity(buyerVector, patentVector);
+
+    let bestSignal = { label: '', kind: 'domain' as 'interest' | 'domain' | 'search', sim: 0 };
+    for (const signal of preferenceSignals) {
+      const sim = cosineSimilarity(signal.vector, patentVector) * Math.min(1.25, signal.weight);
+      if (sim > bestSignal.sim) bestSignal = { label: signal.label, kind: signal.kind, sim };
+    }
+
+    // Prefer the strongest single preference so Healthcare ≠ Energy ≠ Robotics.
+    const similarity = Math.max(bestSignal.sim * 0.78, blendSim * 0.42);
     let fitScore = fitPercentFromCosine(similarity);
     if (softIgnored.has(id)) fitScore = clamp(fitScore * 0.55);
 
     const patentTopics = dominantTopics(doc, 3);
     const topicOverlap = buyerTopics.filter((topic) => patentTopics.includes(topic));
-    if (buyerTopics.length && topicOverlap.length === 0) fitScore = clamp(fitScore * 0.68);
-    else if (topicOverlap.length) fitScore = clamp(fitScore + Math.min(10, topicOverlap.length * 3));
+    if (topicOverlap.length) fitScore = clamp(fitScore + Math.min(16, topicOverlap.length * 5));
+    else if (buyerTopics.length && bestSignal.sim < 0.28) fitScore = clamp(fitScore * 0.72);
+
+    // Strong single-preference hit (e.g. Healthcare patent vs Healthcare domain)
+    if (bestSignal.sim >= 0.35) fitScore = clamp(fitScore + 8);
+    else if (bestSignal.sim >= 0.25) fitScore = clamp(fitScore + 4);
 
     if (fitScore < 28) continue;
 
     const reasonHints: string[] = [];
     if (topicOverlap.length) reasonHints.push(`Fits your focus: ${topicOverlap.slice(0, 2).join(', ')}`);
+    if (bestSignal.label && bestSignal.sim >= 0.18) {
+      if (bestSignal.kind === 'interest') reasonHints.push(`Matches interest: ${bestSignal.label}`);
+      else if (bestSignal.kind === 'domain') reasonHints.push(`Aligned with your ${bestSignal.label} focus`);
+      else reasonHints.push(`Close to your search: ${bestSignal.label.slice(0, 40)}`);
+    }
     const interestHit = (profile.interests || []).filter((interest) =>
       textOf(doc).includes(interest.toLowerCase())
     );
-    if (interestHit.length) reasonHints.push(`Matches interest: ${interestHit.slice(0, 2).join(', ')}`);
-    const searchHit = (profile.searches || [])
-      .map((row) => row.query)
-      .filter((query) => query.length > 3 && (cosineSimilarity(embedText(query), embedText(doc)) > 0.22))
-      .slice(0, 2);
-    if (searchHit.length) reasonHints.push(`Close to your search: ${searchHit[0].slice(0, 40)}`);
+    if (interestHit.length && !reasonHints.some((line) => /interest/i.test(line))) {
+      reasonHints.push(`Matches interest: ${interestHit.slice(0, 2).join(', ')}`);
+    }
 
-    results.push({ patentId: id, fitScore, topicOverlap, reasonHints });
+    results.push({ patentId: id, fitScore: Math.round(fitScore), topicOverlap, reasonHints });
+  }
+
+  // Always apply a light rank stretch so Discover cards don't look identical
+  if (results.length >= 3) {
+    const sorted = [...results].sort((a, b) => b.fitScore - a.fitScore);
+    const top = sorted[0].fitScore;
+    const bottom = sorted[sorted.length - 1].fitScore;
+    const n = Math.max(sorted.length - 1, 1);
+    const stretch = top - bottom < 22 ? 0.62 : 0.28;
+    sorted.forEach((row, index) => {
+      const rankTarget = 92 - (index / n) * 48; // 92 → 44
+      row.fitScore = clamp(Math.round(row.fitScore * (1 - stretch) + rankTarget * stretch));
+    });
   }
 
   return results.sort((a, b) => b.fitScore - a.fitScore);

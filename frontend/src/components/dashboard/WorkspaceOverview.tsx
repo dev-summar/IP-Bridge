@@ -34,7 +34,7 @@ type Metric = { source: string; label: string; path: string; icon: LucideIcon; t
 const surface =
   'min-w-0 rounded-2xl border border-white/80 bg-white/90 shadow-[0_10px_40px_-24px_rgba(15,23,42,0.35)] backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/90 dark:shadow-none';
 const primaryBtn =
-  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[#2f6fbf] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
+  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-[#1e3a8a] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
 
 const roleConfig: Record<
   Role,
@@ -77,7 +77,7 @@ const roleConfig: Record<
     hero: 'from-[#0b1c2e] via-[#12324f] to-[#1a5f7a]',
     metrics: [
       { source: 'Total Platform Users', label: 'Platform users', path: '/dashboard/users', icon: Users, tint: 'from-sky-50 to-cyan-50 text-sky-700 dark:from-sky-950/40 dark:to-cyan-950/20 dark:text-sky-300' },
-      { source: 'Total Patents Filed', label: 'IP submissions', path: '/dashboard/listings', icon: Layers3, tint: 'from-blue-50 to-cyan-50 text-blue-700 dark:from-blue-950/40 dark:to-cyan-950/20 dark:text-blue-300' },
+      { source: 'Total Patents Filed', label: 'IP submissions', path: '/dashboard/listings', icon: Layers3, tint: 'from-blue-50 to-cyan-50 text-primary dark:from-blue-950/40 dark:to-cyan-950/20 dark:text-blue-400' },
       { source: 'Pending Reviews', label: 'Awaiting review', path: '/dashboard/listings', icon: Clock3, tint: 'from-amber-50 to-yellow-50 text-amber-800 dark:from-amber-950/40 dark:to-yellow-950/20 dark:text-amber-300' },
       { source: 'Approved & Listed', label: 'Published listings', path: '/dashboard/listings', icon: CheckCircle2, tint: 'from-emerald-50 to-teal-50 text-emerald-700 dark:from-emerald-950/40 dark:to-teal-950/20 dark:text-emerald-300' },
     ],
@@ -150,7 +150,7 @@ function Panel({
           {description && <p className="mt-1.5 text-xs leading-relaxed text-slate-500 dark:text-zinc-400">{description}</p>}
         </div>
         {href && (
-          <Link to={href} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 dark:text-blue-300">
+          <Link to={href} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 dark:text-blue-400">
             {linkLabel}
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
@@ -182,7 +182,7 @@ function Empty({
       <h3 className="mt-3 text-sm font-semibold text-slate-700 dark:text-zinc-200">{title}</h3>
       <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-slate-500 dark:text-zinc-400">{description}</p>
       {href && (
-        <Link to={href} className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline dark:text-blue-300">
+        <Link to={href} className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline dark:text-blue-400">
           {label}
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
@@ -208,7 +208,7 @@ function Activity({ series, buyer }: { series: any[]; buyer: boolean }) {
               <div className="flex h-24 w-full max-w-9 items-end rounded-xl bg-slate-100/80 dark:bg-zinc-800">
                 <motion.div
                   title={`${row.month}: ${Number(row[field]) || 0}`}
-                  className="w-full rounded-xl bg-gradient-to-t from-primary to-sky-400"
+                  className="w-full rounded-xl bg-gradient-to-t from-primary to-[#1e3a8a]"
                   initial={{ height: 0 }}
                   animate={{ height: `${((Number(row[field]) || 0) / max) * 100}%` }}
                   transition={{ duration: 0.55, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
@@ -553,7 +553,7 @@ export const WorkspaceOverview = () => {
                             <div className="min-w-0 flex-1">
                               <h3 className="line-clamp-2 text-sm font-medium text-slate-800 group-hover:text-primary dark:text-zinc-200">{ip.title}</h3>
                               <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">{inferAssetType(ip)}</p>
-                              <p className="mt-1 text-xs font-medium text-primary dark:text-blue-300">
+                              <p className="mt-1 text-xs font-medium text-primary dark:text-blue-400">
                                 {typeof ip.analysis?.commercialPotentialScore === 'number'
                                   ? getCommercialPotentialLabel(ip.analysis.commercialPotentialScore)
                                   : 'Not assessed'}
@@ -646,7 +646,7 @@ export const WorkspaceOverview = () => {
                       <div className="divide-y divide-slate-100 dark:divide-zinc-800">
                         {data.recentLogs.slice(0, 4).map((log: any) => (
                           <div key={log.id} className="flex gap-3 px-5 py-4 sm:px-6">
-                            <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-br from-primary to-sky-400" />
+                            <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-br from-primary to-[#1e3a8a]" />
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-semibold capitalize text-slate-700 dark:text-zinc-200">
                                 {String(log.action).toLowerCase().replace(/_/g, ' ')}
@@ -696,7 +696,7 @@ export const WorkspaceOverview = () => {
                               </div>
                               <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
                                 <div
-                                  className="h-full rounded-full bg-gradient-to-r from-primary to-sky-400"
+                                  className="h-full rounded-full bg-gradient-to-r from-primary to-[#1e3a8a]"
                                   style={{
                                     width: `${Math.min(
                                       100,

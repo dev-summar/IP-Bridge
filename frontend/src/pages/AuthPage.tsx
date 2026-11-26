@@ -63,7 +63,7 @@ function AuthAside({ className }: { className?: string }) {
         className
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_20%_0%,rgba(57,139,232,0.18),transparent_68%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_20%_0%,rgba(29,78,216,0.18),transparent_68%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(24,40,60,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(24,40,60,0.04)_1px,transparent_1px)] bg-[size:42px_42px] [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_72%)]" />
       <div className="relative space-y-8">
         <BrandLogo size="xl" linkTo="/" priority />
@@ -227,10 +227,10 @@ export const AuthPage = () => {
                       key={card.role}
                       type="button"
                       onClick={() => openRegister(card.role)}
-                      whileHover={{ y: -3, borderColor: 'rgba(57,139,232,0.45)' }}
+                      whileHover={{ y: -3, borderColor: 'rgba(29,78,216,0.45)' }}
                       whileTap={{ scale: 0.995 }}
                       transition={springSnappy}
-                      className="group w-full rounded-2xl border border-white/80 bg-white/80 p-5 text-left shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-sm transition-colors hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:bg-zinc-900 sm:p-6"
+                      className="group w-full rounded-2xl border border-white/80 bg-white/80 p-5 text-left shadow-[0_12px_32px_rgba(29,78,216,0.08)] backdrop-blur-sm transition-colors hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:bg-zinc-900 sm:p-6"
                     >
                       <div className="flex items-start gap-4">
                         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">

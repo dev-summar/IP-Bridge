@@ -154,7 +154,7 @@ const getCardColors = (label: string) => {
   return {
     bg: 'bg-blue-50/20 dark:bg-blue-950/10',
     border: 'border-blue-100/80 dark:border-blue-900/30 hover:border-blue-300 dark:hover:border-blue-800',
-    text: 'text-blue-700 dark:text-blue-400',
+    text: 'text-primary dark:text-blue-400',
     glow: 'shadow-blue-550/5 dark:shadow-blue-550/10'
   };
 };
@@ -320,7 +320,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                 <BarChart data={data?.industryStats || []} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4a90e2" stopOpacity={0.95}/>
+                      <stop offset="0%" stopColor="#1d4ed8" stopOpacity={0.95}/>
                       <stop offset="100%" stopColor="#6366f1" stopOpacity={0.4}/>
                     </linearGradient>
                   </defs>
@@ -549,8 +549,8 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                   <AreaChart data={data?.activitySeries || []} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="areaGradientViews" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#4a90e2" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#4a90e2" stopOpacity={0.01} />
+                        <stop offset="0%" stopColor="#1d4ed8" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.01} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
@@ -560,7 +560,7 @@ export const DashboardOverview = ({ embedded }: ManagerProps = {}) => {
                     <Area
                       type="monotone"
                       dataKey="submissions"
-                      stroke="#4a90e2"
+                      stroke="#1d4ed8"
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#areaGradientViews)"

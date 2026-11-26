@@ -103,7 +103,7 @@ function FloatCard({
 }) {
   return (
     <motion.div
-      className={`absolute z-10 flex items-center gap-2 rounded-2xl border border-white/80 bg-white/80 px-3 py-2 shadow-[0_12px_30px_rgba(57,139,232,0.16)] backdrop-blur-md dark:border-zinc-700 dark:bg-zinc-900/80 ${className}`}
+      className={`absolute z-10 flex items-center gap-2 rounded-2xl border border-white/80 bg-white/80 px-3 py-2 shadow-[0_12px_30px_rgba(29,78,216,0.16)] backdrop-blur-md dark:border-zinc-700 dark:bg-zinc-900/80 ${className}`}
       animate={{ y: [0, -8, 0] }}
       transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay }}
     >
@@ -195,7 +195,7 @@ export const LandingPage = () => {
   return (
     <div className="bg-zinc-50 dark:bg-zinc-950">
       <section className="relative overflow-hidden border-b border-zinc-200/80 dark:border-zinc-800">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_78%_42%,rgba(57,139,232,0.18),transparent_62%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_78%_42%,rgba(29,78,216,0.18),transparent_62%)]" />
         <motion.div
           aria-hidden="true"
           className="absolute right-[8%] top-[18%] h-72 w-72 rounded-full bg-primary/10 blur-3xl"
@@ -285,7 +285,7 @@ export const LandingPage = () => {
       </section>
 
       <section className="relative overflow-hidden py-14 sm:py-16" aria-label="Platform figures">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_80%_at_50%_0%,rgba(57,139,232,0.12),transparent_68%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_80%_at_50%_0%,rgba(29,78,216,0.12),transparent_68%)]" />
         <div className="relative mx-auto grid max-w-6xl gap-4 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
           {stats.map((stat, index) => (
             <motion.article
@@ -294,7 +294,7 @@ export const LandingPage = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.6 }}
               transition={{ ...transition, delay: index * 0.05 }}
-              className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/85"
+              className="rounded-2xl border border-white/80 bg-white/85 p-5 shadow-[0_12px_32px_rgba(29,78,216,0.08)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/85"
             >
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <stat.icon className="h-4 w-4" />
@@ -362,7 +362,7 @@ export const LandingPage = () => {
                 viewport={{ once: true, amount: 0.4 }}
                 transition={{ ...transition, delay: index * 0.06 }}
                 whileHover={{ y: -4 }}
-                className="group flex h-full flex-col rounded-2xl border border-white/80 bg-white/90 p-6 shadow-[0_12px_32px_rgba(57,139,232,0.08)] backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900"
+                className="group flex h-full flex-col rounded-2xl border border-white/80 bg-white/90 p-6 shadow-[0_12px_32px_rgba(29,78,216,0.08)] backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-white">
                   <item.icon className="h-5 w-5" />
@@ -401,7 +401,7 @@ export const LandingPage = () => {
                 transition={{ ...transition, delay: index * 0.06 }}
                 whileHover={{ y: -4 }}
               >
-                <Link to={step.to} className="relative block h-full rounded-2xl border border-zinc-200 bg-zinc-50/80 p-6 transition-all duration-300 hover:border-primary/35 hover:bg-white hover:shadow-[0_12px_30px_rgba(57,139,232,0.1)] dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900">
+                <Link to={step.to} className="relative block h-full rounded-2xl border border-zinc-200 bg-zinc-50/80 p-6 transition-all duration-300 hover:border-primary/35 hover:bg-white hover:shadow-[0_12px_30px_rgba(29,78,216,0.12)] dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900">
                   <span className="relative z-10 inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-white px-2 text-xs font-semibold tracking-wide text-primary shadow-sm ring-4 ring-zinc-50 dark:bg-zinc-900 dark:ring-zinc-950">{step.n}</span>
                   <h3 className="mt-4 text-xl font-semibold text-zinc-950 dark:text-white">{step.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-zinc-500">{step.text}</p>
@@ -443,7 +443,7 @@ export const LandingPage = () => {
                 key={offer.id}
                 id={offer.id}
                 whileHover={{ y: -3 }}
-                className="rounded-2xl border border-white/80 bg-white p-6 shadow-[0_12px_32px_rgba(57,139,232,0.06)] dark:border-zinc-800 dark:bg-zinc-900"
+                className="rounded-2xl border border-white/80 bg-white p-6 shadow-[0_12px_32px_rgba(29,78,216,0.06)] dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <div className="flex items-center justify-between">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -475,10 +475,10 @@ export const LandingPage = () => {
       </section>
 
       <section className="relative overflow-hidden py-16">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_70%_at_50%_45%,rgba(57,139,232,0.16),transparent_68%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_70%_at_50%_45%,rgba(29,78,216,0.16),transparent_68%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(24,40,60,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(24,40,60,0.04)_1px,transparent_1px)] bg-[size:42px_42px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
         <div className="relative mx-auto max-w-3xl px-4 text-center">
-          <div className="rounded-3xl border border-white/80 bg-white/85 p-10 shadow-[0_16px_40px_rgba(57,139,232,0.1)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90 sm:p-14">
+          <div className="rounded-3xl border border-white/80 bg-white/85 p-10 shadow-[0_16px_40px_rgba(29,78,216,0.1)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90 sm:p-14">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white sm:text-3xl">From filing to commercialisation.</h2>
             <p className="mt-3 text-sm text-zinc-500 sm:text-base">A small annual subscription. Your identity stays confidential until you choose to negotiate.</p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">

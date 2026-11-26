@@ -22,7 +22,7 @@
     --card: 0 0% 100%; 
     --card-foreground: 224 71.4% 4.1%;
 
-    /* Deep product blue — darker than the previous light #4a90e2 */
+    /* Deep product blue — darker than the previous light #1d4ed8 */
     --primary: 224 76% 48%; /* #1d4ed8 */
     --primary-foreground: 210 20% 98%;
 
@@ -419,7 +419,7 @@
 
 .lvx-auth-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(74, 144, 226, 0.35);
+  border-color: rgba(29, 78, 216, 0.35);
 }
 
 .lvx-auth-form-card {
@@ -445,5 +445,5 @@
 
 .lvx-input-white:focus {
   border-color: var(--lvx-blue) !important;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2) !important;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2) !important;
 }

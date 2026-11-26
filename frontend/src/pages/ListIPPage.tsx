@@ -21,7 +21,7 @@ export const ListIPPage = () => {
 
   return (
     <PublicPageShell narrow>
-      <div className="rounded-3xl border border-white/80 bg-white/85 px-6 py-10 text-center shadow-[0_16px_40px_rgba(57,139,232,0.1)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90 sm:px-10">
+      <div className="rounded-3xl border border-white/80 bg-white/85 px-6 py-10 text-center shadow-[0_16px_40px_rgba(29,78,216,0.1)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90 sm:px-10">
         <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
           <FilePlus className="h-7 w-7 text-primary" />
         </div>

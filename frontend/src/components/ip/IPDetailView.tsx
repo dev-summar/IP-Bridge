@@ -112,7 +112,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
 
   const industries: string[] = analysis?.industryClassification?.slice(0, 3) ?? [];
   const cardClass = 'rounded-2xl border border-slate-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900';
-  const actionClass = 'w-full gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm text-white shadow-none hover:bg-blue-700';
+  const actionClass = 'w-full gap-2 rounded-xl bg-primary px-5 py-3 text-sm text-white shadow-none hover:bg-[#1e3a8a]';
   const accessState = accessPending ? 'Approval pending' : accessRejected ? 'Access declined' : isUnlocked ? viewerLabel || 'Full access' : 'Preview';
   const publicLines: string[] = Array.isArray(patent.publicLines) && patent.publicLines.length
     ? patent.publicLines.slice(0, 3)
@@ -185,7 +185,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
         <p className={cn('mt-1 break-words font-semibold tracking-tight text-slate-900 dark:text-white', isUnlocked && patent.askingPrice ? 'text-3xl leading-tight' : 'text-xl')}>{isUnlocked ? formatINR(patent.askingPrice) : licenseOnly && patent.indicativeValue?.licenseAnnual ? `${formatINR(patent.indicativeValue.licenseAnnual)} / year` : formatIndicativeBand(patent.indicativeValue)}</p>
         {!isUnlocked && patent.indicativeValue?.licenseAnnual && !licenseOnly && <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">License about {formatINR(patent.indicativeValue.licenseAnnual)} / year</p>}
         <div className="mt-3 flex flex-wrap gap-2">
-          {patent.isForLicense && <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"><Handshake className="h-3.5 w-3.5" />Licensing</span>}
+          {patent.isForLicense && <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-primary dark:bg-blue-950/40 dark:text-blue-400"><Handshake className="h-3.5 w-3.5" />Licensing</span>}
           {patent.isForSale && <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-zinc-800 dark:text-zinc-300"><Layers3 className="h-3.5 w-3.5" />Acquisition</span>}
         </div>
         <div className={cn('mt-6', !isUnlocked && 'fixed inset-x-0 bottom-0 z-30 mt-0 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg dark:border-zinc-800 dark:bg-zinc-900/95 lg:static lg:mt-6 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:lg:bg-transparent')}>
@@ -205,7 +205,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
           </div>
           <div><p className="text-sm font-semibold leading-snug text-slate-800 dark:text-zinc-100">{hasScore ? getCommercialPotentialLabel(score) : 'Not assessed'}</p><p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">{hasScore ? 'Scored from market, readiness, and IP strength' : 'No assessment is available yet'}</p>{analysis?.commercialBreakdown && <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-zinc-400">Market {Math.round(analysis.commercialBreakdown.marketDemand)} · IP {Math.round(analysis.commercialBreakdown.ipProtection)} · Readiness {Math.round(analysis.commercialBreakdown.implementationSpeed)}</p>}{isUnlocked && analysis?.scoreRationale && <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">{analysis.scoreRationale}</p>}</div>
         </div>
-        {isUnlocked && analysis?.commercialBreakdown && <div className="mt-5 h-44 border-t border-slate-100 pt-4 dark:border-zinc-800"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}><PolarGrid stroke="rgba(113,113,122,0.12)" /><PolarAngleAxis dataKey="subject" tick={{ fill: '#71717a', fontSize: 9 }} /><PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} /><Radar dataKey="value" stroke="#4a90e2" fill="#4a90e2" fillOpacity={0.15} /></RadarChart></ResponsiveContainer></div>}
+        {isUnlocked && analysis?.commercialBreakdown && <div className="mt-5 h-44 border-t border-slate-100 pt-4 dark:border-zinc-800"><ResponsiveContainer width="100%" height="100%"><RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}><PolarGrid stroke="rgba(113,113,122,0.12)" /><PolarAngleAxis dataKey="subject" tick={{ fill: '#71717a', fontSize: 9 }} /><PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} /><Radar dataKey="value" stroke="#1d4ed8" fill="#1d4ed8" fillOpacity={0.15} /></RadarChart></ResponsiveContainer></div>}
       </section>
       <section className={`${cardClass} p-5 sm:p-6`} aria-label="Listing details">
         <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-zinc-400">Listing details</h2>
@@ -217,8 +217,8 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
         </dl>
         {isUnlocked && (
           <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 dark:border-zinc-800">
-            <button type="button" onClick={onAskQuestion} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-medium text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-zinc-800"><MessageSquare className="h-3.5 w-3.5" />Ask question</button>
-            <button type="button" onClick={onBookMeeting} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-medium text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-zinc-800"><Calendar className="h-3.5 w-3.5" />Book meeting</button>
+            <button type="button" onClick={onAskQuestion} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-medium text-primary hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-800"><MessageSquare className="h-3.5 w-3.5" />Ask question</button>
+            <button type="button" onClick={onBookMeeting} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg text-xs font-medium text-primary hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-800"><Calendar className="h-3.5 w-3.5" />Book meeting</button>
           </div>
         )}
       </section>
@@ -418,7 +418,7 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
         </div>
         <h1 className="type-section-title max-w-[850px] break-words text-slate-900 dark:text-white">{patent.title}</h1>
         <div className="mt-5 flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300"><Layers3 className="h-3.5 w-3.5" />{assetType}</span>
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-primary dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-400"><Layers3 className="h-3.5 w-3.5" />{assetType}</span>
           {industries.map(industry => <span key={industry} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">{industry}</span>)}
           {trl && <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300" title={getTRLDescription(trl)}>{getTRLShortLabel(trl)}</span>}
         </div>
@@ -443,11 +443,11 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
                         event.preventDefault(); setActiveSection(SECTIONS[next].id);
                         document.getElementById(`${tabPrefix}-${SECTIONS[next].id}`)?.focus();
                       }}
-                      className={cn('rounded-lg px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500', activeSection === section.id ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white')}>{section.label}</button>
+                      className={cn('rounded-lg px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', activeSection === section.id ? 'bg-blue-50 text-primary dark:bg-blue-950/40 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white')}>{section.label}</button>
                   ))}
                 </div>
               </div>
-              <div id={`${tabPrefix}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${activeSection}`} tabIndex={0} className="p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 sm:p-7">
+              <div id={`${tabPrefix}-panel`} role="tabpanel" aria-labelledby={`${tabPrefix}-${activeSection}`} tabIndex={0} className="p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:p-7">
                 <AnimatePresence mode="wait"><motion.div key={activeSection} variants={contentSwap} initial="initial" animate="animate" exit="exit" transition={transition}>{sectionContent()}</motion.div></AnimatePresence>
               </div>
             </section>

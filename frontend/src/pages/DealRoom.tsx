@@ -93,7 +93,7 @@ export const DealRoom = () => {
             <button
               type="button"
               onClick={() => setTab(nextTabForProgress(progress.currentIndex))}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-[#2f6fbf] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-[#1e3a8a] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25"
             >
               Continue
               <ArrowRight className="h-4 w-4" />

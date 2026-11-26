@@ -14,8 +14,9 @@ const BUYER = {
   password: 'Vikram@2026',
   name: 'Vikram Malhotra',
   organization: 'Tata Innovation Labs',
-  domains: ['Healthcare', 'AI', 'IoT', 'Energy', 'Robotics'],
-  interests: ['Edge AI', 'Medical devices', 'Wearables', 'Smart sensors', 'Wireless'],
+  // Keep focus narrow so Discover match % varies by patent (not flat 88% on everything)
+  domains: ['Healthcare', 'AI'],
+  interests: ['Medical devices', 'Wearables', 'Edge AI', 'Biomechanics'],
 };
 const LEGACY_EMAILS = ['buyer.demo@mietjammu.in', 'buyer@patentbridge.com'];
 

@@ -282,7 +282,7 @@ export const Marketplace = () => {
 
   return (
     <div className="relative min-h-[calc(100dvh-4rem)] bg-zinc-50 dark:bg-zinc-950">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_36%_at_50%_0%,rgba(57,139,232,0.16),transparent_64%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_36%_at_50%_0%,rgba(29,78,216,0.16),transparent_64%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(24,40,60,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(24,40,60,0.04)_1px,transparent_1px)] bg-[size:42px_42px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
       <section
         className={cn(
@@ -361,7 +361,7 @@ export const Marketplace = () => {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ ...transition, delay: 0.1 + i * 0.05 }}
-                    whileHover={{ scale: 1.04, borderColor: 'rgba(57,139,232,0.45)' }}
+                    whileHover={{ scale: 1.04, borderColor: 'rgba(29,78,216,0.45)' }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => runAiSearch(s.query)}
                     className="px-3.5 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-primary transition-colors"
