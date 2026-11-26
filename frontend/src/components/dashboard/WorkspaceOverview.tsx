@@ -555,7 +555,7 @@ export const WorkspaceOverview = () => {
                               <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">{inferAssetType(ip)}</p>
                               <p className="mt-1 text-xs font-medium text-primary dark:text-blue-400">
                                 {typeof ip.analysis?.commercialPotentialScore === 'number'
-                                  ? getCommercialPotentialLabel(ip.analysis.commercialPotentialScore)
+                                  ? `${Math.round(ip.analysis.commercialPotentialScore)}/100 · ${getCommercialPotentialLabel(ip.analysis.commercialPotentialScore)}`
                                   : 'Not assessed'}
                               </p>
                             </div>

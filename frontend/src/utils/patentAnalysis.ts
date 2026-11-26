@@ -22,11 +22,12 @@ export function getMarketReadiness(score: number) {
   };
 }
 
-/** Plain-language commercial potential for list views (avoids raw "Score 87"). */
+/** Plain-language commercial potential for list views (pair with the numeric score). */
 export function getCommercialPotentialLabel(score: number): string {
-  if (score >= 85) return 'High licensing potential';
-  if (score >= 70) return 'Good licensing potential';
-  if (score >= 55) return 'Emerging potential';
+  if (score >= 82) return 'High licensing potential';
+  if (score >= 68) return 'Good licensing potential';
+  if (score >= 52) return 'Emerging potential';
+  if (score >= 38) return 'Niche potential';
   return 'Early-stage potential';
 }
 
