@@ -114,13 +114,17 @@ export const IPDetailView: React.FC<IPDetailViewProps> = ({
   const cardClass = 'rounded-2xl border border-slate-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900';
   const actionClass = 'w-full gap-2 rounded-xl bg-primary px-5 py-3 text-sm text-white shadow-none hover:bg-[#1e3a8a]';
   const accessState = accessPending ? 'Approval pending' : accessRejected ? 'Access declined' : isUnlocked ? viewerLabel || 'Full access' : 'Preview';
-  const publicLines: string[] = Array.isArray(patent.publicLines) && patent.publicLines.length
-    ? patent.publicLines.slice(0, 3)
-    : [
-        'This technology is listed for evaluation.',
-        'Commercial score and indicative value are shown here.',
-        'Invention and inventor are shared after an NDA.',
-      ];
+  const publicLines: string[] = (
+    Array.isArray(patent.publicLines) && patent.publicLines.length
+      ? patent.publicLines
+      : Array.isArray(patent.publicSummary) && patent.publicSummary.length
+        ? patent.publicSummary
+        : [
+            'This technology is listed for evaluation.',
+            'Commercial score and indicative value are shown here.',
+            'Invention and inventor are shared after an NDA.',
+          ]
+  ).filter(Boolean).slice(0, 3);
   const licenseOnly = patent.isForLicense && !patent.isForSale;
 
   const unlockCta = accessPending ? (
